@@ -41,6 +41,7 @@ services:
     volumes:
       - ./keys:/app/keys
       - ./uploads:/app/uploads
+      - ./tmp-uploads:/app/tmp-uploads
 
 volumes:
   db_data:

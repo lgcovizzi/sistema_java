@@ -20,9 +20,11 @@ public class ImageService {
 
     private static String staticUploadsDir;
 
-    public ImageService(@Value("${app.uploadsDir:uploads}") String uploadsDir) throws IOException {
+    public ImageService(@Value("${app.uploadsDir:uploads}") String uploadsDir,
+                        @Value("${app.uploadsTmpDir:tmp-uploads}") String tmpDir) throws IOException {
         staticUploadsDir = uploadsDir;
         Files.createDirectories(Path.of(staticUploadsDir));
+        Files.createDirectories(Path.of(tmpDir));
     }
 
     public static String processAndStore(String userId, MultipartFile file, Integer x, Integer y, Integer w, Integer h) throws IOException {

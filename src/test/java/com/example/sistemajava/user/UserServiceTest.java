@@ -42,7 +42,7 @@ public class UserServiceTest {
 
         assertEquals(Role.ADMIN, user.getRole());
         assertEquals("hash", user.getPasswordHash());
-        verify(emailService, times(1)).send(eq("a@a.com"), anyString(), contains("/activate?token="));
+        verify(emailService, times(1)).sendUserLimited(eq("a@a.com"), eq("a@a.com"), anyString(), contains("/activate?token="));
     }
 
     @Test

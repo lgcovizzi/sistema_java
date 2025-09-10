@@ -77,7 +77,7 @@ public class UserService {
         verificationTokenRepository.save(token);
 
         String link = frontendBaseUrl + "/activate?token=" + token.getToken();
-        emailService.send(user.getEmail(), "Ative sua conta", "Clique para ativar: " + link);
+        emailService.sendUserLimited(user.getEmail(), user.getEmail(), "Ative sua conta", "Clique para ativar: " + link);
     }
 
     @Transactional
@@ -107,7 +107,7 @@ public class UserService {
         token.setExpiresAt(Instant.now().plus(2, ChronoUnit.HOURS));
         passwordResetTokenRepository.save(token);
         String link = frontendBaseUrl + "/reset-password?token=" + token.getToken();
-        emailService.send(user.getEmail(), "Redefinição de senha", "Use este link: " + link);
+        emailService.sendUserLimited(user.getEmail(), user.getEmail(), "Redefinição de senha", "Use este link: " + link);
     }
 
     @Transactional
@@ -128,7 +128,7 @@ public class UserService {
 
     public void recoverEmailByCpf(String cpf) {
         userRepository.findByCpf(cpf).ifPresent(user -> {
-            emailService.send(user.getEmail(), "Recuperação de email", "Seu email cadastrado é: " + user.getEmail());
+            emailService.sendAnonymousLimited(cpf, user.getEmail(), "Recuperação de email", "Seu email cadastrado é: " + user.getEmail());
         });
     }
 }

@@ -19,6 +19,10 @@ spring:
       port: 6379
   cache:
     type: redis
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 6MB
 
     username: ""
     password: ""
@@ -35,6 +39,8 @@ app:
       secret: "this-is-a-very-long-and-secure-secret-key-change-me-please-1234567890"
       expiration: 3600000 # 1h ms
   frontendBaseUrl: "http://localhost:3000"
+  uploadsDir: "uploads"
+  uploadsTmpDir: "tmp-uploads"
 
 server:
   port: 8080

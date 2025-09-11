@@ -14,6 +14,7 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,20 +77,11 @@ public class AuthService {
                 return LoginResponseDTO.erro("Dados de login inválidos", "Email ou senha não informados");
             }
 
-            // Buscar usuário
-            // TODO: Implementar método findByEmailAndAtivoTrue no UsuarioRepository
-            Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(loginRequest.getEmail());
-            if (usuarioOpt.isEmpty()) {
-                logger.warn("Usuário não encontrado ou inativo: {}", loginRequest.getEmail());
+            // Autenticar usuário (verifica email, senha e se está ativo)
+            Usuario usuario = autenticar(loginRequest.getEmail(), loginRequest.getSenha());
+            if (usuario == null) {
+                logger.warn("Credenciais inválidas para email: {}", loginRequest.getEmail());
                 return LoginResponseDTO.erro("Credenciais inválidas", "Email ou senha incorretos");
-            }
-
-            Usuario usuario = usuarioOpt.get();
-
-            // Verificar se a conta está ativa
-            if (!usuario.getAtivo()) {
-                logger.warn("Tentativa de login com conta inativa: {}", loginRequest.getEmail());
-                return LoginResponseDTO.erro("Conta inativa", "Sua conta foi desativada. Entre em contato com o suporte.");
             }
 
             // TODO: Implementar autenticação Spring Security
@@ -100,11 +92,22 @@ public class AuthService {
             //     )
             // );
 
-            // TODO: Implementar JwtUtil para gerar tokens
-            // String token = jwtUtil.generateToken(usuario);
-            // String refreshToken = jwtUtil.generateRefreshToken(usuario);
-            String token = "temp-token-" + usuario.getId();
-            String refreshToken = "temp-refresh-" + usuario.getId();
+            // Gerar tokens JWT reais
+            // Criar authorities baseadas no papel do usuário
+            List<SimpleGrantedAuthority> authorities = List.of(
+                new SimpleGrantedAuthority("ROLE_" + usuario.getPapel().name())
+            );
+            
+            String token = jwtUtil.generateToken(new org.springframework.security.core.userdetails.User(
+                usuario.getEmail(), 
+                usuario.getSenha(), 
+                authorities
+            ));
+            String refreshToken = jwtUtil.generateRefreshToken(new org.springframework.security.core.userdetails.User(
+                usuario.getEmail(), 
+                usuario.getSenha(), 
+                authorities
+            ));
 
             // TODO: Adicionar campo ultimoLogin na entidade Usuario
             // usuario.setUltimoLogin(LocalDateTime.now());
@@ -678,12 +681,25 @@ public class AuthService {
     @Transactional(readOnly = true)
     public Usuario autenticar(String email, String senha) {
         try {
+            logger.info("Iniciando autenticação para email: {}", email);
             Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
             if (usuarioOpt.isPresent()) {
                 Usuario usuario = usuarioOpt.get();
-                if (passwordEncoder.matches(senha, usuario.getSenha()) && usuario.isAtivo()) {
+                logger.info("Usuário encontrado: {}, ativo: {}", usuario.getEmail(), usuario.isAtivo());
+                logger.info("Senha fornecida: {}", senha);
+                logger.info("Hash no banco: {}", usuario.getSenha());
+                
+                boolean senhaCorreta = passwordEncoder.matches(senha, usuario.getSenha());
+                logger.info("Senha correta: {}", senhaCorreta);
+                
+                if (senhaCorreta && usuario.isAtivo()) {
+                    logger.info("Autenticação bem-sucedida para: {}", email);
                     return usuario;
+                } else {
+                    logger.warn("Falha na autenticação - senha correta: {}, usuário ativo: {}", senhaCorreta, usuario.isAtivo());
                 }
+            } else {
+                logger.warn("Usuário não encontrado para email: {}", email);
             }
             return null;
         } catch (Exception e) {

@@ -134,6 +134,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             "/api/noticias/publicas",
             "/api/email/mailhog-info",
             "/actuator/health",
+            "/error",
             "/resources/",
             "/static/",
             "/css/",
@@ -174,17 +175,22 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         
         // Pular filtro para recursos estáticos específicos que sabemos que não precisam
-        return path.endsWith(".css") || 
-               path.endsWith(".js") || 
-               path.endsWith(".png") || 
-               path.endsWith(".jpg") || 
-               path.endsWith(".jpeg") || 
-               path.endsWith(".gif") || 
-               path.endsWith(".ico") ||
-               path.endsWith(".svg") ||
-               path.endsWith(".woff") ||
-               path.endsWith(".woff2") ||
-               path.endsWith(".ttf") ||
-               path.endsWith(".eot");
+        if (path.endsWith(".css") || 
+            path.endsWith(".js") || 
+            path.endsWith(".png") || 
+            path.endsWith(".jpg") || 
+            path.endsWith(".jpeg") || 
+            path.endsWith(".gif") || 
+            path.endsWith(".ico") ||
+            path.endsWith(".svg") ||
+            path.endsWith(".woff") ||
+            path.endsWith(".woff2") ||
+            path.endsWith(".ttf") ||
+            path.endsWith(".eot")) {
+            return true;
+        }
+        
+        // Pular filtro para endpoints públicos
+        return !requiresAuthentication(path);
     }
 }

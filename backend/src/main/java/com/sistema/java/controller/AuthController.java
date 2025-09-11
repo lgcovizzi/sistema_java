@@ -43,13 +43,17 @@ public class AuthController {
         try {
             logger.info("Tentativa de login para email: {}", loginRequest.getEmail());
             
-            // TODO: Implementar autenticação
-            LoginResponseDTO response = null; // authService.autenticar(loginRequest);
+            // Implementar autenticação
+            LoginResponseDTO response = authService.login(loginRequest);
             
-            logger.info("Login realizado com sucesso para usuário: {} - Papel: {}", 
-                       response.getUsuario().getEmail(), response.getUsuario().getPapel());
-            
-            return ResponseEntity.ok(response);
+            if (response.isSucesso()) {
+                logger.info("Login realizado com sucesso para usuário: {} - Papel: {}", 
+                           response.getUsuario().getEmail(), response.getUsuario().getPapel());
+                return ResponseEntity.ok(response);
+            } else {
+                logger.warn("Falha no login para email: {} - Motivo: {}", loginRequest.getEmail(), response.getMensagem());
+                return ResponseEntity.badRequest().body(response);
+            }
             
         } catch (Exception e) {
             logger.warn("Falha no login para email: {} - Motivo: {}", loginRequest.getEmail(), e.getMessage());

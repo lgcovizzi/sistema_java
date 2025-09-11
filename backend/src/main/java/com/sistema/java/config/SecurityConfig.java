@@ -90,6 +90,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/associado/**").hasAnyRole("ASSOCIADO", "PARCEIRO", "COLABORADOR", "FUNDADOR", "ADMINISTRADOR")
                 .requestMatchers("/pages/associado/**").hasAnyRole("ASSOCIADO", "PARCEIRO", "COLABORADOR", "FUNDADOR", "ADMINISTRADOR")
                 
+                // Endpoints de autenticação que requerem token válido
+                .requestMatchers("/api/auth/me", "/api/auth/logout", "/api/auth/validar-token").hasAnyRole("USUARIO", "ASSOCIADO", "PARCEIRO", "COLABORADOR", "FUNDADOR", "ADMINISTRADOR")
+                
                 // Dashboard e perfil - todos os usuários autenticados (exceto CONVIDADO)
                 .requestMatchers("/api/dashboard/**", "/api/perfil/**").hasAnyRole("USUARIO", "ASSOCIADO", "PARCEIRO", "COLABORADOR", "FUNDADOR", "ADMINISTRADOR")
                 .requestMatchers("/pages/dashboard/**", "/pages/perfil/**").hasAnyRole("USUARIO", "ASSOCIADO", "PARCEIRO", "COLABORADOR", "FUNDADOR", "ADMINISTRADOR")

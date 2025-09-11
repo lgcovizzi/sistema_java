@@ -393,6 +393,51 @@ public class UsuarioService {
     }
 
     /**
+     * Busca usuários com filtros aplicados
+     * 
+     * @param nome Filtro por nome
+     * @param email Filtro por email
+     * @param ativo Filtro por status ativo
+     * @param dataInicio Data de início
+     * @param dataFim Data de fim
+     * @param ordenacao Campo de ordenação
+     * @param direcao Direção da ordenação
+     * @param primeiro Primeiro registro
+     * @param tamanho Tamanho da página
+     * @return Lista de usuários filtrados
+     */
+    @Transactional(readOnly = true)
+    public List<UsuarioDTO> buscarComFiltros(String nome, String email, Boolean ativo, 
+                                           java.util.Date dataInicio, java.util.Date dataFim,
+                                           String ordenacao, String direcao, int primeiro, int tamanho) {
+        // TODO: Implementar busca com filtros usando Criteria API ou Query personalizada
+        // Por enquanto, retorna busca simples
+        return usuarioRepository.findAll()
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Conta usuários com filtros aplicados
+     * 
+     * @param nome Filtro por nome
+     * @param email Filtro por email
+     * @param ativo Filtro por status ativo
+     * @param dataInicio Data de início
+     * @param dataFim Data de fim
+     * @param termoPesquisa Termo de pesquisa
+     * @return Número de usuários que atendem aos filtros
+     */
+    @Transactional(readOnly = true)
+    public long contarComFiltros(String nome, String email, Boolean ativo, 
+                               java.util.Date dataInicio, java.util.Date dataFim, String termoPesquisa) {
+        // TODO: Implementar contagem com filtros usando Criteria API ou Query personalizada
+        // Por enquanto, retorna contagem total
+        return usuarioRepository.count();
+    }
+
+    /**
      * Verifica email do usuário
      * 
      * @param token Token de verificação

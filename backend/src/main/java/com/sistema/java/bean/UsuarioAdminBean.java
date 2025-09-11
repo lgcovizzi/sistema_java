@@ -3,7 +3,7 @@ package com.sistema.java.bean;
 import com.sistema.java.model.dto.UsuarioDTO;
 import com.sistema.java.service.UsuarioService;
 import jakarta.annotation.PostConstruct;
-import jakarta.enterprise.context.ViewScoped;
+import jakarta.faces.view.ViewScoped;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.FacesContext;
 import jakarta.inject.Inject;
@@ -11,6 +11,8 @@ import jakarta.inject.Named;
 import org.springframework.util.StringUtils;
 import org.primefaces.model.LazyDataModel;
 import org.primefaces.model.SortOrder;
+import org.primefaces.model.FilterMeta;
+import org.primefaces.model.SortMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,7 +85,7 @@ public class UsuarioAdminBean implements Serializable {
     private void configurarLazyModel() {
         this.usuariosLazy = new LazyDataModel<UsuarioDTO>() {
             @Override
-            public int count(Map<String, Object> filterBy) {
+            public int count(Map<String, FilterMeta> filterBy) {
                 try {
                     return (int) usuarioService.contarComFiltros(
                         filtroNome, filtroEmail, filtroAtivo, dataInicio, dataFim, termoPesquisa
@@ -95,10 +97,10 @@ public class UsuarioAdminBean implements Serializable {
             }
             
             @Override
-            public List<UsuarioDTO> load(int first, int pageSize, Map<String, Object> sortBy, Map<String, Object> filterBy) {
+            public List<UsuarioDTO> load(int first, int pageSize, Map<String, SortMeta> sortBy, Map<String, FilterMeta> filterBy) {
                 try {
                     int pagina = first / pageSize;
-                    String ordenacao = determinarOrdenacao(sortBy);
+                    String ordenacao = determinarOrdenacaoSortMeta(sortBy);
                     
                     return usuarioService.buscarComFiltros(
                         filtroNome, filtroEmail, filtroAtivo, dataInicio, dataFim, termoPesquisa,
@@ -121,6 +123,19 @@ public class UsuarioAdminBean implements Serializable {
         if (sortBy != null && !sortBy.isEmpty()) {
             String campo = sortBy.keySet().iterator().next();
             SortOrder ordem = (SortOrder) sortBy.get(campo);
+            return campo + (ordem == SortOrder.DESCENDING ? " DESC" : " ASC");
+        }
+        return "dataCriacao DESC";
+    }
+    
+    /**
+     * Determina a ordenação baseada nos parâmetros SortMeta
+     */
+    private String determinarOrdenacaoSortMeta(Map<String, SortMeta> sortBy) {
+        if (sortBy != null && !sortBy.isEmpty()) {
+            String campo = sortBy.keySet().iterator().next();
+            SortMeta sortMeta = sortBy.get(campo);
+            SortOrder ordem = sortMeta.getOrder();
             return campo + (ordem == SortOrder.DESCENDING ? " DESC" : " ASC");
         }
         return "dataCriacao DESC";
@@ -241,7 +256,7 @@ public class UsuarioAdminBean implements Serializable {
                 if (StringUtils.hasText(novaSenha)) {
                     usuarioService.alterarSenha(usuarioEdicao.getId(), novaSenha);
                 }
-                adicionarMensagem("INFO", "Usuário atualizado com sucesso!");
+                adicionarMensagem(FacesMessage.SEVERITY_INFO, "Usuário atualizado com sucesso!");
                 
                 logger.info("Usuário atualizado: {}", usuarioEdicao.getEmail());
             } else {
@@ -252,7 +267,7 @@ public class UsuarioAdminBean implements Serializable {
                 if (StringUtils.hasText(novaSenha)) {
                     usuarioService.alterarSenha(usuarioEdicao.getId(), novaSenha);
                 }
-                adicionarMensagem("INFO", "Usuário criado com sucesso!");
+                adicionarMensagem(FacesMessage.SEVERITY_INFO, "Usuário criado com sucesso!");
                 
                 logger.info("Novo usuário criado: {}", usuarioEdicao.getEmail());
             }
@@ -263,7 +278,7 @@ public class UsuarioAdminBean implements Serializable {
             
         } catch (Exception e) {
             logger.error("Erro ao salvar usuário", e);
-            adicionarMensagem("ERROR", "Erro ao salvar usuário: " + e.getMessage());
+            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao salvar usuário: " + e.getMessage());
         }
     }
     
@@ -272,28 +287,28 @@ public class UsuarioAdminBean implements Serializable {
      */
     private boolean validarUsuario() {
         if (usuarioEdicao.getNome() == null || usuarioEdicao.getNome().trim().isEmpty()) {
-            adicionarMensagem("WARN", "Nome é obrigatório");
+            adicionarMensagem(FacesMessage.SEVERITY_WARN, "Nome é obrigatório");
             return false;
         }
         
         if (usuarioEdicao.getEmail() == null || usuarioEdicao.getEmail().trim().isEmpty()) {
-            adicionarMensagem("WARN", "E-mail é obrigatório");
+            adicionarMensagem(FacesMessage.SEVERITY_WARN, "E-mail é obrigatório");
             return false;
         }
         
         if (!modoEdicao || (novaSenha != null && !novaSenha.trim().isEmpty())) {
             if (novaSenha == null || novaSenha.trim().isEmpty()) {
-                adicionarMensagem("WARN", "Senha é obrigatória");
+                adicionarMensagem(FacesMessage.SEVERITY_WARN, "Senha é obrigatória");
                 return false;
             }
             
             if (novaSenha.length() < 6) {
-                adicionarMensagem("WARN", "Senha deve ter pelo menos 6 caracteres");
+                adicionarMensagem(FacesMessage.SEVERITY_WARN, "Senha deve ter pelo menos 6 caracteres");
                 return false;
             }
             
             if (!novaSenha.equals(senhaConfirmacao)) {
-                adicionarMensagem("WARN", "Senhas não conferem");
+                adicionarMensagem(FacesMessage.SEVERITY_WARN, "Senhas não conferem");
                 return false;
             }
         }
@@ -307,7 +322,7 @@ public class UsuarioAdminBean implements Serializable {
     public void excluirUsuario(UsuarioDTO usuario) {
         try {
             usuarioService.delete(usuario.getId());
-            adicionarMensagem("INFO", "Usuário excluído com sucesso!");
+            adicionarMensagem(FacesMessage.SEVERITY_INFO, "Usuário excluído com sucesso!");
             
             configurarLazyModel();
             carregarEstatisticas();
@@ -316,7 +331,7 @@ public class UsuarioAdminBean implements Serializable {
             
         } catch (Exception e) {
             logger.error("Erro ao excluir usuário: " + usuario.getId(), e);
-            adicionarMensagem("ERROR", "Erro ao excluir usuário: " + e.getMessage());
+            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao excluir usuário: " + e.getMessage());
         }
     }
     
@@ -337,7 +352,7 @@ public class UsuarioAdminBean implements Serializable {
             
         } catch (Exception e) {
             logger.error("Erro ao alterar status do usuário: " + usuario.getId(), e);
-            adicionarMensagem("ERROR", "Erro ao alterar status do usuário");
+            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao alterar status do usuário");
             
             // Reverte a alteração
             usuario.setAtivo(!usuario.getAtivo());
@@ -350,7 +365,7 @@ public class UsuarioAdminBean implements Serializable {
     public void ativarSelecionados() {
         try {
             if (usuariosSelecionados.isEmpty()) {
-                adicionarMensagem("WARN", "Selecione pelo menos um usuário");
+                adicionarMensagem(FacesMessage.SEVERITY_WARN, "Selecione pelo menos um usuário");
                 return;
             }
             
@@ -363,7 +378,7 @@ public class UsuarioAdminBean implements Serializable {
                 usuarioService.updateStatus(id, true);
             }
             
-            adicionarMensagem("INFO", 
+            adicionarMensagem(FacesMessage.SEVERITY_INFO, 
                 usuariosSelecionados.size() + " usuário(s) ativado(s) com sucesso!");
             
             configurarLazyModel();
@@ -374,7 +389,7 @@ public class UsuarioAdminBean implements Serializable {
             
         } catch (Exception e) {
             logger.error("Erro ao ativar usuários selecionados", e);
-            adicionarMensagem("ERROR", "Erro ao ativar usuários selecionados");
+            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao ativar usuários selecionados");
         }
     }
     
@@ -384,7 +399,7 @@ public class UsuarioAdminBean implements Serializable {
     public void desativarSelecionados() {
         try {
             if (usuariosSelecionados.isEmpty()) {
-                adicionarMensagem("WARN", "Selecione pelo menos um usuário");
+                adicionarMensagem(FacesMessage.SEVERITY_WARN, "Selecione pelo menos um usuário");
                 return;
             }
             
@@ -397,7 +412,7 @@ public class UsuarioAdminBean implements Serializable {
                 usuarioService.updateStatus(id, false);
             }
             
-            adicionarMensagem("INFO", 
+            adicionarMensagem(FacesMessage.SEVERITY_INFO, 
                 usuariosSelecionados.size() + " usuário(s) desativado(s) com sucesso!");
             
             configurarLazyModel();
@@ -408,7 +423,7 @@ public class UsuarioAdminBean implements Serializable {
             
         } catch (Exception e) {
             logger.error("Erro ao desativar usuários selecionados", e);
-            adicionarMensagem("ERROR", "Erro ao desativar usuários selecionados");
+            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao desativar usuários selecionados");
         }
     }
     
@@ -418,7 +433,7 @@ public class UsuarioAdminBean implements Serializable {
     public void excluirSelecionados() {
         try {
             if (usuariosSelecionados.isEmpty()) {
-                adicionarMensagem("WARN", "Selecione pelo menos um usuário");
+                adicionarMensagem(FacesMessage.SEVERITY_WARN, "Selecione pelo menos um usuário");
                 return;
             }
             
@@ -431,7 +446,7 @@ public class UsuarioAdminBean implements Serializable {
                 usuarioService.delete(id);
             }
             
-            adicionarMensagem("INFO", 
+            adicionarMensagem(FacesMessage.SEVERITY_INFO, 
                 usuariosSelecionados.size() + " usuário(s) excluído(s) com sucesso!");
             
             configurarLazyModel();
@@ -442,16 +457,19 @@ public class UsuarioAdminBean implements Serializable {
             
         } catch (Exception e) {
             logger.error("Erro ao excluir usuários selecionados", e);
-            adicionarMensagem("ERROR", "Erro ao excluir usuários selecionados");
+            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao excluir usuários selecionados");
         }
     }
     
     /**
      * Adiciona mensagem ao contexto JSF
      */
-    private void adicionarMensagem(String severity, String mensagem) {
-        // TODO: Implementar sistema de mensagens JSF adequado
-        // Por enquanto, apenas log das mensagens
+    private void adicionarMensagem(FacesMessage.Severity severity, String mensagem) {
+        FacesContext context = FacesContext.getCurrentInstance();
+        if (context != null) {
+            FacesMessage message = new FacesMessage(severity, mensagem, null);
+            context.addMessage(null, message);
+        }
         logger.info("{}: {}", severity, mensagem);
     }
     

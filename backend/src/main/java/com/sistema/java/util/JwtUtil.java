@@ -153,11 +153,11 @@ public class JwtUtil {
         logger.debug("Criando token JWT para usuário: {} com validade até: {}", subject, expiryDate);
         
         return Jwts.builder()
-            .claims(claims)
-            .subject(subject)
-            .issuer(issuer)
-            .issuedAt(now)
-            .expiration(expiryDate)
+            .setClaims(claims)
+            .setSubject(subject)
+            .setIssuer(issuer)
+            .setIssuedAt(now)
+            .setExpiration(expiryDate)
             .signWith(getSigningKey())
             .compact();
     }

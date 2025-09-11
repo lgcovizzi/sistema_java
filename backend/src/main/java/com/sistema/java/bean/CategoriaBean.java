@@ -3,7 +3,7 @@ package com.sistema.java.bean;
 import com.sistema.java.model.dto.CategoriaDTO;
 import com.sistema.java.service.CategoriaService;
 import jakarta.annotation.PostConstruct;
-import jakarta.enterprise.context.ViewScoped;
+import jakarta.faces.view.ViewScoped;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.FacesContext;
 import jakarta.inject.Inject;

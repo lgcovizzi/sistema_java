@@ -1,5 +1,7 @@
 package com.sistema.java.model;
 
+import com.sistema.java.model.entity.Comentario;
+import com.sistema.java.model.entity.Noticia;
 import com.sistema.java.model.enums.PapelUsuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;

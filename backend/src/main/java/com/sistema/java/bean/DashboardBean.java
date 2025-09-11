@@ -9,7 +9,7 @@ import com.sistema.java.service.ComentarioService;
 import com.sistema.java.service.NoticiaService;
 import com.sistema.java.service.UsuarioService;
 import jakarta.annotation.PostConstruct;
-import jakarta.enterprise.context.ViewScoped;
+import jakarta.faces.view.ViewScoped;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.FacesContext;
 import jakarta.inject.Inject;

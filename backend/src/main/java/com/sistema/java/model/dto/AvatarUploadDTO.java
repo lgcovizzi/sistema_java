@@ -1,7 +1,7 @@
 package com.sistema.java.model.dto;
 
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * DTO para upload e processamento de avatar

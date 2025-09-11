@@ -49,6 +49,14 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByCpf(String cpf);
 
     /**
+     * Busca usuários por status ativo ordenados por nome
+     * 
+     * @param ativo Status ativo
+     * @return Lista de usuários ordenados por nome
+     */
+    List<Usuario> findByAtivoOrderByNome(boolean ativo);
+
+    /**
      * Busca usuário por token de verificação
      * 
      * @param token Token de verificação

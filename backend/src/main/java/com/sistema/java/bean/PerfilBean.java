@@ -60,11 +60,11 @@ public class PerfilBean implements Serializable {
         Usuario usuarioLogado = authService.getUsuarioLogado();
         if (usuarioLogado != null) {
             // Recarregar dados atualizados do banco
-            UsuarioDTO dto = usuarioService.findById(usuarioLogado.getId());
-            if (dto != null) {
-                this.usuario = convertToEntity(dto);
-                this.usuarioOriginal = cloneUsuario(this.usuario);
-            }
+            UsuarioDTO dto = usuarioService.findById(usuarioLogado.getId()).orElse(null);
+             if (dto != null) {
+                 this.usuario = convertToEntity(dto);
+                 this.usuarioOriginal = cloneUsuario(usuario);
+             }
         } else {
             addErrorMessage("Usuário não encontrado. Faça login novamente.");
         }

@@ -280,4 +280,20 @@ public class JwtUtil {
         
         return normalizedTokenRole.equals(normalizedRole);
     }
+    
+    /**
+     * Gera token para verificação de email
+     * Referência: Sistema de Email com MailHog - project_rules.md
+     * 
+     * @param usuario Usuário para gerar o token
+     * @return Token de verificação de email
+     */
+    public String generateEmailVerificationToken(com.sistema.java.model.entity.Usuario usuario) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("email", usuario.getEmail());
+        claims.put("type", "email_verification");
+        claims.put("userId", usuario.getId());
+        
+        return createToken(claims, usuario.getEmail(), JWT_TOKEN_VALIDITY);
+    }
 }

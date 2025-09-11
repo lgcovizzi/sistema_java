@@ -571,6 +571,16 @@ public class AuthService {
     }
 
     /**
+     * Verifica se o usuário está logado
+     * Referência: Controle de Acesso - project_rules.md
+     * 
+     * @return true se estiver logado, false caso contrário
+     */
+    public boolean isLoggedIn() {
+        return getUsuarioLogado() != null;
+    }
+
+    /**
      * Verifica se o usuário pode moderar comentários
      * Referência: Controle de Acesso - project_rules.md
      * 

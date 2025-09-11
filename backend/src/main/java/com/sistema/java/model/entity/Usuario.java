@@ -88,6 +88,9 @@ public class Usuario {
     @Column(name = "data_atualizacao", nullable = false)
     private LocalDateTime dataAtualizacao;
     
+    @Column(name = "ultimo_login")
+    private LocalDateTime ultimoLogin;
+    
     // Relacionamentos
     @OneToMany(mappedBy = "autor", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Noticia> noticias;
@@ -231,6 +234,33 @@ public class Usuario {
         return emailVerificado != null && emailVerificado;
     }
     
+    /**
+     * Método para verificar se o usuário pode gerenciar outros usuários
+     * Referência: Controle de Acesso - project_rules.md
+     */
+    public boolean canManageUsers() {
+        // TODO: Implementar verificação de permissão para gerenciar usuários
+        return papel == PapelUsuario.ADMINISTRADOR || papel == PapelUsuario.FUNDADOR;
+    }
+    
+    /**
+     * Método para verificar se o usuário pode gerenciar conteúdo
+     * Referência: Controle de Acesso - project_rules.md
+     */
+    public boolean canManageContent() {
+        // TODO: Implementar verificação de permissão para gerenciar conteúdo
+        return papel == PapelUsuario.ADMINISTRADOR || papel == PapelUsuario.FUNDADOR || papel == PapelUsuario.COLABORADOR;
+    }
+    
+    /**
+     * Método para verificar se o usuário pode acessar o dashboard
+     * Referência: Controle de Acesso - project_rules.md
+     */
+    public boolean canAccessDashboard() {
+        // TODO: Implementar verificação de acesso ao dashboard
+        return papel != PapelUsuario.CONVIDADO;
+    }
+    
     public LocalDateTime getDataCriacao() {
         return dataCriacao;
     }
@@ -245,6 +275,14 @@ public class Usuario {
     
     public void setDataAtualizacao(LocalDateTime dataAtualizacao) {
         this.dataAtualizacao = dataAtualizacao;
+    }
+    
+    public LocalDateTime getUltimoLogin() {
+        return ultimoLogin;
+    }
+    
+    public void setUltimoLogin(LocalDateTime ultimoLogin) {
+        this.ultimoLogin = ultimoLogin;
     }
     
     public List<Noticia> getNoticias() {

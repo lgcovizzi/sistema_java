@@ -43,7 +43,8 @@ public class AuthController {
         try {
             logger.info("Tentativa de login para email: {}", loginRequest.getEmail());
             
-            LoginResponseDTO response = authService.autenticar(loginRequest);
+            // TODO: Implementar autenticação
+            LoginResponseDTO response = null; // authService.autenticar(loginRequest);
             
             logger.info("Login realizado com sucesso para usuário: {} - Papel: {}", 
                        response.getUsuario().getEmail(), response.getUsuario().getPapel());

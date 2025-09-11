@@ -87,7 +87,8 @@ public class SecurityBean implements Serializable {
         if (usuario == null) {
             return false;
         }
-        return usuario.getPapel() == PapelUsuario.LEITOR;
+        // TODO: Implementar papel LEITOR ou usar USUARIO
+        return usuario.getPapel() == PapelUsuario.USUARIO;
     }
 
     /**

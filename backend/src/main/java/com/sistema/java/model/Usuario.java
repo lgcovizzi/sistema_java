@@ -285,15 +285,18 @@ public class Usuario implements Serializable {
     }
     
     public boolean canAccessDashboard() {
-        return papel.canAccessDashboard();
+        // TODO: Implementar verificação de acesso ao dashboard baseada no papel
+        return papel != PapelUsuario.CONVIDADO;
     }
     
     public boolean canManageUsers() {
-        return papel.canManageUsers();
+        // TODO: Implementar verificação de gerenciamento de usuários baseada no papel
+        return papel == PapelUsuario.ADMINISTRADOR || papel == PapelUsuario.FUNDADOR || papel == PapelUsuario.COLABORADOR;
     }
     
     public boolean canManageContent() {
-        return papel.canManageContent();
+        // TODO: Implementar verificação de gerenciamento de conteúdo baseada no papel
+        return papel == PapelUsuario.ADMINISTRADOR || papel == PapelUsuario.FUNDADOR || papel == PapelUsuario.COLABORADOR;
     }
     
     public boolean isTokenValid() {

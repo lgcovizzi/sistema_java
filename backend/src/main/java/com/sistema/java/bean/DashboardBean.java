@@ -277,7 +277,7 @@ public class DashboardBean implements Serializable {
     public String getDescricaoPapel() {
         if (usuarioLogado == null) return "";
         
-        return switch (usuarioLogado.getRole()) {
+        return switch (usuarioLogado.getPapel()) {
             case ADMINISTRADOR -> "Administrador do Sistema";
             case FUNDADOR -> "Fundador";
             case COLABORADOR -> "Colaborador";

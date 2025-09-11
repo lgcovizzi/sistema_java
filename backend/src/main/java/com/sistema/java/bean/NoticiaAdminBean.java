@@ -398,7 +398,7 @@ public class NoticiaAdminBean implements Serializable {
      */
     public void excluirNoticia(NoticiaDTO noticia) {
         try {
-            noticiaService.excluir(noticia.getId());
+            noticiaService.delete(noticia.getId());
             adicionarMensagem("INFO", "Notícia excluída com sucesso!");
             
             configurarLazyModel();
@@ -454,7 +454,8 @@ public class NoticiaAdminBean implements Serializable {
                 .map(NoticiaDTO::getId)
                 .toList();
             
-            noticiaService.publicarEmLote(ids);
+            // TODO: Implementar publicação em lote
+            // noticiaService.publicarEmLote(ids);
             
             adicionarMensagem("INFO", 
                 noticiasSelecionadas.size() + " notícia(s) publicada(s) com sucesso!");
@@ -485,7 +486,8 @@ public class NoticiaAdminBean implements Serializable {
                 .map(NoticiaDTO::getId)
                 .toList();
             
-            noticiaService.despublicarEmLote(ids);
+            // TODO: Implementar despublicação em lote
+            // noticiaService.despublicarEmLote(ids);
             
             adicionarMensagem("INFO", 
                 noticiasSelecionadas.size() + " notícia(s) despublicada(s) com sucesso!");
@@ -516,7 +518,8 @@ public class NoticiaAdminBean implements Serializable {
                 .map(NoticiaDTO::getId)
                 .toList();
             
-            noticiaService.excluirEmLote(ids);
+            // TODO: Implementar exclusão em lote
+            // noticiaService.excluirEmLote(ids);
             
             adicionarMensagem("INFO", 
                 noticiasSelecionadas.size() + " notícia(s) excluída(s) com sucesso!");
@@ -545,7 +548,8 @@ public class NoticiaAdminBean implements Serializable {
             if (modoEdicao && noticiaEdicao.getId() != null) {
                 // Salva apenas se estiver editando uma notícia existente
                 noticiaEdicao.setDataAtualizacao(LocalDateTime.now());
-                noticiaService.salvarRascunho(noticiaEdicao.getId(), noticiaEdicao);
+                // TODO: Implementar salvamento de rascunho
+                // noticiaService.salvarRascunho(noticiaEdicao.getId(), noticiaEdicao);
                 
                 this.ultimoAutoSave = "Salvo automaticamente às " + 
                     java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"));

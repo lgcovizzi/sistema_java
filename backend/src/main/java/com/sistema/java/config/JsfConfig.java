@@ -16,7 +16,8 @@ import java.util.Map;
  * @author Sistema Java
  * @version 1.0
  */
-@Configuration
+// Temporariamente desabilitado para executar apenas como API REST
+// @Configuration
 public class JsfConfig implements ServletContextAware {
 
     private ServletContext servletContext;
@@ -43,7 +44,7 @@ public class JsfConfig implements ServletContextAware {
     /**
      * Registra o FacesServlet no Spring Boot
      */
-    @Bean
+    // @Bean
     public ServletRegistrationBean<FacesServlet> facesServletRegistration() {
         ServletRegistrationBean<FacesServlet> registration = new ServletRegistrationBean<>(
             new FacesServlet(), "*.xhtml");

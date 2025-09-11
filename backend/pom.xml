@@ -54,7 +54,8 @@
 		
 
 
-		<!-- JSF Implementation -->
+		<!-- JSF Implementation - TEMPORARIAMENTE DESABILITADO -->
+		<!--
 		<dependency>
 			<groupId>org.apache.myfaces.core</groupId>
 			<artifactId>myfaces-impl</artifactId>
@@ -67,7 +68,6 @@
 			<version>${myfaces.version}</version>
 		</dependency>
 
-		<!-- PrimeFaces -->
 		<dependency>
 			<groupId>org.primefaces</groupId>
 			<artifactId>primefaces</artifactId>
@@ -81,12 +81,12 @@
 			<version>${primefaces.extensions.version}</version>
 		</dependency>
 
-		<!-- OmniFaces -->
 		<dependency>
 			<groupId>org.omnifaces</groupId>
 			<artifactId>omnifaces</artifactId>
 			<version>${omnifaces.version}</version>
 		</dependency>
+		-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
@@ -114,11 +114,7 @@
 			<version>2.0.1</version>
 		</dependency>
 		
-		<dependency>
-			<groupId>jakarta.faces</groupId>
-			<artifactId>jakarta.faces-api</artifactId>
-			<version>4.0.1</version>
-		</dependency>
+
 		
 		<!-- Spring Security -->
 		<dependency>

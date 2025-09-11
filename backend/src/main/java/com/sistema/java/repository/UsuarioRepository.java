@@ -273,8 +273,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
      */
     @Modifying
     @Transactional
-    @Query("UPDATE Usuario u SET u.ultimoAcesso = :ultimoAcesso WHERE u.id = :id")
-    int updateUltimoAcessoById(@Param("id") Long id, @Param("ultimoAcesso") LocalDateTime ultimoAcesso);
+    @Query("UPDATE Usuario u SET u.ultimoLogin = :ultimoLogin WHERE u.id = :id")
+    int updateUltimoLoginById(@Param("id") Long id, @Param("ultimoLogin") LocalDateTime ultimoLogin);
 
     /**
      * Limpa tokens expirados

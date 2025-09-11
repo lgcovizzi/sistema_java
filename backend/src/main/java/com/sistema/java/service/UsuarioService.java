@@ -458,12 +458,12 @@ public class UsuarioService {
     }
 
     /**
-     * Atualiza último acesso do usuário
+     * Atualiza último login do usuário
      * 
      * @param id ID do usuário
      */
-    public void atualizarUltimoAcesso(Long id) {
-        usuarioRepository.updateUltimoAcessoById(id, LocalDateTime.now());
+    public void atualizarUltimoLogin(Long id) {
+        usuarioRepository.updateUltimoLoginById(id, LocalDateTime.now());
     }
 
     /**

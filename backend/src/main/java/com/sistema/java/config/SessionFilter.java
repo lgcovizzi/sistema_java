@@ -51,8 +51,8 @@ public class SessionFilter implements Filter {
                         Usuario usuarioAtualizado = usuarioAtual.get();
                         session.setAttribute("usuarioLogado", usuarioAtualizado);
                         
-                        // Atualiza último acesso
-                        usuarioService.atualizarUltimoAcesso(usuarioAtualizado.getId());
+                        // Atualiza último login
+                        usuarioService.atualizarUltimoLogin(usuarioAtualizado.getId());
                         
                         // Define atributos úteis para as páginas
                         httpRequest.setAttribute("usuarioLogado", usuarioAtualizado);

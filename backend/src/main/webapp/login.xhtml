@@ -1,10 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:f="http://xmlns.jcp.org/jsf/core"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
-      xmlns:p="http://primefaces.org/ui">
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
 
+<!-- Referência: Sistema de Login e Autenticação - project_rules.md -->
 <ui:composition template="/WEB-INF/templates/template.xhtml">
     
     <ui:define name="title">
@@ -12,31 +15,40 @@
     </ui:define>
     
     <ui:define name="css">
-        <style type="text/css">
+        <style>
             .login-container {
+                min-height: 70vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 2rem 0;
+            }
+            
+            .login-card {
+                background: var(--card-background);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                box-shadow: var(--shadow-lg);
+                overflow: hidden;
                 max-width: 400px;
-                margin: 3rem auto;
-                padding: 2rem;
-                background: white;
-                border-radius: 10px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                width: 100%;
             }
             
             .login-header {
+                background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+                color: white;
+                padding: 2rem;
                 text-align: center;
-                margin-bottom: 2rem;
             }
             
-            .login-title {
-                font-size: 2rem;
-                font-weight: bold;
-                color: #1e3a8a;
-                margin-bottom: 0.5rem;
+            .login-header h2 {
+                margin: 0;
+                font-size: 1.5rem;
+                font-weight: 600;
             }
             
-            .login-subtitle {
-                color: #6b7280;
-                font-size: 1rem;
+            .login-body {
+                padding: 2rem;
             }
             
             .form-group {
@@ -46,15 +58,75 @@
             .form-label {
                 display: block;
                 margin-bottom: 0.5rem;
-                font-weight: 600;
-                color: #374151;
+                font-weight: 500;
+                color: var(--text-primary);
             }
             
-            .login-actions {
+            .form-control {
+                width: 100%;
+                padding: 0.75rem;
+                border: 1px solid var(--border-color);
+                border-radius: 6px;
+                background: var(--input-background);
+                color: var(--text-primary);
+                font-size: 1rem;
+                transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            }
+            
+            .form-control:focus {
+                outline: none;
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+            
+            .btn-login {
+                width: 100%;
+                padding: 0.75rem;
+                background: var(--primary-color);
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 1rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+            }
+            
+            .btn-login:hover {
+                background: var(--primary-hover);
+            }
+            
+            .checkbox-group {
                 display: flex;
-                flex-direction: column;
-                gap: 1rem;
-                margin-top: 2rem;
+                align-items: center;
+                gap: 0.5rem;
+                margin-bottom: 1.5rem;
+            }
+            
+            .divider {
+                margin: 1.5rem 0;
+                border: none;
+                border-top: 1px solid var(--border-color);
+            }
+            
+            .login-links {
+                text-align: center;
+            }
+            
+            .login-links a {
+                color: var(--primary-color);
+                text-decoration: none;
+                font-weight: 500;
+            }
+            
+            .login-links a:hover {
+                text-decoration: underline;
+            }
+            
+            .error-message {
+                color: var(--error-color);
+                font-size: 0.875rem;
+                margin-top: 0.25rem;
             }
             
             .register-link {
@@ -104,7 +176,14 @@
             
             @media (max-width: 768px) {
                 .login-container {
-                    margin: 1rem;
+                    padding: 1rem;
+                }
+                
+                .login-header {
+                    padding: 1.5rem;
+                }
+                
+                .login-body {
                     padding: 1.5rem;
                 }
                 
@@ -118,59 +197,80 @@
     
     <ui:define name="content">
         <div class="login-container">
-            <!-- Cabeçalho -->
-            <div class="login-header">
-                <h1 class="login-title">Entrar</h1>
-                <p class="login-subtitle">Acesse sua conta</p>
+            <div class="login-card" rendered="#{!authBean.mostrarFormularioRegistro}">
+                <div class="login-header">
+                    <i class="fas fa-sign-in-alt fa-2x mb-3"></i>
+                    <h2>Entrar no Sistema</h2>
+                    <p class="mb-0 opacity-90">Acesse sua conta para continuar</p>
+                </div>
+                
+                <div class="login-body">
+                    <h:form id="loginForm">
+                        <div class="form-group">
+                            <label for="email" class="form-label">
+                                <i class="fas fa-envelope"></i> Email
+                            </label>
+                            <p:inputText id="email" 
+                                       value="#{authBean.emailLogin}" 
+                                       styleClass="form-control" 
+                                       placeholder="Digite seu email"
+                                       required="true"
+                                       requiredMessage="Email é obrigatório"
+                                       validatorMessage="Email inválido">
+                                <f:validateRegex pattern="^[\w\.-]+@[\w\.-]+\.[a-zA-Z]{2,}$"/>
+                            </p:inputText>
+                            <p:message for="email" styleClass="error-message"/>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="senha" class="form-label">
+                                <i class="fas fa-lock"></i> Senha
+                            </label>
+                            <p:password id="senha" 
+                                      value="#{authBean.senhaLogin}" 
+                                      styleClass="form-control" 
+                                      placeholder="Digite sua senha"
+                                      required="true"
+                                      requiredMessage="Senha é obrigatória"
+                                      feedback="false"/>
+                            <p:message for="senha" styleClass="error-message"/>
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <p:selectBooleanCheckbox id="lembrarMe" 
+                                                   value="#{authBean.lembrarMe}"/>
+                            <label for="lembrarMe">Lembrar-me neste dispositivo</label>
+                        </div>
+                        
+                        <p:commandButton value="Entrar" 
+                                       action="#{authBean.login}"
+                                       styleClass="btn-login"
+                                       update="loginForm"
+                                       icon="fas fa-sign-in-alt"
+                                       iconPos="left"/>
+                    </h:form>
+                    
+                    <hr class="divider"/>
+                    
+                    <div class="login-links">
+                        <p class="mb-3">
+                            <h:link outcome="esqueci-senha">
+                                <i class="fas fa-question-circle"></i> Esqueci minha senha
+                            </h:link>
+                        </p>
+                        <p class="mb-0">
+                            Não tem uma conta? 
+                            <p:commandButton value="Criar conta" 
+                                            action="#{authBean.alternarFormularioRegistro}"
+                                            styleClass="btn btn-outline-primary"
+                                            update="@form"
+                                            process="@this"/>
+                        </p>
+                    </div>
+                </div>
             </div>
             
-            <!-- Formulário de Login -->
-            <h:form id="loginForm" rendered="#{!authBean.mostrarFormularioRegistro}">
-                <div class="form-group">
-                    <label class="form-label" for="email">Email</label>
-                    <p:inputText id="email" 
-                                value="#{authBean.emailLogin}"
-                                placeholder="Digite seu email"
-                                required="true"
-                                requiredMessage="Email é obrigatório"
-                                styleClass="form-control"
-                                style="width: 100%"/>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label" for="senha">Senha</label>
-                    <p:password id="senha" 
-                               value="#{authBean.senhaLogin}"
-                               placeholder="Digite sua senha"
-                               required="true"
-                               requiredMessage="Senha é obrigatória"
-                               feedback="false"
-                               styleClass="form-control"
-                               style="width: 100%"/>
-                </div>
-                
-                <div class="login-actions">
-                    <p:commandButton value="Entrar" 
-                                    action="#{authBean.login}"
-                                    styleClass="btn btn-primary"
-                                    style="width: 100%; padding: 0.75rem;"
-                                    update="loginForm"/>
-                </div>
-                
-                <div class="forgot-password">
-                    <h:link outcome="esqueci-senha" value="Esqueci minha senha"/>
-                </div>
-            </h:form>
-            
-            <!-- Link para Registro -->
-            <div class="register-link" rendered="#{!authBean.mostrarFormularioRegistro}">
-                <p>Não tem uma conta?</p>
-                <p:commandButton value="Criar conta" 
-                                action="#{authBean.alternarFormularioRegistro}"
-                                styleClass="btn btn-outline-primary"
-                                update="@form"
-                                process="@this"/>
-            </div>
+
             
             <!-- Formulário de Registro -->
             <div class="register-form" rendered="#{authBean.mostrarFormularioRegistro}">
@@ -298,6 +398,13 @@
                 </h:form>
             </div>
         </div>
+        
+        <!-- Redirect authenticated users -->
+        <c:if test="#{authBean.authenticated}">
+            <f:metadata>
+                <f:event type="preRenderView" listener="#{authBean.redirectToDashboard}"/>
+            </f:metadata>
+        </c:if>
     </ui:define>
     
 </ui:composition>

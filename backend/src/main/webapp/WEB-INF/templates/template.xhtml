@@ -3,7 +3,8 @@
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:f="http://xmlns.jcp.org/jsf/core"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
-      xmlns:p="http://primefaces.org/ui">
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
 
 <h:head>
     <meta charset="UTF-8"/>
@@ -18,102 +19,204 @@
     <meta name="description" content="Sistema de notícias desenvolvido com Spring Boot e JSF"/>
     <meta name="keywords" content="notícias, sistema, java, spring boot, jsf, primefaces"/>
     <meta name="author" content="Sistema Java"/>
+    <meta name="theme-color" content="#1e3a8a"/>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="#{request.contextPath}/resources/images/favicon.ico"/>
     
-    <!-- CSS customizado -->
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+    
+    <!-- CSS dos temas -->
+    <h:outputStylesheet name="css/themes/light-theme.css"/>
+    <h:outputStylesheet name="css/themes/dark-theme.css"/>
     <h:outputStylesheet name="css/custom.css"/>
     
     <!-- CSS adicional da página -->
     <ui:insert name="css"/>
+    
+    <!-- Script de tema (carregamento imediato) -->
+    <script>
+        // Aplicação imediata do tema para evitar flash
+        (function() {
+            const THEME_KEY = 'sistema-java-theme';
+            let savedTheme = 'auto';
+            try {
+                savedTheme = localStorage.getItem(THEME_KEY) || 'auto';
+            } catch (e) {}
+            
+            const html = document.documentElement;
+            html.classList.remove('light-theme', 'dark-theme');
+            
+            if (savedTheme === 'auto') {
+                const systemTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                html.classList.add(systemTheme + '-theme');
+            } else {
+                html.classList.add(savedTheme + '-theme');
+            }
+        })();
+    </script>
 </h:head>
 
 <h:body>
     <!-- Header -->
-    <header class="main-header">
-        <div class="container">
-            <nav class="navbar navbar-expand-lg">
-                <h:link outcome="home" styleClass="navbar-brand">
+    <header class="header sistema-header">
+        <div class="navbar">
+            <div class="sistema-logo">
+                <h:link outcome="home" styleClass="logo">
+                    <i class="fas fa-newspaper"></i>
                     <h:outputText value="#{applicationBean.applicationName}"/>
                 </h:link>
+            </div>
+            
+            <nav class="sistema-nav">
+                <ul class="nav-links">
+                    <li>
+                        <h:link outcome="home">
+                            <i class="fas fa-home"></i> Início
+                        </h:link>
+                    </li>
+                    <li>
+                        <h:link outcome="noticias/lista">
+                            <i class="fas fa-newspaper"></i> Notícias
+                        </h:link>
+                    </li>
+                    <c:if test="#{authBean.authenticated}">
+                        <li>
+                            <h:link outcome="dashboard">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </h:link>
+                        </li>
+                        <c:if test="#{authBean.hasRole('ADMINISTRADOR') or authBean.hasRole('COLABORADOR')}">
+                            <li>
+                                <h:link outcome="admin/noticias">
+                                    <i class="fas fa-cog"></i> Admin
+                                </h:link>
+                            </li>
+                        </c:if>
+                    </c:if>
+                </ul>
                 
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" 
-                        data-bs-target="#navbarNav" aria-controls="navbarNav" 
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item">
-                            <h:link outcome="home" styleClass="nav-link">
-                                <i class="pi pi-home"></i> Início
-                            </h:link>
-                        </li>
-                        <li class="nav-item">
-                            <h:link outcome="noticias" styleClass="nav-link">
-                                <i class="pi pi-file-edit"></i> Notícias
-                            </h:link>
-                        </li>
-                        <li class="nav-item">
-                            <h:link outcome="admin" styleClass="nav-link">
-                                <i class="pi pi-cog"></i> Administração
-                            </h:link>
-                        </li>
-                    </ul>
+                <div class="sistema-user-menu">
+                    <!-- Theme Switcher -->
+                    <div class="theme-switcher">
+                        <button type="button" class="theme-toggle" 
+                                aria-label="Alternar tema" 
+                                title="Alternar entre tema claro, escuro e automático">
+                            <i class="theme-icon fas fa-sun"></i>
+                            <span class="theme-text d-none d-md-inline">Auto</span>
+                        </button>
+                    </div>
+                    
+                    <!-- User Menu -->
+                    <c:choose>
+                        <c:when test="#{authBean.authenticated}">
+                            <div class="user-info">
+                                <c:if test="#{not empty authBean.currentUser.avatar}">
+                                    <img src="#{request.contextPath}/uploads/avatars/#{authBean.currentUser.avatar}" 
+                                         alt="Avatar" class="sistema-avatar"/>
+                                </c:if>
+                                <span class="d-none d-md-inline">#{authBean.currentUser.nome}</span>
+                                <div class="sistema-dropdown">
+                                    <h:link outcome="perfil" styleClass="sistema-dropdown-item">
+                                        <i class="fas fa-user"></i> Meu Perfil
+                                    </h:link>
+                                    <h:link outcome="dashboard" styleClass="sistema-dropdown-item">
+                                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                                    </h:link>
+                                    <hr class="dropdown-divider"/>
+                                    <h:commandLink action="#{authBean.logout}" styleClass="sistema-dropdown-item">
+                                        <i class="fas fa-sign-out-alt"></i> Sair
+                                    </h:commandLink>
+                                </div>
+                            </div>
+                        </c:when>
+                        <c:otherwise>
+                            <div class="auth-links">
+                                <h:link outcome="login" styleClass="btn btn-secondary">
+                                    <i class="fas fa-sign-in-alt"></i> Entrar
+                                </h:link>
+                            </div>
+                        </c:otherwise>
+                    </c:choose>
                 </div>
             </nav>
         </div>
     </header>
     
     <!-- Breadcrumb -->
-    <div class="breadcrumb-section">
-        <div class="container">
-            <p:breadCrumb model="#{breadcrumbBean.model}" homeDisplay="text" 
-                         styleClass="custom-breadcrumb"/>
+    <c:if test="#{not empty breadcrumbBean and not empty breadcrumbBean.model}">
+        <div class="sistema-breadcrumb">
+            <div class="main-content">
+                <p:breadCrumb model="#{breadcrumbBean.model}" homeDisplay="text" 
+                             styleClass="custom-breadcrumb"/>
+            </div>
         </div>
-    </div>
+    </c:if>
     
     <!-- Conteúdo principal -->
     <main class="main-content">
-        <div class="container">
-            <!-- Mensagens globais -->
-            <p:growl id="globalMessages" life="5000" showDetail="true"/>
-            
-            <!-- Conteúdo da página -->
-            <ui:insert name="content">
+        <!-- Mensagens globais -->
+        <p:growl id="globalMessages" life="5000" showDetail="true" 
+                 styleClass="sistema-notification"/>
+        
+        <!-- Conteúdo da página -->
+        <ui:insert name="content">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Conteúdo não definido</h3>
+                </div>
                 <div class="alert alert-info">
-                    <h4>Conteúdo não definido</h4>
                     <p>O conteúdo desta página não foi definido.</p>
                 </div>
-            </ui:insert>
-        </div>
+            </div>
+        </ui:insert>
     </main>
     
     <!-- Footer -->
-    <footer class="main-footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
                     <p class="mb-0">
                         © #{applicationBean.currentYear} #{applicationBean.applicationName}. 
                         Todos os direitos reservados.
                     </p>
                 </div>
-                <div class="col-md-6 text-end">
+                <div class="text-right">
                     <p class="mb-0">
-                        <small>#{applicationBean.fullApplicationInfo}</small>
+                        <small>Desenvolvido com Spring Boot + JSF + PrimeFaces</small>
                     </p>
                 </div>
             </div>
         </div>
     </footer>
     
+    <!-- JavaScript do sistema de temas -->
+    <h:outputScript name="js/theme-switcher.js"/>
+    
     <!-- JavaScript adicional da página -->
     <ui:insert name="javascript"/>
     
-    <!-- Scripts customizados -->
-    <h:outputScript name="js/custom.js"/>
+    <!-- Script para dropdown do usuário -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle do dropdown do usuário
+            const userInfo = document.querySelector('.user-info');
+            const dropdown = document.querySelector('.sistema-dropdown');
+            
+            if (userInfo && dropdown) {
+                userInfo.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('show');
+                });
+                
+                // Fechar dropdown ao clicar fora
+                document.addEventListener('click', function() {
+                    dropdown.classList.remove('show');
+                });
+            }
+        });
+    </script>
 </h:body>
 </html>

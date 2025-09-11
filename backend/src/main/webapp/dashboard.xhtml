@@ -1,10 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:f="http://xmlns.jcp.org/jsf/core"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
-      xmlns:p="http://primefaces.org/ui">
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
 
+<!-- Referência: Controle de Acesso - Níveis de Usuário e Dashboards - project_rules.md -->
 <ui:composition template="/WEB-INF/templates/template.xhtml">
     
     <ui:define name="title">
@@ -12,31 +15,24 @@
     </ui:define>
     
     <ui:define name="css">
-        <style type="text/css">
-            .dashboard-container {
-                padding: 2rem 1rem;
-                max-width: 1200px;
-                margin: 0 auto;
-            }
-            
+        <style>
             .dashboard-header {
-                background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+                background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
                 color: white;
                 padding: 2rem;
-                border-radius: 10px;
+                border-radius: 12px;
                 margin-bottom: 2rem;
-                text-align: center;
             }
             
             .welcome-title {
                 font-size: 2rem;
-                font-weight: bold;
+                font-weight: 600;
                 margin-bottom: 0.5rem;
             }
             
             .welcome-subtitle {
-                font-size: 1.1rem;
                 opacity: 0.9;
+                font-size: 1.1rem;
             }
             
             .stats-grid {
@@ -47,112 +43,136 @@
             }
             
             .stat-card {
-                background: white;
+                background: var(--card-background);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
                 padding: 1.5rem;
-                border-radius: 10px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                text-align: center;
-                border-left: 4px solid #1e3a8a;
+                box-shadow: var(--shadow-sm);
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+                position: relative;
+                overflow: hidden;
             }
             
-            .stat-number {
+            .stat-card:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--shadow-md);
+            }
+            
+            .stat-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 4px;
+                height: 100%;
+                background: var(--primary-color);
+            }
+            
+            .stat-content {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            
+            .stat-info h3 {
                 font-size: 2.5rem;
                 font-weight: bold;
-                color: #1e3a8a;
-                display: block;
-                margin-bottom: 0.5rem;
+                color: var(--primary-color);
+                margin: 0;
             }
             
-            .stat-label {
-                font-size: 1rem;
-                color: #6b7280;
-                font-weight: 600;
+            .stat-info p {
+                color: var(--text-secondary);
+                margin: 0;
+                font-weight: 500;
+            }
+            
+            .stat-icon {
+                font-size: 3rem;
+                color: var(--primary-color);
+                opacity: 0.7;
             }
             
             .quick-actions {
+                background: var(--card-background);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                padding: 1.5rem;
+                margin-bottom: 2rem;
+            }
+            
+            .actions-grid {
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                gap: 1.5rem;
-                margin-bottom: 2rem;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
             }
             
-            .action-card {
-                background: white;
-                padding: 1.5rem;
-                border-radius: 10px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            }
-            
-            .action-title {
-                font-size: 1.2rem;
-                font-weight: bold;
-                color: #1e3a8a;
-                margin-bottom: 1rem;
+            .action-btn {
                 display: flex;
                 align-items: center;
                 gap: 0.5rem;
+                padding: 1rem;
+                background: var(--primary-color);
+                color: white;
+                text-decoration: none;
+                border-radius: 8px;
+                font-weight: 500;
+                transition: background-color 0.2s ease;
+                justify-content: center;
             }
             
-            .action-buttons {
-                display: flex;
-                flex-direction: column;
-                gap: 0.75rem;
+            .action-btn:hover {
+                background: var(--primary-hover);
+                color: white;
+                text-decoration: none;
             }
             
-            .recent-activity {
-                background: white;
+            .action-btn.secondary {
+                background: var(--secondary-color);
+            }
+            
+            .action-btn.success {
+                background: var(--success-color);
+            }
+            
+            .action-btn.warning {
+                background: var(--warning-color);
+            }
+            
+            .recent-content {
+                background: var(--card-background);
+                border: 1px solid var(--border-color);
+                border-radius: 12px;
+                overflow: hidden;
+            }
+            
+            .content-header {
                 padding: 1.5rem;
-                border-radius: 10px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                margin-bottom: 2rem;
-            }
-            
-            .activity-title {
-                font-size: 1.3rem;
-                font-weight: bold;
-                color: #1e3a8a;
-                margin-bottom: 1rem;
+                border-bottom: 1px solid var(--border-color);
                 display: flex;
+                justify-content: between;
                 align-items: center;
-                gap: 0.5rem;
             }
             
-            .activity-item {
+            .content-title {
+                font-size: 1.25rem;
+                font-weight: 600;
+                margin: 0;
+                color: var(--text-primary);
+            }
+            
+            .user-avatar {
+                width: 60px;
+                height: 60px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 3px solid rgba(255, 255, 255, 0.2);
+            }
+            
+            .user-info {
                 display: flex;
                 align-items: center;
                 gap: 1rem;
-                padding: 0.75rem;
-                border-bottom: 1px solid #e5e7eb;
-            }
-            
-            .activity-item:last-child {
-                border-bottom: none;
-            }
-            
-            .activity-icon {
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                background: #f3f4f6;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: #1e3a8a;
-            }
-            
-            .activity-content {
-                flex: 1;
-            }
-            
-            .activity-text {
-                font-weight: 600;
-                color: #374151;
-                margin-bottom: 0.25rem;
-            }
-            
-            .activity-time {
-                font-size: 0.9rem;
-                color: #6b7280;
             }
             
             .role-badge {
@@ -225,227 +245,229 @@
             }
             
             @media (max-width: 768px) {
-                .dashboard-container {
-                    padding: 1rem 0.5rem;
-                }
-                
-                .stats-grid {
-                    grid-template-columns: 1fr;
-                }
-                
-                .quick-actions {
-                    grid-template-columns: 1fr;
+                .dashboard-header {
+                    padding: 1.5rem;
                 }
                 
                 .welcome-title {
                     font-size: 1.5rem;
+                }
+                
+                .stats-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+                
+                .actions-grid {
+                    grid-template-columns: 1fr;
                 }
             }
         </style>
     </ui:define>
     
     <ui:define name="content">
-        <div class="dashboard-container">
+        <!-- Verificação de autenticação -->
+        <c:if test="#{not authBean.authenticated}">
+            <f:metadata>
+                <f:event type="preRenderView" listener="#{authBean.redirectToLogin}"/>
+            </f:metadata>
+        </c:if>
+        
+        <!-- Header do Dashboard -->
+        <div class="dashboard-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="welcome-title">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </h1>
+                    <p class="welcome-subtitle">
+                        Bem-vindo de volta, #{authBean.currentUser.nome}!
+                    </p>
+                </div>
+                <div class="user-info">
+                    <c:if test="#{not empty authBean.currentUser.avatar}">
+                        <img src="#{request.contextPath}/uploads/avatars/#{authBean.currentUser.avatar}" 
+                             alt="Avatar" class="user-avatar"/>
+                    </c:if>
+                    <div>
+                        <div class="fw-bold">#{authBean.currentUser.nome} #{authBean.currentUser.sobrenome}</div>
+                        <div class="opacity-75">#{authBean.currentUser.papel}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
             
-            <!-- Cabeçalho de Boas-vindas -->
-            <div class="dashboard-header">
-                <h1 class="welcome-title">Bem-vindo, #{securityBean.loggedUser.nome}!</h1>
-                <p class="welcome-subtitle">Último acesso: #{dashboardBean.ultimoAcesso}</p>
-                
-                <div class="role-badge role-#{securityBean.loggedUser.papel.name().toLowerCase()}">
-                    <i class="pi pi-user"></i>
-                    #{securityBean.loggedUser.papel.descricao}
+        <!-- Cards de Estatísticas -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-content">
+                    <div class="stat-info">
+                        <h3>#{dashboardBean.totalNoticias}</h3>
+                        <p>Notícias Publicadas</p>
+                    </div>
+                    <i class="fas fa-newspaper stat-icon"></i>
                 </div>
             </div>
             
-            <!-- Estatísticas Gerais -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <span class="stat-number">#{dashboardBean.totalNoticias}</span>
-                    <div class="stat-label">Notícias Publicadas</div>
-                </div>
-                
-                <div class="stat-card">
-                    <span class="stat-number">#{dashboardBean.totalUsuarios}</span>
-                    <div class="stat-label">Usuários Ativos</div>
-                </div>
-                
-                <div class="stat-card">
-                    <span class="stat-number">#{dashboardBean.totalComentarios}</span>
-                    <div class="stat-label">Comentários</div>
-                </div>
-                
-                <div class="stat-card">
-                    <span class="stat-number">#{dashboardBean.totalCategorias}</span>
-                    <div class="stat-label">Categorias</div>
+            <div class="stat-card">
+                <div class="stat-content">
+                    <div class="stat-info">
+                        <h3>#{dashboardBean.totalUsuarios}</h3>
+                        <p>Usuários Ativos</p>
+                    </div>
+                    <i class="fas fa-users stat-icon"></i>
                 </div>
             </div>
             
-            <!-- Ações Rápidas -->
-            <div class="quick-actions">
-                
-                <!-- Ações para Todos os Usuários -->
-                <div class="action-card">
-                    <h3 class="action-title">
-                        <i class="pi pi-user"></i>
-                        Minha Conta
-                    </h3>
-                    <div class="action-buttons">
-                        <p:commandButton value="Editar Perfil" 
-                                        action="perfil"
-                                        styleClass="btn btn-primary"
-                                        icon="pi pi-user-edit"/>
-                        
-                        <p:commandButton value="Alterar Senha" 
-                                        action="perfil?tab=seguranca"
-                                        styleClass="btn btn-outline-primary"
-                                        icon="pi pi-lock"/>
+            <div class="stat-card">
+                <div class="stat-content">
+                    <div class="stat-info">
+                        <h3>#{dashboardBean.totalComentarios}</h3>
+                        <p>Comentários Aprovados</p>
                     </div>
+                    <i class="fas fa-comments stat-icon"></i>
                 </div>
-                
-                <!-- Ações para Colaboradores e superiores -->
-                <div class="action-card" rendered="#{securityBean.isColaborador or securityBean.isAdmin or securityBean.isFundador}">
-                    <h3 class="action-title">
-                        <i class="pi pi-file-edit"></i>
-                        Conteúdo
-                    </h3>
-                    <div class="action-buttons">
-                        <p:commandButton value="Nova Notícia" 
-                                        action="admin/noticias?action=new"
-                                        styleClass="btn btn-success"
-                                        icon="pi pi-plus"/>
-                        
-                        <p:commandButton value="Gerenciar Notícias" 
-                                        action="admin/noticias"
-                                        styleClass="btn btn-outline-success"
-                                        icon="pi pi-list"/>
-                        
-                        <p:commandButton value="Moderar Comentários" 
-                                        action="admin/comentarios"
-                                        styleClass="btn btn-outline-warning"
-                                        icon="pi pi-comments"/>
-                    </div>
-                </div>
-                
-                <!-- Ações para Administradores e Fundadores -->
-                <div class="action-card" rendered="#{securityBean.isAdmin or securityBean.isFundador}">
-                    <h3 class="action-title">
-                        <i class="pi pi-cog"></i>
-                        Administração
-                    </h3>
-                    <div class="action-buttons">
-                        <p:commandButton value="Gerenciar Usuários" 
-                                        action="admin/usuarios"
-                                        styleClass="btn btn-warning"
-                                        icon="pi pi-users"/>
-                        
-                        <p:commandButton value="Gerenciar Categorias" 
-                                        action="admin/categorias"
-                                        styleClass="btn btn-outline-warning"
-                                        icon="pi pi-tags"/>
-                        
-                        <p:commandButton value="Relatórios" 
-                                        action="admin/relatorios"
-                                        styleClass="btn btn-outline-info"
-                                        icon="pi pi-chart-bar"/>
-                    </div>
-                </div>
-                
-                <!-- Ações para Fundadores -->
-                <div class="action-card" rendered="#{securityBean.isFundador}">
-                    <h3 class="action-title">
-                        <i class="pi pi-shield"></i>
-                        Sistema
-                    </h3>
-                    <div class="action-buttons">
-                        <p:commandButton value="Configurações" 
-                                        action="admin/configuracoes"
-                                        styleClass="btn btn-danger"
-                                        icon="pi pi-cog"/>
-                        
-                        <p:commandButton value="Backup" 
-                                        action="admin/backup"
-                                        styleClass="btn btn-outline-danger"
-                                        icon="pi pi-download"/>
-                        
-                        <p:commandButton value="Logs do Sistema" 
-                                        action="admin/logs"
-                                        styleClass="btn btn-outline-secondary"
-                                        icon="pi pi-file"/>
-                    </div>
-                </div>
-                
             </div>
             
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+            <div class="stat-card">
+                <div class="stat-content">
+                    <div class="stat-info">
+                        <h3>#{dashboardBean.totalCategorias}</h3>
+                        <p>Categorias Ativas</p>
+                    </div>
+                    <i class="fas fa-tags stat-icon"></i>
+                </div>
+            </div>
+        </div>
+            
+        <!-- Ações Rápidas -->
+        <div class="quick-actions">
+            <h2 class="content-title mb-3">
+                <i class="fas fa-bolt"></i> Ações Rápidas
+            </h2>
+            
+            <div class="actions-grid">
+                <h:link outcome="perfil" styleClass="action-btn">
+                    <i class="fas fa-user"></i> Meu Perfil
+                </h:link>
                 
-                <!-- Atividade Recente -->
-                <div class="recent-activity">
-                    <h3 class="activity-title">
-                        <i class="pi pi-clock"></i>
-                        Atividade Recente
-                    </h3>
+                <c:if test="#{authBean.hasRole('ADMINISTRADOR') or authBean.hasRole('COLABORADOR')}">
+                    <h:link outcome="admin/noticias" styleClass="action-btn secondary">
+                        <i class="fas fa-newspaper"></i> Gerenciar Notícias
+                    </h:link>
+                </c:if>
+                
+                <c:if test="#{authBean.hasRole('ADMINISTRADOR')}">
+                    <h:link outcome="admin/usuarios" styleClass="action-btn success">
+                        <i class="fas fa-users"></i> Gerenciar Usuários
+                    </h:link>
                     
-                    <p:dataScroller value="#{dashboardBean.atividadeRecente}" 
-                                   var="atividade" 
-                                   chunkSize="5"
-                                   rendered="#{not empty dashboardBean.atividadeRecente}">
-                        
-                        <div class="activity-item">
-                            <div class="activity-icon">
-                                <i class="pi #{atividade.icone}"></i>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-text">#{atividade.descricao}</div>
-                                <div class="activity-time">#{atividade.dataFormatada}</div>
-                            </div>
-                        </div>
-                        
-                    </p:dataScroller>
+                    <h:link outcome="admin/categorias" styleClass="action-btn warning">
+                        <i class="fas fa-tags"></i> Categorias
+                    </h:link>
+                </c:if>
+                
+                <c:if test="#{authBean.hasRole('ADMINISTRADOR') or authBean.hasRole('COLABORADOR')}">
+                    <h:link outcome="admin/comentarios" styleClass="action-btn">
+                        <i class="fas fa-comments"></i> Moderar Comentários
+                    </h:link>
+                </c:if>
+            </div>
+        </div>
+            
+        <!-- Conteúdo Recente -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="recent-content">
+                    <div class="content-header">
+                        <h3 class="content-title">
+                            <i class="fas fa-newspaper"></i> Notícias Recentes
+                        </h3>
+                        <h:link outcome="noticias/lista" styleClass="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-arrow-right"></i> Ver Todas
+                        </h:link>
+                    </div>
                     
-                    <div rendered="#{empty dashboardBean.atividadeRecente}" style="text-align: center; color: #6b7280; padding: 2rem;">
-                        <i class="pi pi-info-circle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                        <p>Nenhuma atividade recente encontrada.</p>
+                    <div class="table-responsive">
+                        <p:dataTable value="#{dashboardBean.noticiasRecentes}" 
+                                   var="noticia" 
+                                   styleClass="table table-hover"
+                                   emptyMessage="Nenhuma notícia encontrada"
+                                   paginator="false"
+                                   rows="5">
+                            
+                            <p:column headerText="Título">
+                                <h:outputText value="#{noticia.titulo}" 
+                                            title="#{noticia.titulo}"
+                                            style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block;"/>
+                            </p:column>
+                            
+                            <p:column headerText="Autor">
+                                <h:outputText value="#{noticia.autor.nome}"/>
+                            </p:column>
+                            
+                            <p:column headerText="Status">
+                                <span class="badge #{noticia.publicada ? 'bg-success' : 'bg-warning'}">
+                                    #{noticia.publicada ? 'Publicada' : 'Rascunho'}
+                                </span>
+                            </p:column>
+                            
+                            <p:column headerText="Data">
+                                <h:outputText value="#{noticia.dataPublicacao}">
+                                    <f:convertDateTime pattern="dd/MM/yyyy" timeZone="America/Sao_Paulo"/>
+                                </h:outputText>
+                            </p:column>
+                            
+                            <p:column headerText="Ações" style="width: 100px;">
+                                <h:link outcome="noticias/detalhes" 
+                                       styleClass="btn btn-sm btn-outline-primary"
+                                       title="Ver detalhes">
+                                    <i class="fas fa-eye"></i>
+                                    <f:param name="id" value="#{noticia.id}"/>
+                                </h:link>
+                            </p:column>
+                        </p:dataTable>
                     </div>
                 </div>
-                
-                <!-- Notificações -->
-                <div class="notification-panel">
-                    <h3 class="notification-title">
-                        <i class="pi pi-bell"></i>
-                        Notificações
-                        <p:badge value="#{dashboardBean.notificacaoNaoLidas}" 
-                                severity="danger" 
-                                rendered="#{dashboardBean.notificacaoNaoLidas > 0}"/>
-                    </h3>
-                    
-                    <p:dataScroller value="#{dashboardBean.notificacoes}" 
-                                   var="notificacao" 
-                                   chunkSize="3"
-                                   rendered="#{not empty dashboardBean.notificacoes}">
-                        
-                        <div class="notification-item #{not notificacao.lida ? 'notification-unread' : ''}">
-                            <div style="font-weight: 600; margin-bottom: 0.5rem;">#{notificacao.titulo}</div>
-                            <div style="font-size: 0.9rem; color: #6b7280; margin-bottom: 0.5rem;">#{notificacao.mensagem}</div>
-                            <div style="font-size: 0.8rem; color: #9ca3af;">#{notificacao.dataFormatada}</div>
-                        </div>
-                        
-                    </p:dataScroller>
-                    
-                    <div rendered="#{empty dashboardBean.notificacoes}" style="text-align: center; color: #6b7280; padding: 1rem;">
-                        <i class="pi pi-check-circle" style="font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
-                        <p>Nenhuma notificação.</p>
-                    </div>
-                    
-                    <div style="text-align: center; margin-top: 1rem;" rendered="#{not empty dashboardBean.notificacoes}">
-                        <p:commandButton value="Ver Todas" 
-                                        action="notificacoes"
-                                        styleClass="btn btn-outline-primary btn-sm"/>
-                    </div>
-                </div>
-                
             </div>
             
+            <div class="col-lg-4">
+                <div class="recent-content">
+                    <div class="content-header">
+                        <h3 class="content-title">
+                            <i class="fas fa-clock"></i> Atividade Recente
+                        </h3>
+                    </div>
+                    
+                    <div class="p-3">
+                        <c:choose>
+                            <c:when test="#{not empty dashboardBean.atividadesRecentes}">
+                                <ui:repeat value="#{dashboardBean.atividadesRecentes}" var="atividade">
+                                    <div class="d-flex align-items-start mb-3 pb-3 border-bottom">
+                                        <div class="flex-shrink-0">
+                                            <i class="fas #{atividade.icone} text-primary"></i>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <div class="fw-bold">#{atividade.titulo}</div>
+                                            <div class="text-muted small">#{atividade.descricao}</div>
+                                            <div class="text-muted small">
+                                                <h:outputText value="#{atividade.dataHora}">
+                                                    <f:convertDateTime pattern="dd/MM/yyyy HH:mm" timeZone="America/Sao_Paulo"/>
+                                                </h:outputText>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ui:repeat>
+                            </c:when>
+                            <c:otherwise>
+                                <div class="text-center text-muted py-4">
+                                    <i class="fas fa-info-circle fa-2x mb-2"></i>
+                                    <p>Nenhuma atividade recente</p>
+                                </div>
+                            </c:otherwise>
+                        </c:choose>
+                    </div>
+                </div>
+            </div>
         </div>
     </ui:define>
     

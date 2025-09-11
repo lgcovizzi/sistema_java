@@ -95,22 +95,6 @@ src/main/java/
 - Usar relacionamentos lazy por padrão
 - Implementar construtores padrão e com parâmetros
 
-### Frontend
-- **Framework**: JSF 4.0 com PrimeFaces 13.x
-- **Estilo**: Responsivo, similar ao design do Sinditest
-- **Cores principais**: Azul (#1e3a8a), Branco (#ffffff)
-- **Tema PrimeFaces**: Bootstrap ou Saga
-- **Temas Claros e Escuros**: Implementar sistema de alternância entre temas
-- **Funcionalidades**:
-  - Páginas JSF com componentes PrimeFaces
-  - Header com navegação
-  - Seção de notícias/comunicados
-  - Footer com informações de contato
-  - Design responsivo para mobile
-  - Componentes ricos (DataTable, Charts, etc.)
-  - Alternador de tema claro/escuro no header
-  - Detecção automática de preferência do sistema
-  - Persistência da preferência do usuário
 
 ## Banco de Dados Relacional
 
@@ -269,6 +253,8 @@ MAIL_PORT=1025
 
 ### Frontend (JSF + PrimeFaces)
 - Usar componentes PrimeFaces sempre que possível
+- **Tema PrimeFaces**: Bootstrap ou Saga
+- **Temas Claros e Escuros**: Implementar sistema de alternância entre temas
 - Estrutura de páginas JSF com templates
 - Managed Beans com anotações CDI
 - Validação JSF integrada
@@ -276,6 +262,17 @@ MAIL_PORT=1025
 - Otimização para SEO básico
 - Acessibilidade (ARIA labels)
 - Sistema de temas claros e escuros implementado
+
+### Funcionalidades JSF
+- **Páginas JSF com componentes PrimeFaces**
+- **Header com navegação**
+- **Seção de notícias/comunicados**
+- **Footer com informações de contato**
+- **Design responsivo para mobile**
+- **Componentes ricos (DataTable, Charts, etc.)**
+- **Alternador de tema claro/escuro no header**
+- **Detecção automática de preferência do sistema**
+- **Persistência da preferência do usuário**
 
 ### Estrutura JSF
 ```

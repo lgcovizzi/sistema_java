@@ -20,7 +20,7 @@ ADD COLUMN IF NOT EXISTS ultimo_acesso TIMESTAMP;
 -- Adicionar constraint para validar papel
 ALTER TABLE usuarios 
 ADD CONSTRAINT IF NOT EXISTS chk_papel 
-CHECK (papel IN ('ADMINISTRADOR', 'FUNDADOR', 'COLABORADOR', 'ASSOCIADO', 'USUARIO', 'CONVIDADO'));
+CHECK (papel IN ('ADMINISTRADOR', 'FUNDADOR', 'COLABORADOR', 'PARCEIRO', 'ASSOCIADO', 'USUARIO', 'CONVIDADO'));
 
 -- Adicionar constraint para validar CPF (11 dígitos)
 ALTER TABLE usuarios 

@@ -9,17 +9,22 @@ public enum PapelUsuario {
     /**
      * Nível mais alto - acesso total ao sistema
      */
-    ADMINISTRADOR("Administrador", 6),
+    ADMINISTRADOR("Administrador", 7),
     
     /**
      * Fundador da organização - acesso quase total
      */
-    FUNDADOR("Fundador", 5),
+    FUNDADOR("Fundador", 6),
     
     /**
      * Colaborador ativo - acesso a funcionalidades de gestão
      */
-    COLABORADOR("Colaborador", 4),
+    COLABORADOR("Colaborador", 5),
+    
+    /**
+     * Parceiro da organização - acesso a dashboard próprio
+     */
+    PARCEIRO("Parceiro", 4),
     
     /**
      * Associado da organização - acesso a funcionalidades específicas

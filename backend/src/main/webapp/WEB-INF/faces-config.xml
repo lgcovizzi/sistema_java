@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<faces-config xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee
+              http://xmlns.jcp.org/xml/ns/javaee/web-facesconfig_2_3.xsd"
+              version="2.3">
+
+    <!-- Configuração da aplicação JSF -->
+    <application>
+        <!-- Configuração de locale -->
+        <locale-config>
+            <default-locale>pt_BR</default-locale>
+            <supported-locale>pt_BR</supported-locale>
+            <supported-locale>en_US</supported-locale>
+        </locale-config>
+
+        <!-- Configuração de bundle de mensagens -->
+        <message-bundle>messages</message-bundle>
+
+        <!-- Configuração de resource bundle -->
+        <resource-bundle>
+            <base-name>messages</base-name>
+            <var>msg</var>
+        </resource-bundle>
+
+        <!-- Configuração de navegação -->
+        <navigation-handler>org.springframework.web.jsf.DelegatingNavigationHandler</navigation-handler>
+
+        <!-- Configuração de EL Resolver -->
+        <el-resolver>org.springframework.web.jsf.el.SpringBeanFacesELResolver</el-resolver>
+    </application>
+
+    <!-- Configuração de factory -->
+    <factory>
+        <application-factory>org.springframework.web.jsf.SpringApplicationFactory</application-factory>
+    </factory>
+
+    <!-- Regras de navegação globais -->
+    <navigation-rule>
+        <from-view-id>*</from-view-id>
+        <navigation-case>
+            <from-outcome>home</from-outcome>
+            <to-view-id>/index.xhtml</to-view-id>
+            <redirect/>
+        </navigation-case>
+        <navigation-case>
+            <from-outcome>noticias</from-outcome>
+            <to-view-id>/pages/noticias.xhtml</to-view-id>
+            <redirect/>
+        </navigation-case>
+        <navigation-case>
+            <from-outcome>admin</from-outcome>
+            <to-view-id>/pages/admin/dashboard.xhtml</to-view-id>
+            <redirect/>
+        </navigation-case>
+    </navigation-rule>
+
+    <!-- Configuração de lifecycle -->
+    <lifecycle>
+        <phase-listener>org.springframework.web.jsf.DelegatingPhaseListenerMulticaster</phase-listener>
+    </lifecycle>
+
+    <!-- Configuração de managed beans (para compatibilidade) -->
+    <managed-bean>
+        <managed-bean-name>applicationBean</managed-bean-name>
+        <managed-bean-class>com.sistema.java.controller.ApplicationBean</managed-bean-class>
+        <managed-bean-scope>application</managed-bean-scope>
+    </managed-bean>
+
+</faces-config>

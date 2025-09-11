@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui">
+
+<h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    
+    <title>
+        <ui:insert name="title">#{applicationBean.applicationName}</ui:insert>
+    </title>
+    
+    <!-- Meta tags para SEO -->
+    <meta name="description" content="Sistema de notícias desenvolvido com Spring Boot e JSF"/>
+    <meta name="keywords" content="notícias, sistema, java, spring boot, jsf, primefaces"/>
+    <meta name="author" content="Sistema Java"/>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="#{request.contextPath}/resources/images/favicon.ico"/>
+    
+    <!-- CSS customizado -->
+    <h:outputStylesheet name="css/custom.css"/>
+    
+    <!-- CSS adicional da página -->
+    <ui:insert name="css"/>
+</h:head>
+
+<h:body>
+    <!-- Header -->
+    <header class="main-header">
+        <div class="container">
+            <nav class="navbar navbar-expand-lg">
+                <h:link outcome="home" styleClass="navbar-brand">
+                    <h:outputText value="#{applicationBean.applicationName}"/>
+                </h:link>
+                
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" 
+                        data-bs-target="#navbarNav" aria-controls="navbarNav" 
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <h:link outcome="home" styleClass="nav-link">
+                                <i class="pi pi-home"></i> Início
+                            </h:link>
+                        </li>
+                        <li class="nav-item">
+                            <h:link outcome="noticias" styleClass="nav-link">
+                                <i class="pi pi-file-edit"></i> Notícias
+                            </h:link>
+                        </li>
+                        <li class="nav-item">
+                            <h:link outcome="admin" styleClass="nav-link">
+                                <i class="pi pi-cog"></i> Administração
+                            </h:link>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </div>
+    </header>
+    
+    <!-- Breadcrumb -->
+    <div class="breadcrumb-section">
+        <div class="container">
+            <p:breadCrumb model="#{breadcrumbBean.model}" homeDisplay="text" 
+                         styleClass="custom-breadcrumb"/>
+        </div>
+    </div>
+    
+    <!-- Conteúdo principal -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Mensagens globais -->
+            <p:growl id="globalMessages" life="5000" showDetail="true"/>
+            
+            <!-- Conteúdo da página -->
+            <ui:insert name="content">
+                <div class="alert alert-info">
+                    <h4>Conteúdo não definido</h4>
+                    <p>O conteúdo desta página não foi definido.</p>
+                </div>
+            </ui:insert>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">
+                        © #{applicationBean.currentYear} #{applicationBean.applicationName}. 
+                        Todos os direitos reservados.
+                    </p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p class="mb-0">
+                        <small>#{applicationBean.fullApplicationInfo}</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- JavaScript adicional da página -->
+    <ui:insert name="javascript"/>
+    
+    <!-- Scripts customizados -->
+    <h:outputScript name="js/custom.js"/>
+</h:body>
+</html>

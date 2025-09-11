@@ -100,6 +100,7 @@ src/main/java/
 - **Estilo**: Responsivo, similar ao design do Sinditest
 - **Cores principais**: Azul (#1e3a8a), Branco (#ffffff)
 - **Tema PrimeFaces**: Bootstrap ou Saga
+- **Temas Claros e Escuros**: Implementar sistema de alternância entre temas
 - **Funcionalidades**:
   - Páginas JSF com componentes PrimeFaces
   - Header com navegação
@@ -107,6 +108,9 @@ src/main/java/
   - Footer com informações de contato
   - Design responsivo para mobile
   - Componentes ricos (DataTable, Charts, etc.)
+  - Alternador de tema claro/escuro no header
+  - Detecção automática de preferência do sistema
+  - Persistência da preferência do usuário
 
 ## Banco de Dados Relacional
 
@@ -118,9 +122,15 @@ O sistema utiliza PostgreSQL como banco de dados principal com as seguintes enti
 **1. usuarios**
 - ID (chave primária)
 - Nome (obrigatório, até 100 caracteres)
-- Email (único, obrigatório, até 150 caracteres)
+- Sobrenome (obrigatório, até 100 caracteres)
+- CPF (único, obrigatório, 11 caracteres, validado)
+- Email (único, obrigatório, até 150 caracteres, validado com regex)
 - Senha (obrigatória, criptografada)
+- Telefone (opcional, até 20 caracteres)
+- Data de nascimento (opcional, formato DATE)
+- Avatar (opcional, URL/arquivo armazenado em diretório configurado)
 - Ativo (boolean, padrão true)
+- Papel/role (enum: ADMINISTRADOR, FUNDADOR, COLABORADOR, ASSOCIADO, USUARIO, CONVIDADO)
 - Data de criação e atualização (timestamps automáticos)
 
 **2. noticias**
@@ -154,6 +164,8 @@ O sistema utiliza PostgreSQL como banco de dados principal com as seguintes enti
 
 ### Índices Recomendados
 - Email dos usuários (para login rápido)
+- CPF dos usuários (único)
+- Papel/Role dos usuários (para controle de acesso)
 - Status de publicação das notícias
 - Data de publicação das notícias (ordem decrescente)
 - Autor das notícias
@@ -168,17 +180,6 @@ O sistema utiliza PostgreSQL como banco de dados principal com as seguintes enti
 - Ordenar inserções e atualizações para performance
 - Usar estratégia de nomenclatura padrão
 
-### Migrations com Flyway
-Utilizar Flyway para versionamento do banco:
-```
-src/main/resources/db/migration/
-├── V1__Create_usuarios_table.sql
-├── V2__Create_noticias_table.sql
-├── V3__Create_categorias_table.sql
-├── V4__Create_noticia_categorias_table.sql
-├── V5__Create_comentarios_table.sql
-└── V6__Insert_initial_data.sql
-```
 
 ### Backup e Manutenção
 - Realizar backup diário do banco de dados usando pg_dump
@@ -245,6 +246,20 @@ MAIL_PORT=1025
 
 ## Padrões de Código
 
+### Documentação e Comentários
+- **Comentários Obrigatórios**: Todas as funções, métodos, classes e componentes devem incluir comentários que referenciem as regras específicas do projeto implementadas
+- **Formato de Referência**: Usar o formato "Referência: [Nome da Regra] - project_rules.md" nos comentários
+- **Exemplos de Referência**:
+  - "Referência: Sistema de Temas Claros e Escuros - project_rules.md"
+  - "Referência: Controle de Acesso - project_rules.md"
+  - "Referência: Padrões para Entidades JPA - project_rules.md"
+- **Localização dos Comentários**:
+  - Classes: Javadoc da classe
+  - Métodos: Javadoc do método
+  - Funções JavaScript: Comentário de linha acima da função
+  - Componentes JSF: Comentários HTML quando aplicável
+- **Rastreabilidade**: Facilitar a identificação de quais regras foram implementadas em cada parte do código
+
 ### Java/Spring Boot
 - Usar anotações Spring adequadas
 - Implementar tratamento de exceções
@@ -260,6 +275,7 @@ MAIL_PORT=1025
 - Temas PrimeFaces responsivos
 - Otimização para SEO básico
 - Acessibilidade (ARIA labels)
+- Sistema de temas claros e escuros implementado
 
 ### Estrutura JSF
 ```
@@ -270,7 +286,12 @@ src/main/webapp/
 │   └── templates/
 ├── resources/
 │   ├── css/
+│   │   ├── themes/
+│   │   │   ├── light-theme.css
+│   │   │   └── dark-theme.css
+│   │   └── custom.css
 │   ├── js/
+│   │   └── theme-switcher.js
 │   └── images/
 └── pages/
     ├── index.xhtml
@@ -278,11 +299,117 @@ src/main/webapp/
     └── admin/
 ```
 
+## Sistema de Temas Claros e Escuros
+
+### Especificações Técnicas
+
+#### Paleta de Cores
+**Tema Claro:**
+- Background principal: #ffffff
+- Background secundário: #f8fafc
+- Texto principal: #1f2937
+- Texto secundário: #6b7280
+- Azul primário: #1e3a8a
+- Azul secundário: #3b82f6
+- Bordas: #e5e7eb
+- Sombras: rgba(0, 0, 0, 0.1)
+
+**Tema Escuro:**
+- Background principal: #111827
+- Background secundário: #1f2937
+- Texto principal: #f9fafb
+- Texto secundário: #d1d5db
+- Azul primário: #3b82f6
+- Azul secundário: #60a5fa
+- Bordas: #374151
+- Sombras: rgba(0, 0, 0, 0.3)
+
+#### Implementação CSS
+- Usar CSS Custom Properties (variáveis CSS) para cores
+- Implementar `@media (prefers-color-scheme)` para detecção automática
+- Classes CSS `.light-theme` e `.dark-theme` no elemento `<html>`
+- Transições suaves entre temas (transition: all 0.3s ease)
+
+#### Funcionalidades JavaScript
+- Toggle button no header para alternar temas
+- Detecção automática da preferência do sistema operacional
+- Persistência da escolha do usuário no localStorage
+- Aplicação do tema antes do carregamento completo da página
+
+#### Componentes PrimeFaces
+- Adaptar temas PrimeFaces para modo escuro
+- Customizar cores de componentes (DataTable, Dialog, etc.)
+- Manter consistência visual em todos os componentes
+
+#### Acessibilidade
+- Contraste mínimo WCAG AA (4.5:1 para texto normal)
+- Ícones e indicadores visuais para o estado do tema
+- Suporte a navegação por teclado no toggle
+- Aria-labels apropriados para leitores de tela
+
+#### Persistência
+- Salvar preferência no localStorage do navegador
+- Chave: 'sistema-java-theme' com valores 'light', 'dark', 'auto'
+- Aplicar tema imediatamente ao carregar a página
+- Sincronizar com mudanças de preferência do sistema
+
 ## Segurança
 - Senhas em variáveis de ambiente
 - CORS configurado adequadamente
 - Validação de entrada no backend
 - Headers de segurança configurados
+
+## Login e Registro
+
+### Regras de Registro
+- Campos obrigatórios: nome, sobrenome, CPF, email e senha
+- O CPF deve ter 11 dígitos válidos e será único no sistema
+- O email deve ser válido (regex padrão) e único no sistema
+- A senha deve ter mínimo de 8 caracteres e seguir requisitos de segurança
+- Após registro, o usuário recebe o papel USUARIO (nível padrão)
+
+## Controle de Acesso — Níveis de Usuário e Dashboards
+
+### Papéis definidos:
+- **ADMINISTRADOR**: Acesso total ao sistema, gerenciamento completo
+- **FUNDADOR**: Acesso administrativo com privilégios especiais, pode editar colaborador, associado, parceiro, 
+- **PARCEIRO**: acesso a um dashboard proprio
+- **COLABORADOR**: Criação e edição de conteúdo, moderação pode editar associados, e usuários.
+- **ASSOCIADO**: Acesso a funcionalidades específicas de associados
+- **USUARIO**: Visualização de conteúdo público, comentários
+- **CONVIDADO**: Acesso limitado apenas a registro/login e a pagina de notícias abertas ao publico.
+
+### Regras de Dashboards
+- CONVIDADO não possui dashboard, apenas acesso a registro/login
+- USUARIO e níveis superiores têm dashboard com acesso ao próprio perfil e funcionalidades específicas de cada papel
+
+### Regras de Edição de Perfil (para todos os papéis autenticados)
+- Cada usuário pode editar apenas seus próprios dados pessoais
+- Campos disponíveis para edição:
+  - Nome
+  - Sobrenome
+  - Telefone (opcional)
+  - Data de nascimento (opcional)
+  - Avatar (opcional, processado em segundo plano)
+
+### Regras de Avatar
+- O upload do arquivo pode ser de qualquer tamanho, sem restrição inicial
+- O sistema deve realizar automaticamente:
+  - Crop centralizado ou definido pelo usuário
+  - Redimensionamento em diferentes tamanhos (64x64, 256x256, 512x512)
+  - Processamento em segundo plano para não afetar a experiência do usuário
+- Restrições:
+  - Formatos aceitos: JPEG, PNG
+
+### Regras de Validação de Perfil
+- Telefone deve seguir regex: [0-9\-()+ ]{8,20}
+- Data de nascimento: idade mínima de 16 anos
+- ADMINISTRADOR pode suspender ou reativar contas de usuários, mas não alterar seus dados pessoais
+
+### Testes de Regras
+- Registro deve falhar se email for inválido
+- Registro deve falhar se CPF for inválido ou duplicado
+- Upload de avatar deve ser processado em segundo plano com crop e redimensionamento
 
 ## Testes e Qualidade de Código
 

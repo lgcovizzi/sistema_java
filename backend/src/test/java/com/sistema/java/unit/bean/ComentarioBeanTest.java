@@ -1,7 +1,7 @@
 package com.sistema.java.unit.bean;
 
 import com.sistema.java.bean.ComentarioBean;
-import com.sistema.java.dto.ComentarioDTO;
+import com.sistema.java.model.dto.ComentarioDTO;
 import com.sistema.java.model.entity.Comentario;
 import com.sistema.java.model.entity.Noticia;
 import com.sistema.java.model.entity.Usuario;
@@ -93,19 +93,17 @@ class ComentarioBeanTest {
 
         // Assert
         assertThat(comentarioBean.getComentariosLazy()).isNotNull();
-        assertThat(comentarioBean.getFiltros()).isNotNull();
-        assertThat(comentarioBean.getFiltros()).isEmpty();
+        assertThat(comentarioBean.getNovoComentario()).isNotNull();
     }
 
     @Test
     void should_LoadCommentsData_When_LazyModelIsUsed() {
         // Arrange
-        when(comentarioService.listarComFiltros(anyMap(), anyInt(), anyInt(), anyString(), anyBoolean()))
-            .thenReturn(comentariosMock);
-        when(comentarioService.contarComFiltros(anyMap())).thenReturn(1L);
+        when(comentarioService.findAll(any())).thenReturn(comentariosMock);
+        when(comentarioService.count()).thenReturn(1L);
 
         comentarioBean.init();
-        LazyDataModel<Comentario> lazyModel = comentarioBean.getComentariosLazy();
+        LazyDataModel<ComentarioDTO> lazyModel = comentarioBean.getComentariosLazy();
 
         // Act
         List<Comentario> result = lazyModel.load(0, 10, Collections.emptyMap(), Collections.emptyMap());
@@ -389,9 +387,9 @@ class ComentarioBeanTest {
     @Test
     void should_HandleEmptyResults_When_NoMatchingComments() {
         // Arrange
-        when(comentarioService.listarComFiltros(anyMap(), anyInt(), anyInt(), anyString(), anyBoolean()))
+        when(comentarioService.findAll(any()))
             .thenReturn(Collections.emptyList());
-        when(comentarioService.contarComFiltros(anyMap())).thenReturn(0L);
+        when(comentarioService.count()).thenReturn(0L);
 
         comentarioBean.init();
         LazyDataModel<Comentario> lazyModel = comentarioBean.getComentariosLazy();

@@ -275,14 +275,14 @@ class ComentarioServiceTest {
     @Test
     void should_CountApprovedComentariosByNoticia_When_RequestingNoticiaStats() {
         // Arrange
-        when(comentarioRepository.countByNoticiaAndAprovadoTrue(noticia)).thenReturn(3L);
+        when(comentarioRepository.countByNoticiaAndAprovado(noticia, true)).thenReturn(3L);
 
         // Act
-        Long resultado = comentarioService.contarAprovadosPorNoticia(noticia);
+        Long resultado = comentarioService.countAprovadosPorNoticia(noticia.getId());
 
         // Assert
         assertThat(resultado).isEqualTo(3L);
-        verify(comentarioRepository).countByNoticiaAndAprovadoTrue(noticia);
+        verify(comentarioRepository).countByNoticiaAndAprovado(noticia, true);
     }
 
     @Test
@@ -298,7 +298,9 @@ class ComentarioServiceTest {
         when(comentarioRepository.save(any(Comentario.class))).thenReturn(comentarioAtualizado);
 
         // Act
-        Comentario resultado = comentarioService.atualizar(1L, comentarioAtualizado);
+        ComentarioDTO comentarioDTO = new ComentarioDTO();
+        comentarioDTO.setConteudo("Comentário atualizado");
+        ComentarioDTO resultado = comentarioService.update(1L, comentarioDTO);
 
         // Assert
         assertThat(resultado.getConteudo()).isEqualTo("Comentário atualizado");
@@ -315,7 +317,9 @@ class ComentarioServiceTest {
         when(comentarioRepository.findById(999L)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> comentarioService.atualizar(999L, comentarioAtualizado))
+        ComentarioDTO comentarioDTO = new ComentarioDTO();
+        comentarioDTO.setConteudo("Comentário atualizado");
+        assertThatThrownBy(() -> comentarioService.update(999L, comentarioDTO))
             .isInstanceOf(RuntimeException.class)
             .hasMessageContaining("Comentário não encontrado");
         

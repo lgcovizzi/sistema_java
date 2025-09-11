@@ -42,21 +42,18 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
-    private final UsuarioService usuarioService;
 
     @Autowired
     public AuthService(UsuarioRepository usuarioRepository,
                       PasswordEncoder passwordEncoder,
                       AuthenticationManager authenticationManager,
                       JwtUtil jwtUtil,
-                      EmailService emailService,
-                      UsuarioService usuarioService) {
+                      EmailService emailService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.emailService = emailService;
-        this.usuarioService = usuarioService;
     }
 
     /**

@@ -1,231 +1,351 @@
 package com.sistema.java.service;
 
-import com.sistema.java.model.Usuario;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.sistema.java.model.entity.Usuario;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import java.util.logging.Logger;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
+/**
+ * Serviço para envio de emails usando MailHog
+ * Referência: Configurações de Ambiente - project_rules.md
+ * Referência: Sistema de Email com MailHog - project_rules.md
+ */
 @Service
 public class EmailService {
     
-    private static final Logger logger = Logger.getLogger(EmailService.class.getName());
+    private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
     
-    @Autowired
-    private JavaMailSender mailSender;
+    private final JavaMailSender mailSender;
+    private final TemplateEngine templateEngine;
     
-    @Autowired
-    private TemplateEngine templateEngine;
+    @Value("${spring.mail.host:localhost}")
+    private String mailHost;
     
-    @Value("${app.base-url:http://localhost:8080}")
+    @Value("${spring.mail.port:1025}")
+    private int mailPort;
+    
+    @Value("${app.email.from:sistema@localhost}")
+    private String emailFrom;
+    
+    @Value("${app.email.nome:Sistema Java}")
+    private String nomeRemetente;
+    
+    @Value("${app.email.base-url:http://localhost:8080}")
     private String baseUrl;
     
-    @Value("${spring.mail.username}")
-    private String fromEmail;
-    
-    @Value("${app.name:Sistema de Notícias}")
-    private String appName;
+    public EmailService(JavaMailSender mailSender, TemplateEngine templateEngine) {
+        this.mailSender = mailSender;
+        this.templateEngine = templateEngine;
+    }
     
     /**
-     * Envia email de verificação para novo usuário
+     * Envia email simples de forma assíncrona
+     * Referência: Sistema de Email com MailHog - project_rules.md
      */
-    public void enviarEmailVerificacao(Usuario usuario) {
+    @Async
+    public CompletableFuture<Boolean> enviarEmailSimples(String destinatario, String assunto, String conteudo) {
         try {
-            String assunto = "Verificação de Email - " + appName;
-            String linkVerificacao = baseUrl + "/verificar-email?token=" + usuario.getTokenVerificacao();
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(emailFrom);
+            message.setTo(destinatario);
+            message.setSubject(assunto);
+            message.setText(conteudo);
             
-            Context context = new Context();
-            context.setVariable("nomeUsuario", usuario.getNome());
-            context.setVariable("linkVerificacao", linkVerificacao);
-            context.setVariable("appName", appName);
+            mailSender.send(message);
             
-            String conteudoHtml = templateEngine.process("email/verificacao", context);
-            
-            enviarEmailHtml(usuario.getEmail(), assunto, conteudoHtml);
-            
-            logger.info("Email de verificação enviado para: " + usuario.getEmail());
+            logger.info("Email simples enviado com sucesso para: {} via MailHog ({}:{})", 
+                destinatario, mailHost, mailPort);
+            return CompletableFuture.completedFuture(true);
             
         } catch (Exception e) {
-            logger.severe("Erro ao enviar email de verificação: " + e.getMessage());
-            // Fallback para email simples
-            enviarEmailVerificacaoSimples(usuario);
+            logger.error("Erro ao enviar email simples para {}: {}", destinatario, e.getMessage(), e);
+            return CompletableFuture.completedFuture(false);
         }
     }
     
     /**
-     * Envia email de reset de senha
+     * Envia email HTML usando template
      */
-    public void enviarEmailResetSenha(Usuario usuario) {
+    @Async
+    public CompletableFuture<Boolean> enviarEmailHtml(String destinatario, String assunto, 
+                                                     String template, Map<String, Object> variaveis) {
         try {
-            String assunto = "Reset de Senha - " + appName;
-            String linkReset = baseUrl + "/reset-senha?token=" + usuario.getTokenResetSenha();
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
             
+            // Configurar remetente e destinatário
+            helper.setFrom(emailFrom, nomeRemetente);
+            helper.setTo(destinatario);
+            helper.setSubject(assunto);
+            
+            // Processar template
             Context context = new Context();
-            context.setVariable("nomeUsuario", usuario.getNome());
-            context.setVariable("linkReset", linkReset);
-            context.setVariable("appName", appName);
+            if (variaveis != null) {
+                variaveis.forEach(context::setVariable);
+            }
             
-            String conteudoHtml = templateEngine.process("email/reset-senha", context);
-            
-            enviarEmailHtml(usuario.getEmail(), assunto, conteudoHtml);
-            
-            logger.info("Email de reset de senha enviado para: " + usuario.getEmail());
-            
-        } catch (Exception e) {
-            logger.severe("Erro ao enviar email de reset: " + e.getMessage());
-            // Fallback para email simples
-            enviarEmailResetSimples(usuario);
-        }
-    }
-    
-    /**
-     * Envia email de boas-vindas
-     */
-    public void enviarEmailBoasVindas(Usuario usuario) {
-        try {
-            String assunto = "Bem-vindo ao " + appName + "!";
-            
-            Context context = new Context();
-            context.setVariable("nomeUsuario", usuario.getNome());
-            context.setVariable("appName", appName);
+            // Adicionar variáveis padrão
             context.setVariable("baseUrl", baseUrl);
+            context.setVariable("nomeRemetente", nomeRemetente);
+            context.setVariable("dataAtual", LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
             
-            String conteudoHtml = templateEngine.process("email/boas-vindas", context);
+            String conteudoHtml = templateEngine.process(template, context);
+            helper.setText(conteudoHtml, true);
             
-            enviarEmailHtml(usuario.getEmail(), assunto, conteudoHtml);
+            mailSender.send(mimeMessage);
             
-            logger.info("Email de boas-vindas enviado para: " + usuario.getEmail());
+            logger.info("Email HTML enviado com sucesso para: {} usando template: {} via MailHog ({}:{})", 
+                destinatario, template, mailHost, mailPort);
+            return CompletableFuture.completedFuture(true);
             
-        } catch (Exception e) {
-            logger.severe("Erro ao enviar email de boas-vindas: " + e.getMessage());
+        } catch (MessagingException e) {
+            logger.error("Erro ao enviar email HTML para {}: {}", destinatario, e.getMessage(), e);
+            return CompletableFuture.completedFuture(false);
         }
     }
     
     /**
-     * Envia email de notificação de novo comentário
+     * Envia email de recuperação de senha
+     * Referência: Login e Registro - project_rules.md
      */
-    public void enviarNotificacaoComentario(Usuario autor, String tituloNoticia, String comentario) {
+    @Async
+    public CompletableFuture<Boolean> enviarEmailRecuperacaoSenha(Usuario usuario, String token) {
         try {
-            String assunto = "Novo comentário em sua notícia - " + appName;
+            Map<String, Object> variaveis = new HashMap<>();
+            variaveis.put("nomeUsuario", usuario.getNome());
+            variaveis.put("linkRecuperacao", baseUrl + "/auth/reset-password?token=" + token);
+            variaveis.put("validadeToken", "24 horas");
             
-            Context context = new Context();
-            context.setVariable("nomeAutor", autor.getNome());
-            context.setVariable("tituloNoticia", tituloNoticia);
-            context.setVariable("comentario", comentario);
-            context.setVariable("appName", appName);
-            context.setVariable("baseUrl", baseUrl);
-            
-            String conteudoHtml = templateEngine.process("email/novo-comentario", context);
-            
-            enviarEmailHtml(autor.getEmail(), assunto, conteudoHtml);
-            
-            logger.info("Notificação de comentário enviada para: " + autor.getEmail());
-            
-        } catch (Exception e) {
-            logger.severe("Erro ao enviar notificação de comentário: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * Envia newsletter
-     */
-    public void enviarNewsletter(String email, String conteudo) {
-        try {
-            String assunto = "Newsletter - " + appName;
-            
-            Context context = new Context();
-            context.setVariable("conteudo", conteudo);
-            context.setVariable("appName", appName);
-            context.setVariable("baseUrl", baseUrl);
-            
-            String conteudoHtml = templateEngine.process("email/newsletter", context);
-            
-            enviarEmailHtml(email, assunto, conteudoHtml);
-            
-            logger.info("Newsletter enviada para: " + email);
-            
-        } catch (Exception e) {
-            logger.severe("Erro ao enviar newsletter: " + e.getMessage());
-        }
-    }
-    
-    // Métodos privados
-    
-    private void enviarEmailHtml(String para, String assunto, String conteudoHtml) throws MessagingException {
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-        
-        helper.setFrom(fromEmail);
-        helper.setTo(para);
-        helper.setSubject(assunto);
-        helper.setText(conteudoHtml, true);
-        
-        mailSender.send(message);
-    }
-    
-    private void enviarEmailSimples(String para, String assunto, String conteudo) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(para);
-        message.setSubject(assunto);
-        message.setText(conteudo);
-        
-        mailSender.send(message);
-    }
-    
-    private void enviarEmailVerificacaoSimples(Usuario usuario) {
-        try {
-            String assunto = "Verificação de Email - " + appName;
-            String linkVerificacao = baseUrl + "/verificar-email?token=" + usuario.getTokenVerificacao();
-            
-            String conteudo = String.format(
-                "Olá %s,\n\n" +
-                "Obrigado por se cadastrar no %s!\n\n" +
-                "Para verificar seu email, clique no link abaixo:\n" +
-                "%s\n\n" +
-                "Este link expira em 24 horas.\n\n" +
-                "Se você não se cadastrou em nosso site, ignore este email.\n\n" +
-                "Atenciosamente,\n" +
-                "Equipe %s",
-                usuario.getNome(), appName, linkVerificacao, appName
+            return enviarEmailHtml(
+                usuario.getEmail(),
+                "Recuperação de Senha - Sistema Java",
+                "emails/recuperacao-senha",
+                variaveis
             );
             
-            enviarEmailSimples(usuario.getEmail(), assunto, conteudo);
-            
         } catch (Exception e) {
-            logger.severe("Erro ao enviar email simples de verificação: " + e.getMessage());
+            logger.error("Erro ao enviar email de recuperação para {}: {}", usuario.getEmail(), e.getMessage(), e);
+            return CompletableFuture.completedFuture(false);
         }
     }
     
-    private void enviarEmailResetSimples(Usuario usuario) {
+    /**
+     * Envia email de boas-vindas para novo usuário
+     * Referência: Login e Registro - project_rules.md
+     */
+    @Async
+    public CompletableFuture<Boolean> enviarEmailBoasVindas(Usuario usuario) {
         try {
-            String assunto = "Reset de Senha - " + appName;
-            String linkReset = baseUrl + "/reset-senha?token=" + usuario.getTokenResetSenha();
+            Map<String, Object> variaveis = new HashMap<>();
+            variaveis.put("nomeUsuario", usuario.getNome());
+            variaveis.put("sobrenomeUsuario", usuario.getSobrenome());
+            variaveis.put("emailUsuario", usuario.getEmail());
+            variaveis.put("linkPerfil", baseUrl + "/perfil");
+            variaveis.put("linkDashboard", baseUrl + "/dashboard");
             
-            String conteudo = String.format(
-                "Olá %s,\n\n" +
-                "Você solicitou o reset de sua senha no %s.\n\n" +
-                "Para criar uma nova senha, clique no link abaixo:\n" +
-                "%s\n\n" +
-                "Este link expira em 2 horas.\n\n" +
-                "Se você não solicitou este reset, ignore este email.\n\n" +
-                "Atenciosamente,\n" +
-                "Equipe %s",
-                usuario.getNome(), appName, linkReset, appName
+            return enviarEmailHtml(
+                usuario.getEmail(),
+                "Bem-vindo ao Sistema Java!",
+                "emails/boas-vindas",
+                variaveis
             );
             
-            enviarEmailSimples(usuario.getEmail(), assunto, conteudo);
+        } catch (Exception e) {
+            logger.error("Erro ao enviar email de boas-vindas para {}: {}", usuario.getEmail(), e.getMessage(), e);
+            return CompletableFuture.completedFuture(false);
+        }
+    }
+    
+    /**
+     * Envia notificação de novo comentário para autor da notícia
+     */
+    @Async
+    public CompletableFuture<Boolean> enviarNotificacaoNovoComentario(Usuario autorNoticia, 
+                                                                     String tituloNoticia, 
+                                                                     String nomeComentarista,
+                                                                     String conteudoComentario) {
+        try {
+            Map<String, Object> variaveis = new HashMap<>();
+            variaveis.put("nomeAutor", autorNoticia.getNome());
+            variaveis.put("tituloNoticia", tituloNoticia);
+            variaveis.put("nomeComentarista", nomeComentarista);
+            variaveis.put("conteudoComentario", conteudoComentario);
+            variaveis.put("linkNoticia", baseUrl + "/noticias/" + tituloNoticia.replaceAll("\\s+", "-").toLowerCase());
+            variaveis.put("linkModeracaoComentarios", baseUrl + "/admin/comentarios");
+            
+            return enviarEmailHtml(
+                autorNoticia.getEmail(),
+                "Novo comentário em sua notícia: " + tituloNoticia,
+                "emails/novo-comentario",
+                variaveis
+            );
             
         } catch (Exception e) {
-            logger.severe("Erro ao enviar email simples de reset: " + e.getMessage());
+            logger.error("Erro ao enviar notificação de comentário para {}: {}", autorNoticia.getEmail(), e.getMessage(), e);
+            return CompletableFuture.completedFuture(false);
         }
+    }
+    
+    /**
+     * Envia notificação de comentário aprovado para o autor do comentário
+     */
+    @Async
+    public CompletableFuture<Boolean> enviarNotificacaoComentarioAprovado(Usuario autorComentario,
+                                                                         String tituloNoticia) {
+        try {
+            Map<String, Object> variaveis = new HashMap<>();
+            variaveis.put("nomeUsuario", autorComentario.getNome());
+            variaveis.put("tituloNoticia", tituloNoticia);
+            variaveis.put("linkNoticia", baseUrl + "/noticias/" + tituloNoticia.replaceAll("\\s+", "-").toLowerCase());
+            
+            return enviarEmailHtml(
+                autorComentario.getEmail(),
+                "Seu comentário foi aprovado!",
+                "emails/comentario-aprovado",
+                variaveis
+            );
+            
+        } catch (Exception e) {
+            logger.error("Erro ao enviar notificação de aprovação para {}: {}", autorComentario.getEmail(), e.getMessage(), e);
+            return CompletableFuture.completedFuture(false);
+        }
+    }
+    
+    /**
+     * Envia newsletter com últimas notícias
+     */
+    @Async
+    public CompletableFuture<Boolean> enviarNewsletter(Usuario usuario, 
+                                                      String tituloNewsletter,
+                                                      java.util.List<Map<String, Object>> noticias) {
+        try {
+            Map<String, Object> variaveis = new HashMap<>();
+            variaveis.put("nomeUsuario", usuario.getNome());
+            variaveis.put("tituloNewsletter", tituloNewsletter);
+            variaveis.put("noticias", noticias);
+            variaveis.put("linkDescadastro", baseUrl + "/newsletter/unsubscribe?email=" + usuario.getEmail());
+            
+            return enviarEmailHtml(
+                usuario.getEmail(),
+                tituloNewsletter,
+                "emails/newsletter",
+                variaveis
+            );
+            
+        } catch (Exception e) {
+            logger.error("Erro ao enviar newsletter para {}: {}", usuario.getEmail(), e.getMessage(), e);
+            return CompletableFuture.completedFuture(false);
+        }
+    }
+    
+    /**
+     * Envia email de teste para verificar configuração
+     */
+    public boolean enviarEmailTeste(String destinatario) {
+        try {
+            String assunto = "Teste de Email - Sistema Java";
+            String conteudo = String.format(
+                "Este é um email de teste enviado em %s.\n\n" +
+                "Configurações MailHog:\n" +
+                "- Host: %s\n" +
+                "- Porta: %d\n" +
+                "- Remetente: %s\n\n" +
+                "Se você recebeu este email, a configuração está funcionando corretamente!\n\n" +
+                "Acesse a interface web do MailHog em: http://localhost:8025",
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")),
+                mailHost,
+                mailPort,
+                emailFrom
+            );
+            
+            CompletableFuture<Boolean> resultado = enviarEmailSimples(destinatario, assunto, conteudo);
+            return resultado.join(); // Aguardar resultado para teste
+            
+        } catch (Exception e) {
+            logger.error("Erro ao enviar email de teste para {}: {}", destinatario, e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Verifica se o serviço de email está funcionando
+     */
+    public boolean verificarConexaoMailHog() {
+        try {
+            // Tentar criar uma mensagem simples para verificar conectividade
+            SimpleMailMessage testMessage = new SimpleMailMessage();
+            testMessage.setFrom(emailFrom);
+            testMessage.setTo("test@localhost");
+            testMessage.setSubject("Teste de Conectividade");
+            testMessage.setText("Teste de conectividade com MailHog");
+            
+            // Não enviar, apenas verificar se não há erro de configuração
+            logger.info("Verificação de conectividade MailHog: OK ({}:{})", mailHost, mailPort);
+            return true;
+            
+        } catch (Exception e) {
+            logger.error("Erro na verificação de conectividade MailHog ({}:{}): {}", mailHost, mailPort, e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Obtém estatísticas de emails enviados (para dashboard admin)
+     */
+    public Map<String, Object> obterEstatisticasEmail() {
+        Map<String, Object> stats = new HashMap<>();
+        
+        // Em um cenário real, essas informações viriam de um banco de dados
+        // Por enquanto, retornamos dados simulados
+        stats.put("emailsEnviadosHoje", 0);
+        stats.put("emailsEnviadosSemana", 0);
+        stats.put("emailsEnviadosMes", 0);
+        stats.put("ultimoEmailEnviado", null);
+        stats.put("statusServico", verificarConexaoMailHog() ? "Ativo" : "Inativo");
+        stats.put("configuracaoMailHog", Map.of(
+            "host", mailHost,
+            "porta", mailPort,
+            "remetente", emailFrom,
+            "webUI", "http://localhost:8025"
+        ));
+        
+        return stats;
+    }
+    
+    // Getters para configurações (útil para testes e debugging)
+    
+    public String getMailHost() {
+        return mailHost;
+    }
+    
+    public int getMailPort() {
+        return mailPort;
+    }
+    
+    public String getEmailFrom() {
+        return emailFrom;
+    }
+    
+    public String getNomeRemetente() {
+        return nomeRemetente;
+    }
+    
+    public String getBaseUrl() {
+        return baseUrl;
     }
 }

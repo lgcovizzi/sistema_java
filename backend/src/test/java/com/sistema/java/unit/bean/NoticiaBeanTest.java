@@ -233,7 +233,8 @@ class NoticiaBeanTest {
     void should_FilterByCategory_When_CategoryIsSelected() {
         // Arrange
         noticiaBean.init();
-        Map<String, Object> filtros = new HashMap<>();n        filtros.put("categoria", categoriaMock);
+        Map<String, Object> filtros = new HashMap<>();
+        filtros.put("categoria", categoriaMock);
         noticiaBean.setFiltros(filtros);
 
         List<Noticia> noticiasFiltered = Arrays.asList(noticiaMock);

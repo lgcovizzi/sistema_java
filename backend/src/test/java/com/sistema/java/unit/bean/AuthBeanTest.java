@@ -1,9 +1,9 @@
 package com.sistema.java.unit.bean;
 
 import com.sistema.java.bean.AuthBean;
-import com.sistema.java.dto.UsuarioDTO;
+import com.sistema.java.model.dto.UsuarioDTO;
 import com.sistema.java.model.entity.Usuario;
-import com.sistema.java.model.enums.Role;
+import com.sistema.java.model.enums.PapelUsuario;
 import com.sistema.java.service.AuthService;
 import com.sistema.java.service.UsuarioService;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,7 +67,7 @@ class AuthBeanTest {
         usuarioMock.setEmail("joao@teste.com");
         usuarioMock.setCpf("12345678901");
         usuarioMock.setSenha("senhaEncriptada");
-        usuarioMock.setRole(Role.USUARIO);
+        usuarioMock.setPapel(PapelUsuario.USUARIO);
         usuarioMock.setAtivo(true);
         usuarioMock.setDataCriacao(LocalDateTime.now());
         
@@ -84,8 +84,8 @@ class AuthBeanTest {
     @Test
     void should_LoginSuccessfully_When_CredentialsAreValid() {
         // Arrange
-        authBean.setEmail("joao@teste.com");
-        authBean.setSenha("senha123");
+        authBean.setEmailLogin("joao@teste.com");
+        authBean.setSenhaLogin("senha123");
         when(authService.autenticar("joao@teste.com", "senha123")).thenReturn(usuarioMock);
 
         // Act
@@ -100,9 +100,9 @@ class AuthBeanTest {
     @Test
     void should_RedirectToAdminDashboard_When_UserIsAdmin() {
         // Arrange
-        usuarioMock.setRole(Role.ADMINISTRADOR);
-        authBean.setEmail("admin@teste.com");
-        authBean.setSenha("senha123");
+        usuarioMock.setPapel(PapelUsuario.ADMINISTRADOR);
+        authBean.setEmailLogin("admin@teste.com");
+        authBean.setSenhaLogin("senha123");
         when(authService.autenticar("admin@teste.com", "senha123")).thenReturn(usuarioMock);
 
         // Act
@@ -115,8 +115,8 @@ class AuthBeanTest {
     @Test
     void should_ReturnNull_When_CredentialsAreInvalid() {
         // Arrange
-        authBean.setEmail("joao@teste.com");
-        authBean.setSenha("senhaErrada");
+        authBean.setEmailLogin("joao@teste.com");
+        authBean.setSenhaLogin("senhaErrada");
         when(authService.autenticar("joao@teste.com", "senhaErrada")).thenReturn(null);
 
         // Act

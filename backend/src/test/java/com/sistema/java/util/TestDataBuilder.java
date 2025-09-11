@@ -1,7 +1,7 @@
 package com.sistema.java.util;
 
 import com.sistema.java.model.entity.*;
-import com.sistema.java.model.enums.Papel;
+import com.sistema.java.model.enums.PapelUsuario;
 import com.sistema.java.model.enums.StatusComentario;
 import com.sistema.java.model.dto.*;
 
@@ -29,7 +29,7 @@ public class TestDataBuilder {
         usuario.setSenha("$2a$10$encrypted.password");
         usuario.setTelefone("(11) 99999-9999");
         usuario.setDataNascimento(LocalDate.of(1990, 1, 1));
-        usuario.setPapel(Papel.USUARIO);
+        usuario.setPapel(PapelUsuario.USUARIO);
         usuario.setAtivo(true);
         usuario.setDataCriacao(LocalDateTime.now().minusDays(30));
         usuario.setDataAtualizacao(LocalDateTime.now());
@@ -46,7 +46,7 @@ public class TestDataBuilder {
         admin.setSenha("$2a$10$encrypted.admin.password");
         admin.setTelefone("(11) 88888-8888");
         admin.setDataNascimento(LocalDate.of(1985, 5, 15));
-        admin.setPapel(Papel.ADMINISTRADOR);
+        admin.setPapel(PapelUsuario.ADMINISTRADOR);
         admin.setAtivo(true);
         admin.setDataCriacao(LocalDateTime.now().minusDays(365));
         admin.setDataAtualizacao(LocalDateTime.now());
@@ -63,7 +63,7 @@ public class TestDataBuilder {
         colaborador.setSenha("$2a$10$encrypted.colaborador.password");
         colaborador.setTelefone("(11) 77777-7777");
         colaborador.setDataNascimento(LocalDate.of(1988, 8, 20));
-        colaborador.setPapel(Papel.COLABORADOR);
+        colaborador.setPapel(PapelUsuario.COLABORADOR);
         colaborador.setAtivo(true);
         colaborador.setDataCriacao(LocalDateTime.now().minusDays(180));
         colaborador.setDataAtualizacao(LocalDateTime.now());
@@ -80,7 +80,7 @@ public class TestDataBuilder {
         associado.setSenha("$2a$10$encrypted.associado.password");
         associado.setTelefone("(11) 66666-6666");
         associado.setDataNascimento(LocalDate.of(1992, 12, 10));
-        associado.setPapel(Papel.ASSOCIADO);
+        associado.setPapel(PapelUsuario.ASSOCIADO);
         associado.setAtivo(true);
         associado.setDataCriacao(LocalDateTime.now().minusDays(90));
         associado.setDataAtualizacao(LocalDateTime.now());
@@ -97,7 +97,7 @@ public class TestDataBuilder {
         fundador.setSenha("$2a$10$encrypted.fundador.password");
         fundador.setTelefone("(11) 55555-5555");
         fundador.setDataNascimento(LocalDate.of(1980, 3, 25));
-        fundador.setPapel(Papel.FUNDADOR);
+        fundador.setPapel(PapelUsuario.FUNDADOR);
         fundador.setAtivo(true);
         fundador.setDataCriacao(LocalDateTime.now().minusDays(1000));
         fundador.setDataAtualizacao(LocalDateTime.now());
@@ -114,7 +114,7 @@ public class TestDataBuilder {
         parceiro.setSenha("$2a$10$encrypted.parceiro.password");
         parceiro.setTelefone("(11) 44444-4444");
         parceiro.setDataNascimento(LocalDate.of(1987, 7, 8));
-        parceiro.setPapel(Papel.PARCEIRO);
+        parceiro.setPapel(PapelUsuario.PARCEIRO);
         parceiro.setAtivo(true);
         parceiro.setDataCriacao(LocalDateTime.now().minusDays(200));
         parceiro.setDataAtualizacao(LocalDateTime.now());
@@ -271,8 +271,8 @@ public class TestDataBuilder {
         return loginDTO;
     }
 
-    public static RegistroDTO criarRegistroDTO() {
-        RegistroDTO registroDTO = new RegistroDTO();
+    public static RegistroRequestDTO criarRegistroDTO() {
+        RegistroRequestDTO registroDTO = new RegistroRequestDTO();
         registroDTO.setNome("Novo");
         registroDTO.setSobrenome("Usuario");
         registroDTO.setCpf("12312312312");
@@ -292,10 +292,10 @@ public class TestDataBuilder {
         noticiaDTO.setConteudo("Conteúdo completo da nova notícia criada via DTO");
         noticiaDTO.setPublicada(false);
         
-        List<Long> categoriaIds = new ArrayList<>();
-        categoriaIds.add(1L);
-        categoriaIds.add(2L);
-        noticiaDTO.setCategoriaIds(categoriaIds);
+        // List<Long> categoriaIds = new ArrayList<>();
+        // categoriaIds.add(1L);
+        // categoriaIds.add(2L);
+        // noticiaDTO.setCategoriaIds(categoriaIds); // Método não existe
         
         return noticiaDTO;
     }
@@ -311,7 +311,7 @@ public class TestDataBuilder {
     public static ComentarioDTO criarComentarioDTO() {
         ComentarioDTO comentarioDTO = new ComentarioDTO();
         comentarioDTO.setConteudo("Novo comentário via DTO");
-        comentarioDTO.setNoticiaId(1L);
+        // comentarioDTO.setNoticiaId(1L); // Método não existe
         return comentarioDTO;
     }
 
@@ -403,7 +403,7 @@ public class TestDataBuilder {
             return this;
         }
         
-        public UsuarioBuilder comPapel(Papel papel) {
+        public UsuarioBuilder comPapel(PapelUsuario papel) {
             usuario.setPapel(papel);
             return this;
         }

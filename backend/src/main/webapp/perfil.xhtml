@@ -3,8 +3,10 @@
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:f="http://xmlns.jcp.org/jsf/core"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
-      xmlns:p="http://primefaces.org/ui">
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
 
+<!-- Referência: Sistema de Temas Claros e Escuros - project_rules.md -->
 <ui:composition template="/WEB-INF/templates/template.xhtml">
     
     <ui:define name="title">
@@ -20,11 +22,12 @@
             }
             
             .profile-header {
-                background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-                color: white;
+                background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                color: var(--text-on-primary);
                 padding: 2rem;
                 border-radius: 10px 10px 0 0;
                 text-align: center;
+                transition: all 0.3s ease;
             }
             
             .profile-avatar {
@@ -40,25 +43,31 @@
                 font-size: 1.8rem;
                 font-weight: bold;
                 margin-bottom: 0.5rem;
+                color: var(--text-on-primary);
             }
             
             .profile-role {
                 font-size: 1rem;
                 opacity: 0.9;
+                color: var(--text-on-primary);
             }
             
             .profile-content {
-                background: white;
+                background: var(--background-color);
+                border: 1px solid var(--border-color);
                 border-radius: 0 0 10px 10px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                box-shadow: var(--shadow-md);
+                transition: all 0.3s ease;
             }
             
             .profile-tabs {
-                border-bottom: 1px solid #e5e7eb;
+                border-bottom: 1px solid var(--border-color);
             }
             
             .tab-content {
                 padding: 2rem;
+                background: var(--background-color);
+                color: var(--text-primary);
             }
             
             .form-section {
@@ -68,10 +77,10 @@
             .section-title {
                 font-size: 1.2rem;
                 font-weight: bold;
-                color: #1e3a8a;
+                color: var(--primary-color);
                 margin-bottom: 1rem;
                 padding-bottom: 0.5rem;
-                border-bottom: 2px solid #e5e7eb;
+                border-bottom: 2px solid var(--border-color);
             }
             
             .form-row {
@@ -89,7 +98,7 @@
                 display: block;
                 margin-bottom: 0.5rem;
                 font-weight: 600;
-                color: #374151;
+                color: var(--text-primary);
             }
             
             .avatar-upload {
@@ -101,15 +110,16 @@
                 width: 150px;
                 height: 150px;
                 border-radius: 50%;
-                border: 3px solid #e5e7eb;
+                border: 3px solid var(--border-color);
                 margin: 0 auto 1rem;
                 object-fit: cover;
                 display: block;
+                transition: all 0.3s ease;
             }
             
             .upload-info {
                 font-size: 0.9rem;
-                color: #6b7280;
+                color: var(--text-secondary);
                 margin-top: 0.5rem;
             }
             
@@ -121,23 +131,29 @@
             }
             
             .stat-card {
-                background: #f8fafc;
+                background: var(--background-secondary);
                 padding: 1.5rem;
                 border-radius: 8px;
                 text-align: center;
-                border: 1px solid #e5e7eb;
+                border: 1px solid var(--border-color);
+                transition: all 0.3s ease;
+            }
+            
+            .stat-card:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--shadow-lg);
             }
             
             .stat-number {
                 font-size: 2rem;
                 font-weight: bold;
-                color: #1e3a8a;
+                color: var(--primary-color);
                 display: block;
             }
             
             .stat-label {
                 font-size: 0.9rem;
-                color: #6b7280;
+                color: var(--text-secondary);
                 margin-top: 0.5rem;
             }
             
@@ -152,13 +168,56 @@
             }
             
             .verified {
-                background: #dcfce7;
-                color: #166534;
+                background: var(--success-bg);
+                color: var(--success-text);
             }
             
             .not-verified {
-                background: #fef3c7;
-                color: #92400e;
+                background: var(--warning-bg);
+                color: var(--warning-text);
+            }
+            
+            .btn {
+                padding: 0.75rem 1.5rem;
+                border: none;
+                border-radius: 8px;
+                font-size: 1rem;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                text-decoration: none;
+                display: inline-block;
+            }
+            
+            .btn-primary {
+                background: var(--primary-color);
+                color: var(--text-on-primary);
+            }
+            
+            .btn-primary:hover {
+                background: var(--primary-color-hover);
+                transform: translateY(-1px);
+            }
+            
+            .btn-outline-secondary {
+                background: transparent;
+                color: var(--text-secondary);
+                border: 1px solid var(--border-color);
+            }
+            
+            .btn-outline-secondary:hover {
+                background: var(--background-secondary);
+                color: var(--text-primary);
+            }
+            
+            .btn-warning {
+                background: var(--warning-color);
+                color: var(--text-on-primary);
+            }
+            
+            .btn-warning:hover {
+                background: var(--warning-color-hover);
+                transform: translateY(-1px);
             }
             
             .action-buttons {
@@ -167,7 +226,7 @@
                 justify-content: flex-end;
                 margin-top: 2rem;
                 padding-top: 2rem;
-                border-top: 1px solid #e5e7eb;
+                border-top: 1px solid var(--border-color);
             }
             
             @media (max-width: 768px) {
@@ -193,6 +252,11 @@
     </ui:define>
     
     <ui:define name="content">
+        <!-- Referência: Controle de Acesso - project_rules.md -->
+        <c:if test="#{not securityBean.authenticated}">
+            <script>window.location.href = 'login.xhtml';</script>
+        </c:if>
+        
         <div class="profile-container">
             <!-- Cabeçalho do Perfil -->
             <div class="profile-header">

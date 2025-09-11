@@ -3,7 +3,8 @@
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:f="http://xmlns.jcp.org/jsf/core"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
-      xmlns:p="http://primefaces.org/ui">
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
 
 <ui:composition template="/WEB-INF/templates/template.xhtml">
     
@@ -12,16 +13,18 @@
     </ui:define>
     
     <ui:define name="css">
+        <!-- Referência: Sistema de Temas Claros e Escuros - project_rules.md -->
         <style type="text/css">
             .article-header {
-                background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--border-color) 100%);
                 padding: 3rem 0;
                 margin-bottom: 2rem;
                 border-radius: 10px;
+                box-shadow: var(--shadow-sm);
             }
             
             .article-meta {
-                color: #6b7280;
+                color: var(--text-secondary);
                 font-size: 1rem;
                 margin-bottom: 1rem;
             }
@@ -36,14 +39,14 @@
             .article-title {
                 font-size: 2.5rem;
                 font-weight: bold;
-                color: #1f2937;
+                color: var(--text-primary);
                 line-height: 1.2;
                 margin-bottom: 1rem;
             }
             
             .article-summary {
                 font-size: 1.2rem;
-                color: #4b5563;
+                color: var(--text-secondary);
                 line-height: 1.6;
                 margin-bottom: 2rem;
             }
@@ -53,8 +56,8 @@
             }
             
             .category-tag {
-                background: #e0f2fe;
-                color: #0277bd;
+                background: var(--blue-light);
+                color: var(--blue-primary);
                 padding: 0.5rem 1rem;
                 border-radius: 20px;
                 font-size: 0.9rem;
@@ -67,9 +70,10 @@
             }
             
             .category-tag:hover {
-                background: #0277bd;
-                color: white;
+                background: var(--blue-primary);
+                color: var(--bg-primary);
                 transform: translateY(-1px);
+                box-shadow: var(--shadow-md);
             }
             
             .article-image {
@@ -78,13 +82,13 @@
                 object-fit: cover;
                 border-radius: 10px;
                 margin-bottom: 2rem;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                box-shadow: var(--shadow-md);
             }
             
             .article-content {
                 font-size: 1.1rem;
                 line-height: 1.8;
-                color: #374151;
+                color: var(--text-primary);
                 margin-bottom: 3rem;
             }
             
@@ -95,13 +99,13 @@
             .article-content h2,
             .article-content h3,
             .article-content h4 {
-                color: #1f2937;
+                color: var(--text-primary);
                 margin-top: 2rem;
                 margin-bottom: 1rem;
             }
             
             .article-actions {
-                background: #f9fafb;
+                background: var(--bg-secondary);
                 padding: 1.5rem;
                 border-radius: 10px;
                 margin-bottom: 3rem;
@@ -110,6 +114,7 @@
                 align-items: center;
                 flex-wrap: wrap;
                 gap: 1rem;
+                border: 1px solid var(--border-color);
             }
             
             .social-share {
@@ -120,13 +125,15 @@
             .share-button {
                 padding: 0.5rem;
                 border-radius: 50%;
-                color: white;
+                color: var(--bg-primary);
                 text-decoration: none;
-                transition: transform 0.3s ease;
+                transition: all 0.3s ease;
+                box-shadow: var(--shadow-sm);
             }
             
             .share-button:hover {
                 transform: scale(1.1);
+                box-shadow: var(--shadow-md);
             }
             
             .share-facebook { background: #1877f2; }
@@ -135,31 +142,34 @@
             .share-whatsapp { background: #25d366; }
             
             .comments-section {
-                background: white;
+                background: var(--bg-primary);
                 border-radius: 10px;
                 padding: 2rem;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                box-shadow: var(--shadow-md);
                 margin-bottom: 2rem;
+                border: 1px solid var(--border-color);
             }
             
             .comments-header {
-                border-bottom: 2px solid #e5e7eb;
+                border-bottom: 2px solid var(--border-color);
                 padding-bottom: 1rem;
                 margin-bottom: 2rem;
+                color: var(--text-primary);
             }
             
             .comment-item {
-                border-left: 4px solid #e5e7eb;
+                border-left: 4px solid var(--border-color);
                 padding: 1.5rem;
                 margin-bottom: 1.5rem;
-                background: #f9fafb;
+                background: var(--bg-secondary);
                 border-radius: 0 10px 10px 0;
                 transition: all 0.3s ease;
             }
             
             .comment-item:hover {
-                border-left-color: #3b82f6;
-                background: #f0f9ff;
+                border-left-color: var(--blue-primary);
+                background: var(--blue-light);
+                box-shadow: var(--shadow-sm);
             }
             
             .comment-header {
@@ -171,31 +181,33 @@
             
             .comment-author {
                 font-weight: 600;
-                color: #1f2937;
+                color: var(--text-primary);
             }
             
             .comment-date {
-                color: #6b7280;
+                color: var(--text-secondary);
                 font-size: 0.9rem;
             }
             
             .comment-content {
-                color: #374151;
+                color: var(--text-primary);
                 line-height: 1.6;
             }
             
             .comment-form {
-                background: #f8fafc;
+                background: var(--bg-secondary);
                 padding: 2rem;
                 border-radius: 10px;
                 margin-top: 2rem;
+                border: 1px solid var(--border-color);
             }
             
             .related-news {
-                background: white;
+                background: var(--bg-primary);
                 border-radius: 10px;
                 padding: 2rem;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                box-shadow: var(--shadow-md);
+                border: 1px solid var(--border-color);
             }
             
             .related-item {
@@ -203,12 +215,13 @@
                 gap: 1rem;
                 padding: 1rem;
                 border-radius: 8px;
-                transition: background 0.3s ease;
+                transition: all 0.3s ease;
                 margin-bottom: 1rem;
             }
             
             .related-item:hover {
-                background: #f3f4f6;
+                background: var(--bg-secondary);
+                box-shadow: var(--shadow-sm);
             }
             
             .related-image {
@@ -226,13 +239,18 @@
             .related-title {
                 font-size: 0.95rem;
                 font-weight: 600;
-                color: #1f2937;
+                color: var(--text-primary);
                 line-height: 1.3;
                 margin-bottom: 0.5rem;
+                text-decoration: none;
+            }
+            
+            .related-title:hover {
+                color: var(--blue-primary);
             }
             
             .related-date {
-                color: #6b7280;
+                color: var(--text-secondary);
                 font-size: 0.8rem;
             }
             
@@ -243,7 +261,7 @@
             .article-stats {
                 display: flex;
                 gap: 1rem;
-                color: #6b7280;
+                color: var(--text-secondary);
                 font-size: 0.9rem;
             }
             
@@ -251,6 +269,10 @@
                 display: flex;
                 align-items: center;
                 gap: 0.3rem;
+            }
+            
+            .stat-item i {
+                color: var(--blue-primary);
             }
             
             @media (max-width: 768px) {
@@ -280,6 +302,27 @@
     </ui:define>
     
     <ui:define name="content">
+        <!-- Referência: Controle de Acesso - project_rules.md -->
+        <!-- Verificação se a notícia está publicada ou se o usuário tem permissão para visualizar -->
+        <c:if test="#{not noticiaDetalhesBean.noticia.publicada and (empty usuarioLogado or not usuarioLogado.isAdministradorOuColaborador())}">
+            <div class="container">
+                <div class="alert alert-warning text-center">
+                    <h4><i class="pi pi-exclamation-triangle"></i> Notícia não encontrada</h4>
+                    <p>A notícia solicitada não está disponível ou foi removida.</p>
+                    <p:commandButton value="Voltar para Lista" action="/noticias/lista" styleClass="btn btn-primary"/>
+                </div>
+            </div>
+        </c:if>
+        
+        <c:if test="#{noticiaDetalhesBean.noticia.publicada or (not empty usuarioLogado and usuarioLogado.isAdministradorOuColaborador())}">
+            <!-- Alerta para notícia não publicada (apenas para administradores/colaboradores) -->
+            <c:if test="#{not noticiaDetalhesBean.noticia.publicada and not empty usuarioLogado and usuarioLogado.isAdministradorOuColaborador()}">
+                <div class="container">
+                    <div class="alert alert-info">
+                        <i class="pi pi-info-circle"></i> Esta notícia ainda não foi publicada e só é visível para administradores e colaboradores.
+                    </div>
+                </div>
+            </c:if>
         <!-- Botão Voltar -->
         <div class="container">
             <div class="back-button">
@@ -531,6 +574,7 @@
                 </div>
             </div>
         </div>
+        </c:if>
     </ui:define>
     
     <ui:define name="javascript">

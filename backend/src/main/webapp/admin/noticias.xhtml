@@ -3,7 +3,9 @@
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:f="http://xmlns.jcp.org/jsf/core"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
-      xmlns:p="http://primefaces.org/ui">
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:c="http://xmlns.jcp.org/jsp/jstl/core"
+      xmlns:fn="http://xmlns.jcp.org/jsp/jstl/functions">
 
 <ui:composition template="/WEB-INF/templates/template.xhtml">
     
@@ -12,13 +14,15 @@
     </ui:define>
     
     <ui:define name="css">
+        <!-- Referência: Sistema de Temas Claros e Escuros - project_rules.md -->
         <style type="text/css">
             .admin-header {
-                background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-                color: white;
+                background: linear-gradient(135deg, var(--blue-primary) 0%, var(--blue-secondary) 100%);
+                color: var(--bg-primary);
                 padding: 2rem 0;
                 margin-bottom: 2rem;
                 border-radius: 10px;
+                box-shadow: var(--shadow-lg);
             }
             
             .admin-title {
@@ -37,16 +41,18 @@
             }
             
             .stat-card {
-                background: white;
+                background: var(--bg-primary);
                 border-radius: 10px;
                 padding: 1.5rem;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                box-shadow: var(--shadow-md);
                 text-align: center;
-                transition: transform 0.3s ease;
+                transition: all 0.3s ease;
+                border: 1px solid var(--border-color);
             }
             
             .stat-card:hover {
                 transform: translateY(-2px);
+                box-shadow: var(--shadow-lg);
             }
             
             .stat-icon {
@@ -57,35 +63,37 @@
             .stat-number {
                 font-size: 2rem;
                 font-weight: bold;
-                color: #1f2937;
+                color: var(--text-primary);
                 margin-bottom: 0.5rem;
             }
             
             .stat-label {
-                color: #6b7280;
+                color: var(--text-secondary);
                 font-size: 0.9rem;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
             }
             
-            .stat-total { color: #3b82f6; }
+            .stat-total { color: var(--blue-primary); }
             .stat-published { color: #10b981; }
             .stat-draft { color: #f59e0b; }
             .stat-recent { color: #8b5cf6; }
             
             .filters-panel {
-                background: white;
+                background: var(--bg-primary);
                 border-radius: 10px;
                 padding: 1.5rem;
                 margin-bottom: 2rem;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                box-shadow: var(--shadow-md);
+                border: 1px solid var(--border-color);
             }
             
             .data-table-container {
-                background: white;
+                background: var(--bg-primary);
                 border-radius: 10px;
                 padding: 1.5rem;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                box-shadow: var(--shadow-md);
+                border: 1px solid var(--border-color);
             }
             
             .news-thumbnail {
@@ -107,13 +115,13 @@
             
             .news-title {
                 font-weight: 600;
-                color: #1f2937;
+                color: var(--text-primary);
                 margin-bottom: 0.25rem;
                 line-height: 1.3;
             }
             
             .news-summary {
-                color: #6b7280;
+                color: var(--text-secondary);
                 font-size: 0.9rem;
                 line-height: 1.4;
             }
@@ -144,8 +152,8 @@
             }
             
             .category-tag {
-                background: #e0f2fe;
-                color: #0277bd;
+                background: var(--blue-light);
+                color: var(--blue-primary);
                 padding: 0.2rem 0.5rem;
                 border-radius: 12px;
                 font-size: 0.75rem;
@@ -162,12 +170,12 @@
                 width: 30px;
                 height: 30px;
                 border-radius: 50%;
-                background: #e5e7eb;
+                background: var(--border-color);
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 font-weight: bold;
-                color: #374151;
+                color: var(--text-primary);
                 font-size: 0.8rem;
             }
             
@@ -212,7 +220,7 @@
                 display: block;
                 margin-bottom: 0.5rem;
                 font-weight: 600;
-                color: #374151;
+                color: var(--text-primary);
             }
             
             .required {
@@ -220,7 +228,7 @@
             }
             
             .editor-container {
-                border: 1px solid #d1d5db;
+                border: 1px solid var(--border-color);
                 border-radius: 6px;
                 min-height: 300px;
             }
@@ -237,7 +245,7 @@
                 gap: 1rem;
                 margin-top: 1rem;
                 font-size: 0.9rem;
-                color: #6b7280;
+                color: var(--text-secondary);
             }
             
             .stat-item {
@@ -284,6 +292,12 @@
     </ui:define>
     
     <ui:define name="content">
+        <!-- Referência: Sistema de Temas Claros e Escuros - project_rules.md -->
+        <!-- Referência: Controle de Acesso - project_rules.md -->
+        
+        <!-- Controle de Acesso: Apenas ADMINISTRADOR, FUNDADOR e COLABORADOR podem acessar -->
+        <c:if test="#{authBean.hasRole('ADMINISTRADOR') or authBean.hasRole('FUNDADOR') or authBean.hasRole('COLABORADOR')}">
+        
         <!-- Cabeçalho Admin -->
         <div class="admin-header">
             <div class="container">
@@ -731,6 +745,19 @@
             <p:commandButton value="#{msg['button.yes']}" type="button" styleClass="btn btn-primary ui-confirmdialog-yes" icon="pi pi-check"/>
             <p:commandButton value="#{msg['button.no']}" type="button" styleClass="btn btn-outline-secondary ui-confirmdialog-no" icon="pi pi-times"/>
         </p:confirmDialog>
+        
+        </c:if>
+        
+        <!-- Mensagem de acesso negado -->
+        <c:if test="#{not (authBean.hasRole('ADMINISTRADOR') or authBean.hasRole('FUNDADOR') or authBean.hasRole('COLABORADOR'))}">
+            <div class="container mt-5">
+                <div class="alert alert-danger text-center">
+                    <h4><i class="pi pi-exclamation-triangle"></i> #{msg['access.denied.title']}</h4>
+                    <p>#{msg['access.denied.admin.message']}</p>
+                    <p:button value="#{msg['button.back.home']}" outcome="/index" styleClass="btn btn-primary"/>
+                </div>
+            </div>
+        </c:if>
     </ui:define>
     
     <ui:define name="javascript">

@@ -60,6 +60,10 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         final String requestURI = request.getRequestURI();
         final String method = request.getMethod();
         
+        // Log para debug - verificar se o filtro está sendo aplicado incorretamente
+        logger.info("JwtRequestFilter aplicado para: {} {} - shouldNotFilter: {}", 
+                   method, requestURI, shouldNotFilter(request));
+        
         String username = null;
         String jwtToken = null;
         
@@ -190,7 +194,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             return true;
         }
         
-        // Pular filtro para endpoints públicos
+        // Pular filtro para endpoints públicos (não aplicar filtro JWT)
+        // Se NÃO requer autenticação, então NÃO aplicar o filtro
         return !requiresAuthentication(path);
     }
 }

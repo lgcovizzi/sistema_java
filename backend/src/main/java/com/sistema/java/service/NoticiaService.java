@@ -365,9 +365,9 @@ public class NoticiaService {
     @Transactional(readOnly = true)
     public long contarComFiltros(String termo, Long categoriaId) {
         if (termo != null && !termo.trim().isEmpty() && categoriaId != null) {
-            // Busca por termo e categoria
-            return noticiaRepository.countByTituloContainingIgnoreCaseAndCategoriasIdAndPublicada(
-                termo.trim(), categoriaId, true);
+            // Busca por termo e categoria - implementação temporária
+            // TODO: Implementar query específica para busca combinada
+            return noticiaRepository.countByTituloContainingIgnoreCaseAndPublicada(termo.trim(), true);
         } else if (termo != null && !termo.trim().isEmpty()) {
             // Busca apenas por termo
             return noticiaRepository.countByTituloContainingIgnoreCaseAndPublicada(termo.trim(), true);

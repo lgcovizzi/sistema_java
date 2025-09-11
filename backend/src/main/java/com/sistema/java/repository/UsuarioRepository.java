@@ -33,6 +33,14 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByEmail(String email);
 
     /**
+     * Busca usuário por email ignorando case
+     * 
+     * @param email Email do usuário
+     * @return Optional com o usuário encontrado
+     */
+    Optional<Usuario> findByEmailIgnoreCase(String email);
+
+    /**
      * Busca usuário por CPF
      * 
      * @param cpf CPF do usuário

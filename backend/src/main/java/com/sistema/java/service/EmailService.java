@@ -94,7 +94,7 @@ public class EmailService {
             helper.setSubject(assunto);
             
             // Processar template
-            Context context = new Context();
+            org.thymeleaf.context.Context context = new org.thymeleaf.context.Context();
             if (variaveis != null) {
                 variaveis.forEach(context::setVariable);
             }

@@ -84,11 +84,11 @@ public class JwtUtil {
      * @return Claims do token
      */
     private Claims getAllClaimsFromToken(String token) {
-        return Jwts.parser()
-            .verifyWith(getSigningKey())
+        return Jwts.parserBuilder()
+            .setSigningKey(getSigningKey())
             .build()
-            .parseSignedClaims(token)
-            .getPayload();
+            .parseClaimsJws(token)
+            .getBody();
     }
     
     /**
@@ -225,7 +225,7 @@ public class JwtUtil {
             info.put("issuedAt", claims.getIssuedAt());
             info.put("expiration", claims.getExpiration());
             info.put("expired", isTokenExpired(token));
-            info.put("type", claims.get("type", "access"));
+            info.put("type", claims.get("type", String.class) != null ? claims.get("type", String.class) : "access");
             
         } catch (Exception e) {
             info.put("error", e.getMessage());

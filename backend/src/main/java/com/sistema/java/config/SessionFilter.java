@@ -25,7 +25,6 @@ public class SessionFilter implements Filter {
     @Autowired
     private UsuarioService usuarioService;
 
-    @Override
     public void init(FilterConfig filterConfig) throws ServletException {
         // Inicialização do filtro
     }
@@ -45,7 +44,7 @@ public class SessionFilter implements Filter {
             if (usuarioLogado != null) {
                 try {
                     // Verifica se o usuário ainda existe e está ativo
-                    Optional<Usuario> usuarioAtual = usuarioService.findById(usuarioLogado.getId());
+                    Optional<Usuario> usuarioAtual = usuarioService.findEntityById(usuarioLogado.getId());
                     
                     if (usuarioAtual.isPresent() && usuarioAtual.get().isAtivo()) {
                         // Atualiza o usuário na sessão com dados mais recentes

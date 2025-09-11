@@ -633,4 +633,15 @@ public class UsuarioService {
     public boolean existsByEmailAndIdNot(String email, Long id) {
         return usuarioRepository.existsByEmailAndIdNot(email, id);
     }
+    
+    /**
+     * Busca usuário por ID retornando a entidade
+     * 
+     * @param id ID do usuário
+     * @return Optional com a entidade Usuario
+     */
+    @Transactional(readOnly = true)
+    public Optional<Usuario> findEntityById(Long id) {
+        return usuarioRepository.findById(id);
+    }
 }

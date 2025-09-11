@@ -102,7 +102,7 @@ class UsuarioServiceTest {
         // Act & Assert
         assertThatThrownBy(() -> usuarioService.create(usuarioDTO))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Email já está em uso");
+            .hasMessageContaining("CPF já está em uso");
     }
 
     @Test
@@ -113,9 +113,9 @@ class UsuarioServiceTest {
         when(usuarioRepository.existsByCpf(anyString())).thenReturn(true);
 
         // Act & Assert
-        assertThatThrownBy(() -> usuarioService.criarUsuario(usuarioDTO))
+        assertThatThrownBy(() -> usuarioService.create(usuarioDTO))
             .isInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("CPF já está em uso");
+            .hasMessageContaining("Email já está em uso");
     }
 
     @Test

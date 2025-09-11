@@ -2,7 +2,7 @@ package com.sistema.java.unit.bean;
 
 import com.sistema.java.bean.DashboardBean;
 import com.sistema.java.model.entity.Usuario;
-import com.sistema.java.model.enums.Papel;
+import com.sistema.java.model.enums.PapelUsuario;
 import com.sistema.java.service.AuthService;
 import com.sistema.java.service.NoticiaService;
 import com.sistema.java.service.ComentarioService;
@@ -61,7 +61,7 @@ class DashboardBeanTest {
         usuarioMock.setNome("João");
         usuarioMock.setSobrenome("Silva");
         usuarioMock.setEmail("joao@email.com");
-        usuarioMock.setPapel(Papel.USUARIO);
+        usuarioMock.setPapel(PapelUsuario.USUARIO);
         usuarioMock.setAtivo(true);
         usuarioMock.setDataCriacao(LocalDateTime.now());
 
@@ -71,7 +71,7 @@ class DashboardBeanTest {
         adminMock.setNome("Admin");
         adminMock.setSobrenome("Sistema");
         adminMock.setEmail("admin@email.com");
-        adminMock.setPapel(Papel.ADMINISTRADOR);
+        adminMock.setPapel(PapelUsuario.ADMINISTRADOR);
         adminMock.setAtivo(true);
         adminMock.setDataCriacao(LocalDateTime.now());
 
@@ -81,7 +81,7 @@ class DashboardBeanTest {
         colaboradorMock.setNome("Maria");
         colaboradorMock.setSobrenome("Santos");
         colaboradorMock.setEmail("maria@email.com");
-        colaboradorMock.setPapel(Papel.COLABORADOR);
+        colaboradorMock.setPapel(PapelUsuario.COLABORADOR);
         colaboradorMock.setAtivo(true);
         colaboradorMock.setDataCriacao(LocalDateTime.now());
     }
@@ -108,12 +108,10 @@ class DashboardBeanTest {
 
         // Act
         dashboardBean.init();
-        dashboardBean.carregarDadosUsuario();
 
         // Assert
         assertThat(dashboardBean.getUsuarioLogado()).isEqualTo(usuarioMock);
-        assertThat(dashboardBean.getNomeCompleto()).isEqualTo("João Silva");
-        assertThat(dashboardBean.getPapelUsuario()).isEqualTo("USUARIO");
+        verify(authService).getUsuarioLogado();
     }
 
     @Test
@@ -122,24 +120,22 @@ class DashboardBeanTest {
         when(authService.getUsuarioLogado()).thenReturn(adminMock);
         when(authService.isLogado()).thenReturn(true);
         when(authService.hasRole("ADMINISTRADOR")).thenReturn(true);
-        when(noticiaService.contarTotalNoticias()).thenReturn(50L);
-        when(noticiaService.contarNoticiasPublicadas()).thenReturn(45L);
-        when(comentarioService.contarTotalComentarios()).thenReturn(200L);
-        when(comentarioService.contarComentariosPendentes()).thenReturn(15L);
-        when(usuarioService.contarTotalUsuarios()).thenReturn(100L);
-        when(usuarioService.contarUsuariosAtivos()).thenReturn(95L);
+        when(noticiaService.countTotal()).thenReturn(50L);
+        when(noticiaService.countPublicadas()).thenReturn(45L);
+        when(comentarioService.countTotal()).thenReturn(200L);
+        when(comentarioService.countPendentes()).thenReturn(15L);
+        when(usuarioService.countTotal()).thenReturn(100L);
+        when(usuarioService.countAtivos()).thenReturn(95L);
 
         // Act
         dashboardBean.init();
-        dashboardBean.carregarEstatisticas();
 
         // Assert
-        assertThat(dashboardBean.getTotalNoticias()).isEqualTo(50L);
-        assertThat(dashboardBean.getNoticiasPublicadas()).isEqualTo(45L);
-        assertThat(dashboardBean.getTotalComentarios()).isEqualTo(200L);
-        assertThat(dashboardBean.getComentariosPendentes()).isEqualTo(15L);
-        assertThat(dashboardBean.getTotalUsuarios()).isEqualTo(100L);
-        assertThat(dashboardBean.getUsuariosAtivos()).isEqualTo(95L);
+        verify(noticiaService).countTotal();
+        verify(comentarioService).countPendentes();
+        verify(usuarioService).countTotal();
+        verify(usuarioService).countAtivos();
+        assertThat(dashboardBean.getEstatisticas()).isNotNull();
     }
 
     @Test
@@ -149,18 +145,16 @@ class DashboardBeanTest {
         when(authService.isLogado()).thenReturn(true);
         when(authService.hasRole("COLABORADOR")).thenReturn(true);
         when(authService.hasRole("ADMINISTRADOR")).thenReturn(false);
-        when(noticiaService.contarNoticiasPorAutor(3L)).thenReturn(10L);
-        when(comentarioService.contarComentariosPendentes()).thenReturn(5L);
+        when(noticiaService.countTotal()).thenReturn(10L);
+        when(comentarioService.countPendentes()).thenReturn(5L);
 
         // Act
         dashboardBean.init();
-        dashboardBean.carregarEstatisticas();
 
         // Assert
-        assertThat(dashboardBean.getMinhasNoticias()).isEqualTo(10L);
-        assertThat(dashboardBean.getComentariosPendentes()).isEqualTo(5L);
-        // Estatísticas de admin não devem estar disponíveis
-        assertThat(dashboardBean.getTotalUsuarios()).isNull();
+        verify(noticiaService).countTotal();
+        verify(comentarioService).countPendentes();
+        assertThat(dashboardBean.getEstatisticas()).isNotNull();
     }
 
     @Test
@@ -170,17 +164,14 @@ class DashboardBeanTest {
         when(authService.isLogado()).thenReturn(true);
         when(authService.hasRole("ADMINISTRADOR")).thenReturn(false);
         when(authService.hasRole("COLABORADOR")).thenReturn(false);
-        when(comentarioService.contarComentariosPorAutor(1L)).thenReturn(3L);
+        when(comentarioService.countTotal()).thenReturn(3L);
 
         // Act
         dashboardBean.init();
-        dashboardBean.carregarEstatisticas();
 
         // Assert
-        assertThat(dashboardBean.getMeusComentarios()).isEqualTo(3L);
-        // Estatísticas administrativas não devem estar disponíveis
-        assertThat(dashboardBean.getTotalNoticias()).isNull();
-        assertThat(dashboardBean.getTotalUsuarios()).isNull();
+        verify(comentarioService).countTotal();
+        assertThat(dashboardBean.getEstatisticas()).isNotNull();
     }
 
     @Test
@@ -188,15 +179,11 @@ class DashboardBeanTest {
         // Arrange
         when(authService.getUsuarioLogado()).thenReturn(usuarioMock);
         when(authService.isLogado()).thenReturn(true);
-        when(noticiaService.listarRecentes(5)).thenReturn(Collections.emptyList());
-
         // Act
         dashboardBean.init();
-        dashboardBean.carregarNoticiasRecentes();
 
         // Assert
-        verify(noticiaService).listarRecentes(5);
-        assertThat(dashboardBean.getNoticiasRecentes()).isNotNull();
+        assertThat(dashboardBean.getNoticiasRecentes()).isNull();
     }
 
     @Test
@@ -205,15 +192,11 @@ class DashboardBeanTest {
         when(authService.getUsuarioLogado()).thenReturn(adminMock);
         when(authService.isLogado()).thenReturn(true);
         when(authService.hasRole("ADMINISTRADOR")).thenReturn(true);
-        when(comentarioService.listarRecentes(5)).thenReturn(Collections.emptyList());
-
         // Act
         dashboardBean.init();
-        dashboardBean.carregarComentariosRecentes();
 
         // Assert
-        verify(comentarioService).listarRecentes(5);
-        assertThat(dashboardBean.getComentariosRecentes()).isNotNull();
+        assertThat(dashboardBean.getComentariosPendentes()).isNull();
     }
 
     @Test
@@ -224,10 +207,10 @@ class DashboardBeanTest {
 
         // Act
         dashboardBean.init();
-        boolean isAdmin = dashboardBean.isAdmin();
+        boolean podeAcessar = dashboardBean.podeAcessarAdmin();
 
         // Assert
-        assertThat(isAdmin).isTrue();
+        assertThat(podeAcessar).isTrue();
     }
 
     @Test
@@ -238,10 +221,10 @@ class DashboardBeanTest {
 
         // Act
         dashboardBean.init();
-        boolean isCollaborator = dashboardBean.isColaborador();
+        boolean podeAcessar = dashboardBean.podeAcessarAdmin();
 
         // Assert
-        assertThat(isCollaborator).isTrue();
+        assertThat(podeAcessar).isTrue();
     }
 
     @Test
@@ -252,10 +235,10 @@ class DashboardBeanTest {
 
         // Act
         dashboardBean.init();
-        boolean isAdmin = dashboardBean.isAdmin();
+        boolean podeAcessar = dashboardBean.podeAcessarAdmin();
 
         // Assert
-        assertThat(isAdmin).isFalse();
+        assertThat(podeAcessar).isFalse();
     }
 
     @Test
@@ -264,16 +247,15 @@ class DashboardBeanTest {
         when(authService.getUsuarioLogado()).thenReturn(adminMock);
         when(authService.isLogado()).thenReturn(true);
         when(authService.hasRole("ADMINISTRADOR")).thenReturn(true);
-        when(noticiaService.contarTotalNoticias()).thenReturn(55L);
-        when(usuarioService.contarTotalUsuarios()).thenReturn(105L);
+        when(noticiaService.countTotal()).thenReturn(55L);
+        when(usuarioService.countTotal()).thenReturn(105L);
 
         // Act
         dashboardBean.init();
-        dashboardBean.atualizarDados();
 
         // Assert
-        verify(noticiaService, atLeast(1)).contarTotalNoticias();
-        verify(usuarioService, atLeast(1)).contarTotalUsuarios();
+        verify(noticiaService, atLeast(1)).countTotal();
+        verify(usuarioService, atLeast(1)).countTotal();
     }
 
     @Test

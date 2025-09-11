@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.context.ServletContextAware;
 
-import jakarta.faces.webapp.FacesServlet;
+// import jakarta.faces.webapp.FacesServlet; // Temporariamente comentado
 import jakarta.servlet.ServletContext;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,6 +45,7 @@ public class JsfConfig implements ServletContextAware {
      * Registra o FacesServlet no Spring Boot
      */
     // @Bean
+    /*
     public ServletRegistrationBean<FacesServlet> facesServletRegistration() {
         ServletRegistrationBean<FacesServlet> registration = new ServletRegistrationBean<>(
             new FacesServlet(), "*.xhtml");
@@ -58,4 +59,5 @@ public class JsfConfig implements ServletContextAware {
         
         return registration;
     }
+    */
 }

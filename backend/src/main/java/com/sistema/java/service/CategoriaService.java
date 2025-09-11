@@ -3,7 +3,7 @@ package com.sistema.java.service;
 import com.sistema.java.model.dto.CategoriaDTO;
 import com.sistema.java.model.entity.Categoria;
 import com.sistema.java.repository.CategoriaRepository;
-import org.primefaces.model.SortOrder;
+// import org.primefaces.model.SortOrder; // Temporariamente comentado - dependência JSF
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -346,12 +346,13 @@ public class CategoriaService {
      */
     @Transactional(readOnly = true)
     public List<CategoriaDTO> buscarComPaginacao(int first, int pageSize, String sortField, 
-                                               SortOrder sortOrder, String termo, Boolean ativa) {
+                                               Object sortOrder, String termo, Boolean ativa) { // SortOrder temporariamente como Object
         // Configurar ordenação
         Sort sort = Sort.unsorted();
         if (sortField != null && !sortField.isEmpty()) {
-            Sort.Direction direction = (sortOrder == SortOrder.DESCENDING) ? 
-                Sort.Direction.DESC : Sort.Direction.ASC;
+            // Sort.Direction direction = (sortOrder == SortOrder.DESCENDING) ? 
+            //     Sort.Direction.DESC : Sort.Direction.ASC; // Temporariamente comentado
+            Sort.Direction direction = Sort.Direction.ASC; // Padrão temporário
             sort = Sort.by(direction, sortField);
         } else {
             sort = Sort.by(Sort.Direction.ASC, "nome"); // Ordenação padrão

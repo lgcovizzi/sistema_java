@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
+  <!-- Logo do Sistema Java -->
+  <!-- Referência: Configurar recursos estáticos - project_rules.md -->
+  
+  <!-- Background -->
+  <rect width="200" height="60" fill="#1e3a8a" rx="8"/>
+  
+  <!-- Texto principal -->
+  <text x="20" y="25" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#ffffff">
+    Sistema
+  </text>
+  
+  <!-- Texto secundário -->
+  <text x="20" y="45" font-family="Arial, sans-serif" font-size="14" fill="#93c5fd">
+    Java Platform
+  </text>
+  
+  <!-- Ícone Java -->
+  <g transform="translate(140, 10)">
+    <!-- Cup -->
+    <path d="M10 5 L30 5 L28 35 L12 35 Z" fill="#f59e0b" stroke="#d97706" stroke-width="1"/>
+    
+    <!-- Handle -->
+    <path d="M30 15 Q40 15 40 25 Q40 35 30 35" fill="none" stroke="#d97706" stroke-width="2"/>
+    
+    <!-- Steam -->
+    <path d="M15 0 Q15 5 17 5 Q17 0 19 0 Q19 5 21 5 Q21 0 23 0 Q23 5 25 5" 
+          fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.8"/>
+  </g>
+</svg>

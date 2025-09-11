@@ -64,12 +64,12 @@ class AuthServiceTest {
         when(passwordEncoder.matches(senhaPlana, "senhaEncriptada")).thenReturn(true);
 
         // Act
-        Optional<Usuario> resultado = authService.autenticar("joao@teste.com", senhaPlana);
+        Usuario resultado = authService.autenticar("joao@teste.com", senhaPlana);
 
         // Assert
-        assertThat(resultado).isPresent();
-        assertThat(resultado.get().getEmail()).isEqualTo("joao@teste.com");
-        assertThat(resultado.get().isAtivo()).isTrue();
+        assertThat(resultado).isNotNull();
+        assertThat(resultado.getEmail()).isEqualTo("joao@teste.com");
+        assertThat(resultado.isAtivo()).isTrue();
         verify(usuarioRepository).findByEmail("joao@teste.com");
         verify(passwordEncoder).matches(senhaPlana, "senhaEncriptada");
     }
@@ -80,10 +80,10 @@ class AuthServiceTest {
         when(usuarioRepository.findByEmail("inexistente@teste.com")).thenReturn(Optional.empty());
 
         // Act
-        Optional<Usuario> resultado = authService.autenticar("inexistente@teste.com", "senha123");
+        Usuario resultado = authService.autenticar("inexistente@teste.com", "senha123");
 
         // Assert
-        assertThat(resultado).isEmpty();
+        assertThat(resultado).isNull();
         verify(usuarioRepository).findByEmail("inexistente@teste.com");
         verify(passwordEncoder, never()).matches(anyString(), anyString());
     }
@@ -96,10 +96,10 @@ class AuthServiceTest {
         when(passwordEncoder.matches(senhaIncorreta, "senhaEncriptada")).thenReturn(false);
 
         // Act
-        Optional<Usuario> resultado = authService.autenticar("joao@teste.com", senhaIncorreta);
+        Usuario resultado = authService.autenticar("joao@teste.com", senhaIncorreta);
 
         // Assert
-        assertThat(resultado).isEmpty();
+        assertThat(resultado).isNull();
         verify(usuarioRepository).findByEmail("joao@teste.com");
         verify(passwordEncoder).matches(senhaIncorreta, "senhaEncriptada");
     }
@@ -113,10 +113,10 @@ class AuthServiceTest {
         when(passwordEncoder.matches(senhaPlana, "senhaEncriptada")).thenReturn(true);
 
         // Act
-        Optional<Usuario> resultado = authService.autenticar("joao@teste.com", senhaPlana);
+        Usuario resultado = authService.autenticar("joao@teste.com", senhaPlana);
 
         // Assert
-        assertThat(resultado).isEmpty();
+        assertThat(resultado).isNull();
         verify(usuarioRepository).findByEmail("joao@teste.com");
         verify(passwordEncoder).matches(senhaPlana, "senhaEncriptada");
     }

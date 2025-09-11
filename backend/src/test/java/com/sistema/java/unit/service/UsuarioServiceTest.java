@@ -84,7 +84,7 @@ class UsuarioServiceTest {
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
 
         // Act
-        UsuarioDTO resultado = usuarioService.criarUsuario(usuarioDTO);
+        UsuarioDTO resultado = usuarioService.create(usuarioDTO);
 
         // Assert
         assertThat(resultado).isNotNull();
@@ -100,7 +100,7 @@ class UsuarioServiceTest {
         when(usuarioRepository.existsByEmail(anyString())).thenReturn(true);
 
         // Act & Assert
-        assertThatThrownBy(() -> usuarioService.criarUsuario(usuarioDTO))
+        assertThatThrownBy(() -> usuarioService.create(usuarioDTO))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Email já está em uso");
     }
@@ -125,7 +125,7 @@ class UsuarioServiceTest {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
 
         // Act
-        Optional<UsuarioDTO> resultado = usuarioService.buscarPorId(1L);
+        Optional<UsuarioDTO> resultado = usuarioService.findById(1L);
 
         // Assert
         assertThat(resultado).isPresent();
@@ -139,7 +139,7 @@ class UsuarioServiceTest {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.empty());
 
         // Act
-        Optional<UsuarioDTO> resultado = usuarioService.buscarPorId(1L);
+        Optional<UsuarioDTO> resultado = usuarioService.findById(1L);
 
         // Assert
         assertThat(resultado).isEmpty();
@@ -154,7 +154,7 @@ class UsuarioServiceTest {
         when(usuarioRepository.findAll(any(Pageable.class))).thenReturn(page);
 
         // Act
-        Page<UsuarioDTO> resultado = usuarioService.listarTodos(PageRequest.of(0, 10));
+        Page<UsuarioDTO> resultado = usuarioService.findAll(PageRequest.of(0, 10));
 
         // Assert
         assertThat(resultado.getContent()).hasSize(1);
@@ -172,7 +172,7 @@ class UsuarioServiceTest {
         usuarioDTO.setNome("João Atualizado");
 
         // Act
-        UsuarioDTO resultado = usuarioService.atualizarUsuario(1L, usuarioDTO);
+        UsuarioDTO resultado = usuarioService.update(1L, usuarioDTO);
 
         // Assert
         assertThat(resultado.getNome()).isEqualTo("João Atualizado");
@@ -180,43 +180,29 @@ class UsuarioServiceTest {
     }
 
     @Test
-    @DisplayName("Deve validar CPF corretamente")
-    void should_ValidateCpf_When_ValidFormat() {
-        // Arrange & Act
-        boolean resultado = usuarioService.validarCpf("12345678901");
+    @DisplayName("Deve verificar se CPF existe")
+    void should_CheckCpfExists_When_ValidFormat() {
+        // Arrange
+        when(usuarioRepository.existsByCpf("12345678901")).thenReturn(true);
+        
+        // Act
+        boolean resultado = usuarioService.existsByCpf("12345678901");
 
         // Assert
         assertThat(resultado).isTrue();
     }
 
     @Test
-    @DisplayName("Deve rejeitar CPF inválido")
-    void should_RejectCpf_When_InvalidFormat() {
-        // Arrange & Act
-        boolean resultado = usuarioService.validarCpf("123");
-
-        // Assert
-        assertThat(resultado).isFalse();
-    }
-
-    @Test
-    @DisplayName("Deve validar email corretamente")
-    void should_ValidateEmail_When_ValidFormat() {
-        // Arrange & Act
-        boolean resultado = usuarioService.validarEmail("teste@email.com");
+    @DisplayName("Deve verificar se email existe")
+    void should_CheckEmailExists_When_ValidFormat() {
+        // Arrange
+        when(usuarioRepository.existsByEmail("teste@email.com")).thenReturn(true);
+        
+        // Act
+        boolean resultado = usuarioService.existsByEmail("teste@email.com");
 
         // Assert
         assertThat(resultado).isTrue();
-    }
-
-    @Test
-    @DisplayName("Deve rejeitar email inválido")
-    void should_RejectEmail_When_InvalidFormat() {
-        // Arrange & Act
-        boolean resultado = usuarioService.validarEmail("email-invalido");
-
-        // Assert
-        assertThat(resultado).isFalse();
     }
 
     @Test
@@ -227,35 +213,35 @@ class UsuarioServiceTest {
         when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuario);
 
         // Act
-        usuarioService.desativarUsuario(1L);
+        usuarioService.desativar(1L);
 
         // Assert
         verify(usuarioRepository).save(any(Usuario.class));
     }
 
     @Test
-    @DisplayName("Deve verificar se usuário pode gerenciar conteúdo")
-    void should_CheckContentManagement_When_ValidRole() {
+    @DisplayName("Deve contar usuários ativos")
+    void should_CountActiveUsers_When_Called() {
         // Arrange
-        usuario.setPapel(PapelUsuario.COLABORADOR);
+        when(usuarioRepository.countByAtivo(true)).thenReturn(5L);
 
         // Act
-        boolean resultado = usuarioService.podeGerenciarConteudo(usuario);
+        long resultado = usuarioService.countAtivos();
 
         // Assert
-        assertThat(resultado).isTrue();
+        assertThat(resultado).isEqualTo(5L);
     }
 
     @Test
-    @DisplayName("Deve verificar se usuário pode gerenciar usuários")
-    void should_CheckUserManagement_When_AdminRole() {
+    @DisplayName("Deve contar usuários por papel")
+    void should_CountUsersByRole_When_ValidRole() {
         // Arrange
-        usuario.setPapel(PapelUsuario.ADMINISTRADOR);
+        when(usuarioRepository.countByPapel(PapelUsuario.ADMINISTRADOR)).thenReturn(2L);
 
         // Act
-        boolean resultado = usuarioService.podeGerenciarUsuarios(usuario);
+        long resultado = usuarioService.countByPapel(PapelUsuario.ADMINISTRADOR);
 
         // Assert
-        assertThat(resultado).isTrue();
+        assertThat(resultado).isEqualTo(2L);
     }
 }

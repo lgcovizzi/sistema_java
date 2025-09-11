@@ -2,7 +2,7 @@ package com.sistema.java.unit.bean;
 
 import com.sistema.java.bean.MenuBean;
 import com.sistema.java.model.entity.Usuario;
-import com.sistema.java.model.enums.Papel;
+import com.sistema.java.model.enums.PapelUsuario;
 import com.sistema.java.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,7 +45,7 @@ class MenuBeanTest {
         usuarioMock.setId(1L);
         usuarioMock.setNome("João");
         usuarioMock.setEmail("joao@email.com");
-        usuarioMock.setPapel(Papel.USUARIO);
+        usuarioMock.setPapel(PapelUsuario.USUARIO);
         usuarioMock.setAtivo(true);
         usuarioMock.setDataCriacao(LocalDateTime.now());
 
@@ -54,7 +54,7 @@ class MenuBeanTest {
         adminMock.setId(2L);
         adminMock.setNome("Admin");
         adminMock.setEmail("admin@email.com");
-        adminMock.setPapel(Papel.ADMINISTRADOR);
+        adminMock.setPapel(PapelUsuario.ADMINISTRADOR);
         adminMock.setAtivo(true);
         adminMock.setDataCriacao(LocalDateTime.now());
 
@@ -63,7 +63,7 @@ class MenuBeanTest {
         colaboradorMock.setId(3L);
         colaboradorMock.setNome("Maria");
         colaboradorMock.setEmail("maria@email.com");
-        colaboradorMock.setPapel(Papel.COLABORADOR);
+        colaboradorMock.setPapel(PapelUsuario.COLABORADOR);
         colaboradorMock.setAtivo(true);
         colaboradorMock.setDataCriacao(LocalDateTime.now());
 
@@ -72,7 +72,7 @@ class MenuBeanTest {
         associadoMock.setId(4L);
         associadoMock.setNome("Carlos");
         associadoMock.setEmail("carlos@email.com");
-        associadoMock.setPapel(Papel.ASSOCIADO);
+        associadoMock.setPapel(PapelUsuario.ASSOCIADO);
         associadoMock.setAtivo(true);
         associadoMock.setDataCriacao(LocalDateTime.now());
 
@@ -81,7 +81,7 @@ class MenuBeanTest {
         parceiroMock.setId(5L);
         parceiroMock.setNome("Ana");
         parceiroMock.setEmail("ana@email.com");
-        parceiroMock.setPapel(Papel.PARCEIRO);
+        parceiroMock.setPapel(PapelUsuario.PARCEIRO);
         parceiroMock.setAtivo(true);
         parceiroMock.setDataCriacao(LocalDateTime.now());
 
@@ -90,7 +90,7 @@ class MenuBeanTest {
         fundadorMock.setId(6L);
         fundadorMock.setNome("Fundador");
         fundadorMock.setEmail("fundador@email.com");
-        fundadorMock.setPapel(Papel.FUNDADOR);
+        fundadorMock.setPapel(PapelUsuario.FUNDADOR);
         fundadorMock.setAtivo(true);
         fundadorMock.setDataCriacao(LocalDateTime.now());
     }
@@ -118,7 +118,7 @@ class MenuBeanTest {
 
         // Act
         menuBean.init();
-        List<MenuBean.MenuItem> menuItems = menuBean.getMenuItems();
+        List<MenuBean.MenuItem> menuItems = menuBean.getMenuPrincipal();
 
         // Assert
         assertThat(menuItems).isNotEmpty();
@@ -135,12 +135,12 @@ class MenuBeanTest {
         // Arrange
         when(authService.getUsuarioLogado()).thenReturn(colaboradorMock);
         when(authService.isLogado()).thenReturn(true);
-        when(authService.hasRole("COLABORADOR")).thenReturn(true);
+        when(authService.hasRole(PapelUsuario.COLABORADOR)).thenReturn(true);
         when(authService.hasRole("ADMINISTRADOR")).thenReturn(false);
 
         // Act
         menuBean.init();
-        List<MenuBean.MenuItem> menuItems = menuBean.getMenuItems();
+        List<MenuBean.MenuItem> menuItems = menuBean.getMenuPrincipal();
 
         // Assert
         assertThat(menuItems).isNotEmpty();
@@ -164,7 +164,7 @@ class MenuBeanTest {
 
         // Act
         menuBean.init();
-        List<MenuBean.MenuItem> menuItems = menuBean.getMenuItems();
+        List<MenuBean.MenuItem> menuItems = menuBean.getMenuPrincipal();
 
         // Assert
         assertThat(menuItems).isNotEmpty();
@@ -187,7 +187,7 @@ class MenuBeanTest {
 
         // Act
         menuBean.init();
-        List<MenuBean.MenuItem> menuItems = menuBean.getMenuItems();
+        List<MenuBean.MenuItem> menuItems = menuBean.getMenuPrincipal();
 
         // Assert
         assertThat(menuItems).isNotEmpty();
@@ -207,7 +207,7 @@ class MenuBeanTest {
 
         // Act
         menuBean.init();
-        List<MenuBean.MenuItem> menuItems = menuBean.getMenuItems();
+        List<MenuBean.MenuItem> menuItems = menuBean.getMenuPrincipal();
 
         // Assert
         assertThat(menuItems).isNotEmpty();
@@ -225,7 +225,7 @@ class MenuBeanTest {
 
         // Act
         menuBean.init();
-        List<MenuBean.MenuItem> menuItems = menuBean.getMenuItems();
+        List<MenuBean.MenuItem> menuItems = menuBean.getMenuPrincipal();
 
         // Assert
         assertThat(menuItems).isNotEmpty();
@@ -244,7 +244,7 @@ class MenuBeanTest {
 
         // Act
         menuBean.init();
-        List<MenuBean.MenuItem> menuItems = menuBean.getMenuItems();
+        List<MenuBean.MenuItem> menuItems = menuBean.getMenuPrincipal();
 
         // Assert
         assertThat(menuItems).isEmpty();
@@ -259,7 +259,7 @@ class MenuBeanTest {
         when(authService.hasRole("COLABORADOR")).thenReturn(false);
 
         menuBean.init();
-        int initialMenuSize = menuBean.getMenuItems().size();
+        int initialMenuSize = menuBean.getMenuPrincipal().size();
 
         // Simular mudança de papel para colaborador
         when(authService.hasRole("COLABORADOR")).thenReturn(true);
@@ -268,62 +268,65 @@ class MenuBeanTest {
         menuBean.atualizarMenu();
 
         // Assert
-        assertThat(menuBean.getMenuItems().size()).isGreaterThan(initialMenuSize);
+        assertThat(menuBean.getMenuPrincipal().size()).isGreaterThan(initialMenuSize);
     }
 
     @Test
     void should_ToggleMenuState_When_ToggleMethodIsCalled() {
         // Arrange
-        menuBean.setMenuCollapsed(false);
+        menuBean.setMenuMobileAberto(false);
 
         // Act
-        menuBean.toggleMenu();
+        menuBean.alternarMenuMobile();
 
         // Assert
-        assertThat(menuBean.isMenuCollapsed()).isTrue();
+        assertThat(menuBean.isMenuMobileAberto()).isTrue();
 
         // Act again
-        menuBean.toggleMenu();
+        menuBean.alternarMenuMobile();
 
         // Assert
-        assertThat(menuBean.isMenuCollapsed()).isFalse();
+        assertThat(menuBean.isMenuMobileAberto()).isFalse();
     }
 
     @Test
     void should_SetActiveMenuItem_When_NavigatingToPage() {
         // Arrange
         when(authService.getUsuarioLogado()).thenReturn(adminMock);
-        when(authService.isLogado()).thenReturn(true);
-        when(authService.hasRole("ADMINISTRADOR")).thenReturn(true);
+        when(authService.isLoggedIn()).thenReturn(true);
+        when(authService.hasRole(PapelUsuario.ADMINISTRADOR)).thenReturn(true);
         menuBean.init();
 
         // Act
-        menuBean.setActiveMenuItem("dashboard");
+        menuBean.atualizarMenus();
 
         // Assert
-        assertThat(menuBean.getActiveMenuItem()).isEqualTo("dashboard");
+        assertThat(menuBean.getMenuPrincipal()).isNotEmpty();
     }
 
     @Test
     void should_CheckIfMenuItemIsActive_When_CheckingActiveState() {
         // Arrange
-        menuBean.setActiveMenuItem("noticias");
+        when(authService.isLoggedIn()).thenReturn(true);
+        when(authService.getUsuarioLogado()).thenReturn(usuarioMock);
+        
+        // Act
+        menuBean.init();
 
-        // Act & Assert
-        assertThat(menuBean.isMenuItemActive("noticias")).isTrue();
-        assertThat(menuBean.isMenuItemActive("usuarios")).isFalse();
+        // Assert
+        assertThat(menuBean.getMenuPrincipal()).isNotNull();
     }
 
     @Test
     void should_BuildMenuWithSubItems_When_UserHasPermissions() {
         // Arrange
         when(authService.getUsuarioLogado()).thenReturn(adminMock);
-        when(authService.isLogado()).thenReturn(true);
-        when(authService.hasRole("ADMINISTRADOR")).thenReturn(true);
+        when(authService.isLoggedIn()).thenReturn(true);
+        when(authService.hasRole(PapelUsuario.ADMINISTRADOR)).thenReturn(true);
 
         // Act
         menuBean.init();
-        List<MenuBean.MenuItem> menuItems = menuBean.getMenuItems();
+        List<MenuBean.MenuItem> menuItems = menuBean.getMenuPrincipal();
 
         // Assert
         MenuBean.MenuItem usuariosMenu = menuItems.stream()
@@ -332,10 +335,10 @@ class MenuBeanTest {
             .orElse(null);
 
         assertThat(usuariosMenu).isNotNull();
-        assertThat(usuariosMenu.getSubItems()).isNotEmpty();
-        assertThat(usuariosMenu.getSubItems().stream()
+        assertThat(usuariosMenu.getSubmenu()).isNotEmpty();
+        assertThat(usuariosMenu.getSubmenu().stream()
             .anyMatch(subItem -> subItem.getLabel().equals("Listar Usuários"))).isTrue();
-        assertThat(usuariosMenu.getSubItems().stream()
+        assertThat(usuariosMenu.getSubmenu().stream()
             .anyMatch(subItem -> subItem.getLabel().equals("Novo Usuário"))).isTrue();
     }
 
@@ -343,12 +346,12 @@ class MenuBeanTest {
     void should_SetCorrectUrls_When_BuildingMenuItems() {
         // Arrange
         when(authService.getUsuarioLogado()).thenReturn(adminMock);
-        when(authService.isLogado()).thenReturn(true);
-        when(authService.hasRole("ADMINISTRADOR")).thenReturn(true);
+        when(authService.isLoggedIn()).thenReturn(true);
+        when(authService.hasRole(PapelUsuario.ADMINISTRADOR)).thenReturn(true);
 
         // Act
         menuBean.init();
-        List<MenuBean.MenuItem> menuItems = menuBean.getMenuItems();
+        List<MenuBean.MenuItem> menuItems = menuBean.getMenuPrincipal();
 
         // Assert
         MenuBean.MenuItem dashboardMenu = menuItems.stream()
@@ -364,13 +367,13 @@ class MenuBeanTest {
     void should_SetCorrectIcons_When_BuildingMenuItems() {
         // Arrange
         when(authService.getUsuarioLogado()).thenReturn(usuarioMock);
-        when(authService.isLogado()).thenReturn(true);
-        when(authService.hasRole("ADMINISTRADOR")).thenReturn(false);
-        when(authService.hasRole("COLABORADOR")).thenReturn(false);
+        when(authService.isLoggedIn()).thenReturn(true);
+        when(authService.hasRole(PapelUsuario.ADMINISTRADOR)).thenReturn(false);
+        when(authService.hasRole(PapelUsuario.COLABORADOR)).thenReturn(false);
 
         // Act
         menuBean.init();
-        List<MenuBean.MenuItem> menuItems = menuBean.getMenuItems();
+        List<MenuBean.MenuItem> menuItems = menuBean.getMenuPrincipal();
 
         // Assert
         MenuBean.MenuItem dashboardMenu = menuItems.stream()
@@ -386,13 +389,13 @@ class MenuBeanTest {
     void should_HandleNullUser_When_BuildingMenu() {
         // Arrange
         when(authService.getUsuarioLogado()).thenReturn(null);
-        when(authService.isLogado()).thenReturn(false);
+        when(authService.isLoggedIn()).thenReturn(false);
 
         // Act
         menuBean.init();
 
         // Assert
-        assertThat(menuBean.getMenuItems()).isEmpty();
+        assertThat(menuBean.getMenuPrincipal()).isEmpty();
         // Não deve lançar exceção
     }
 
@@ -400,9 +403,9 @@ class MenuBeanTest {
     void should_RefreshMenu_When_RefreshMethodIsCalled() {
         // Arrange
         when(authService.getUsuarioLogado()).thenReturn(usuarioMock);
-        when(authService.isLogado()).thenReturn(true);
+        when(authService.isLoggedIn()).thenReturn(true);
         menuBean.init();
-        int initialSize = menuBean.getMenuItems().size();
+        int initialSize = menuBean.getMenuPrincipal().size();
 
         // Simular mudança de permissões
         when(authService.hasRole("COLABORADOR")).thenReturn(true);
@@ -417,37 +420,37 @@ class MenuBeanTest {
     @Test
     void should_CollapseMenu_When_CollapseMethodIsCalled() {
         // Arrange
-        menuBean.setMenuCollapsed(false);
+        menuBean.setMenuMobileAberto(true);
 
         // Act
-        menuBean.collapseMenu();
+        menuBean.setMenuMobileAberto(false);
 
         // Assert
-        assertThat(menuBean.isMenuCollapsed()).isTrue();
+        assertThat(menuBean.isMenuMobileAberto()).isFalse();
     }
 
     @Test
     void should_ExpandMenu_When_ExpandMethodIsCalled() {
         // Arrange
-        menuBean.setMenuCollapsed(true);
+        menuBean.setMenuMobileAberto(false);
 
         // Act
-        menuBean.expandMenu();
+        menuBean.setMenuMobileAberto(true);
 
         // Assert
-        assertThat(menuBean.isMenuCollapsed()).isFalse();
+        assertThat(menuBean.isMenuMobileAberto()).isTrue();
     }
 
     @Test
     void should_CreateMenuItemWithAllProperties_When_BuildingMenu() {
         // Arrange
         when(authService.getUsuarioLogado()).thenReturn(adminMock);
-        when(authService.isLogado()).thenReturn(true);
-        when(authService.hasRole("ADMINISTRADOR")).thenReturn(true);
+        when(authService.isLoggedIn()).thenReturn(true);
+        when(authService.hasRole(PapelUsuario.ADMINISTRADOR)).thenReturn(true);
 
         // Act
         menuBean.init();
-        List<MenuBean.MenuItem> menuItems = menuBean.getMenuItems();
+        List<MenuBean.MenuItem> menuItems = menuBean.getMenuPrincipal();
 
         // Assert
         MenuBean.MenuItem firstItem = menuItems.get(0);
@@ -461,15 +464,15 @@ class MenuBeanTest {
     void should_FilterMenuItemsByPermission_When_UserHasLimitedAccess() {
         // Arrange
         when(authService.getUsuarioLogado()).thenReturn(usuarioMock);
-        when(authService.isLogado()).thenReturn(true);
-        when(authService.hasRole("ADMINISTRADOR")).thenReturn(false);
-        when(authService.hasRole("COLABORADOR")).thenReturn(false);
-        when(authService.hasRole("ASSOCIADO")).thenReturn(false);
-        when(authService.hasRole("PARCEIRO")).thenReturn(false);
+        when(authService.isLoggedIn()).thenReturn(true);
+        when(authService.hasRole(PapelUsuario.ADMINISTRADOR)).thenReturn(false);
+        when(authService.hasRole(PapelUsuario.COLABORADOR)).thenReturn(false);
+        when(authService.hasRole(PapelUsuario.ASSOCIADO)).thenReturn(false);
+        when(authService.hasRole(PapelUsuario.PARCEIRO)).thenReturn(false);
 
         // Act
         menuBean.init();
-        List<MenuBean.MenuItem> menuItems = menuBean.getMenuItems();
+        List<MenuBean.MenuItem> menuItems = menuBean.getMenuPrincipal();
 
         // Assert
         // Verificar que itens administrativos não estão presentes

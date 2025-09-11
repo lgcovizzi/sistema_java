@@ -6,6 +6,7 @@ import com.sistema.java.model.entity.Usuario;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -215,4 +216,62 @@ public interface ComentarioRepository extends JpaRepository<Comentario, Long> {
     Page<Comentario> findByNoticiaIdAndAprovado(@Param("noticiaId") Long noticiaId, 
                                                @Param("aprovado") boolean aprovado, 
                                                Pageable pageable);
+
+    /**
+     * Busca comentários aprovados ordenados por data de criação (mais recentes primeiro)
+     * 
+     * @param pageable Configuração de paginação
+     * @return Página de comentários aprovados
+     */
+    Page<Comentario> findByAprovadoTrueOrderByDataCriacaoDesc(Pageable pageable);
+
+    /**
+     * Busca os 10 comentários mais recentes aprovados
+     * 
+     * @return Lista dos 10 comentários mais recentes
+     */
+    List<Comentario> findTop10ByAprovadoTrueOrderByDataCriacaoDesc();
+
+    /**
+     * Atualiza o status de aprovação de múltiplos comentários
+     * 
+     * @param ids Lista de IDs dos comentários
+     * @param aprovado Novo status de aprovação
+     * @return Número de registros atualizados
+     */
+    @Modifying
+    @Query("UPDATE Comentario c SET c.aprovado = :aprovado WHERE c.id IN :ids")
+    int atualizarStatusAprovacao(@Param("ids") List<Long> ids, @Param("aprovado") boolean aprovado);
+
+    /**
+     * Remove comentários antigos não aprovados
+     * 
+     * @param dataLimite Data limite para remoção
+     * @return Número de registros removidos
+     */
+    @Modifying
+    @Query("DELETE FROM Comentario c WHERE c.aprovado = false AND c.dataCriacao < :dataLimite")
+    int removerAntigosNaoAprovados(@Param("dataLimite") LocalDateTime dataLimite);
+
+    /**
+     * Obtém estatísticas de comentários por notícia
+     * 
+     * @return Lista de estatísticas
+     */
+    @Query("SELECT n.id, n.titulo, COUNT(c) FROM Noticia n LEFT JOIN n.comentarios c " +
+           "WHERE c.aprovado = true OR c IS NULL " +
+           "GROUP BY n.id, n.titulo " +
+           "ORDER BY COUNT(c) DESC")
+    List<Object[]> getEstatisticasComentarios();
+
+    /**
+     * Busca usuários mais ativos em comentários
+     * 
+     * @param limite Limite de resultados
+     * @return Lista de usuários mais ativos
+     */
+    @Query("SELECT c.autor FROM Comentario c WHERE c.aprovado = true " +
+           "GROUP BY c.autor " +
+           "ORDER BY COUNT(c) DESC")
+    List<Usuario> findUsuariosMaisAtivos(int limite);
 }

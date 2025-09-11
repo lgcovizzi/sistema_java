@@ -432,7 +432,7 @@ class DashboardBeanTest {
     @Test
     void should_AddSuccessMessage_When_OperationSucceeds() {
         // Act
-        dashboardBean.adicionarMensagem(FacesMessage.SEVERITY_INFO, "Sucesso", "Operação realizada com sucesso");
+        dashboardBean.adicionarMensagem("INFO", "Sucesso", "Operação realizada com sucesso");
 
         // Assert
         // Verificar se a mensagem foi adicionada (mock do FacesContext seria necessário)
@@ -442,7 +442,7 @@ class DashboardBeanTest {
     @Test
     void should_AddErrorMessage_When_OperationFails() {
         // Act
-        dashboardBean.adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro", "Operação falhou");
+        dashboardBean.adicionarMensagem("ERROR", "Erro", "Operação falhou");
 
         // Assert
         // Verificar se a mensagem de erro foi adicionada

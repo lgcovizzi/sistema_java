@@ -1,6 +1,6 @@
 package com.sistema.java.bean;
 
-import com.sistema.java.model.Usuario;
+import com.sistema.java.model.entity.Usuario;
 import com.sistema.java.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
@@ -372,12 +372,14 @@ public class AuthBean implements Serializable {
     // Métodos utilitários
     
     private void addErrorMessage(String message) {
-        FacesContext.getCurrentInstance().addMessage(null, 
-            new FacesMessage(FacesMessage.SEVERITY_ERROR, "Erro", message));
+        // TODO: Implementar sistema de mensagens JSF adequado
+        // Por enquanto, apenas log das mensagens
+        System.out.println("ERROR: " + message);
     }
     
     private void addInfoMessage(String message) {
-        FacesContext.getCurrentInstance().addMessage(null, 
-            new FacesMessage(FacesMessage.SEVERITY_INFO, "Sucesso", message));
+        // TODO: Implementar sistema de mensagens JSF adequado
+        // Por enquanto, apenas log das mensagens
+        System.out.println("INFO: " + message);
     }
 }

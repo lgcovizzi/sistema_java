@@ -1,6 +1,8 @@
 package com.sistema.java.service;
 
+import com.sistema.java.model.dto.CategoriaDTO;
 import com.sistema.java.model.dto.NoticiaDTO;
+import com.sistema.java.model.dto.UsuarioDTO;
 import com.sistema.java.model.entity.Categoria;
 import com.sistema.java.model.entity.Noticia;
 import com.sistema.java.model.entity.Usuario;
@@ -168,10 +170,10 @@ public class NoticiaService {
         Usuario autor = usuarioRepository.findById(autorId)
                 .orElseThrow(() -> new IllegalArgumentException("Autor não encontrado: " + autorId));
 
-        Set<Categoria> categorias = categoriaIds.stream()
+        List<Categoria> categorias = categoriaIds.stream()
                 .map(id -> categoriaRepository.findById(id)
                         .orElseThrow(() -> new IllegalArgumentException("Categoria não encontrada: " + id)))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
 
         Noticia noticia = convertToEntity(noticiaDTO);
         noticia.setAutor(autor);
@@ -196,10 +198,10 @@ public class NoticiaService {
         Noticia noticia = noticiaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Notícia não encontrada: " + id));
 
-        Set<Categoria> categorias = categoriaIds.stream()
+        List<Categoria> categorias = categoriaIds.stream()
                 .map(catId -> categoriaRepository.findById(catId)
                         .orElseThrow(() -> new IllegalArgumentException("Categoria não encontrada: " + catId)))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
 
         noticia.setTitulo(noticiaDTO.getTitulo());
         noticia.setConteudo(noticiaDTO.getConteudo());
@@ -309,13 +311,20 @@ public class NoticiaService {
         dto.setDataPublicacao(noticia.getDataPublicacao());
         dto.setDataCriacao(noticia.getDataCriacao());
         dto.setDataAtualizacao(noticia.getDataAtualizacao());
-        dto.setAutor(noticia.getAutor().getNome());
+        // Autor - converter para UsuarioDTO
+        UsuarioDTO autorDTO = new UsuarioDTO();
+        autorDTO.setId(noticia.getAutor().getId());
+        autorDTO.setNome(noticia.getAutor().getNome());
+        autorDTO.setSobrenome(noticia.getAutor().getSobrenome());
+        autorDTO.setEmail(noticia.getAutor().getEmail());
+        autorDTO.setPapel(noticia.getAutor().getPapel());
+        dto.setAutor(autorDTO);
         
-        // Categorias
-        List<String> categorias = noticia.getCategorias().stream()
-                .map(Categoria::getNome)
+        // Categorias - converter para List<CategoriaDTO>
+        List<CategoriaDTO> categoriaDTOs = noticia.getCategorias().stream()
+                .map(categoria -> new CategoriaDTO(categoria.getId(), categoria.getNome(), categoria.getDescricao(), categoria.getAtiva(), categoria.getDataCriacao()))
                 .collect(Collectors.toList());
-        dto.setCategorias(categorias);
+        dto.setCategorias(categoriaDTOs);
         
         // Total de comentários aprovados
         long totalComentarios = comentarioRepository.countByNoticiaAndAprovado(noticia, true);
@@ -338,5 +347,82 @@ public class NoticiaService {
         noticia.setResumo(noticiaDTO.getResumo());
         noticia.setPublicada(noticiaDTO.getPublicada());
         return noticia;
+    }
+
+    /**
+     * Conta notícias com filtros
+     */
+    @Transactional(readOnly = true)
+    public long contarComFiltros(String titulo, Long autorId, Long categoriaId, Boolean publicada, 
+                                java.util.Date dataInicio, java.util.Date dataFim, String termo) {
+        // Implementação simplificada - retorna contagem total por enquanto
+        return noticiaRepository.count();
+    }
+
+    /**
+     * Conta notícias com filtros simplificados
+     */
+    @Transactional(readOnly = true)
+    public long contarComFiltros(String termo, Long categoriaId) {
+        if (termo != null && !termo.trim().isEmpty() && categoriaId != null) {
+            // Busca por termo e categoria
+            return noticiaRepository.countByTituloContainingIgnoreCaseAndCategoriasIdAndPublicada(
+                termo.trim(), categoriaId, true);
+        } else if (termo != null && !termo.trim().isEmpty()) {
+            // Busca apenas por termo
+            return noticiaRepository.countByTituloContainingIgnoreCaseAndPublicada(termo.trim(), true);
+        } else if (categoriaId != null) {
+            // Busca apenas por categoria
+            return noticiaRepository.countByCategoriasIdAndPublicada(categoriaId, true);
+        } else {
+            // Sem filtros - retorna todas publicadas
+            return noticiaRepository.countByPublicada(true);
+        }
+    }
+
+    /**
+     * Busca notícias com filtros
+     */
+    @Transactional(readOnly = true)
+    public List<NoticiaDTO> buscarComFiltros(String titulo, Long autorId, Long categoriaId, Boolean publicada,
+                                           java.util.Date dataInicio, java.util.Date dataFim, String termo,
+                                           String ordenacao, int first, int pageSize) {
+        // Implementação simplificada - retorna lista vazia por enquanto
+        return List.of();
+    }
+
+    /**
+     * Busca notícias com filtros simplificados
+     */
+    @Transactional(readOnly = true)
+    public List<NoticiaDTO> buscarComFiltros(String termo, Long categoriaId, String ordenacao, int pagina, int tamanho) {
+        // Implementação simplificada - retorna as notícias mais recentes
+        return findRecentes(tamanho);
+    }
+
+    /**
+     * Conta total de notícias
+     */
+    @Transactional(readOnly = true)
+    public long contar() {
+        return noticiaRepository.count();
+    }
+
+    @Transactional(readOnly = true)
+    public Long contarPublicadas() {
+        // Implementação temporária
+        return 0L;
+    }
+
+    @Transactional(readOnly = true)
+    public Long contarRascunhos() {
+        // Implementação temporária
+        return 0L;
+    }
+
+    @Transactional(readOnly = true)
+    public Long contarPublicadasHoje() {
+        // Implementação temporária
+        return 0L;
     }
 }

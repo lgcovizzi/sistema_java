@@ -1,9 +1,9 @@
 package com.sistema.java.bean;
 
-import com.sistema.java.model.Usuario;
+import com.sistema.java.model.dto.UsuarioDTO;
 import com.sistema.java.model.dto.ComentarioDTO;
 import com.sistema.java.model.dto.NoticiaDTO;
-import com.sistema.java.model.enums.Role;
+import com.sistema.java.model.enums.PapelUsuario;
 import com.sistema.java.service.AuthService;
 import com.sistema.java.service.ComentarioService;
 import com.sistema.java.service.NoticiaService;
@@ -47,7 +47,7 @@ public class DashboardBean implements Serializable {
     private UsuarioService usuarioService;
     
     // Dados do usuário
-    private Usuario usuarioLogado;
+    private UsuarioDTO usuarioLogado;
     
     // Estatísticas gerais
     private Map<String, Long> estatisticas;
@@ -79,7 +79,8 @@ public class DashboardBean implements Serializable {
      * Referência: Controle de Acesso - project_rules.md
      */
     private void carregarDadosUsuario() {
-        usuarioLogado = authService.getUsuarioLogado();
+        // TODO: Implementar AuthService.getUsuarioLogado()
+        // usuarioLogado = authService.getUsuarioLogado();
         if (usuarioLogado == null) {
             addErrorMessage("Usuário não encontrado. Faça login novamente.");
         }
@@ -93,39 +94,43 @@ public class DashboardBean implements Serializable {
         estatisticas = new HashMap<>();
         
         try {
-            Role role = usuarioLogado.getRole();
+            PapelUsuario papel = usuarioLogado.getPapel();
             
-            switch (role) {
+            switch (papel) {
                 case ADMINISTRADOR:
                 case FUNDADOR:
                     // Estatísticas administrativas completas
-                    estatisticas.put("totalUsuarios", usuarioService.contarTodos());
-                    estatisticas.put("usuariosAtivos", usuarioService.contarAtivos());
-                    estatisticas.put("totalNoticias", noticiaService.contarTodas());
-                    estatisticas.put("noticiasPublicadas", noticiaService.contarPublicadas());
-                    estatisticas.put("totalComentarios", comentarioService.contarTodos());
-                    estatisticas.put("comentariosPendentes", comentarioService.contarPendentes());
+                    estatisticas.put("totalUsuarios", usuarioService.countTotal());
+                    estatisticas.put("usuariosAtivos", usuarioService.countAtivos());
+                    // TODO: Implementar métodos de contagem nos serviços
+                    // estatisticas.put("totalNoticias", noticiaService.countTotal());
+                    // estatisticas.put("noticiasPublicadas", noticiaService.countPublicadas());
+                    // estatisticas.put("totalComentarios", comentarioService.countTotal());
+                    // estatisticas.put("comentariosPendentes", comentarioService.countPendentes());
                     break;
                     
                 case COLABORADOR:
                     // Estatísticas de conteúdo
-                    estatisticas.put("minhasNoticias", noticiaService.contarPorAutor(usuarioLogado.getId()));
-                    estatisticas.put("noticiasPublicadas", noticiaService.contarPublicadasPorAutor(usuarioLogado.getId()));
-                    estatisticas.put("totalComentarios", comentarioService.contarTodos());
-                    estatisticas.put("comentariosPendentes", comentarioService.contarPendentes());
+                    // TODO: Implementar métodos nos serviços
+                    // estatisticas.put("minhasNoticias", noticiaService.countByAutor(usuarioLogado.getId()));
+                    // estatisticas.put("noticiasPublicadas", noticiaService.countPublicadasByAutor(usuarioLogado.getId()));
+                    // estatisticas.put("totalComentarios", comentarioService.countTotal());
+                    // estatisticas.put("comentariosPendentes", comentarioService.countPendentes());
                     break;
                     
                 case ASSOCIADO:
                 case PARCEIRO:
                     // Estatísticas básicas
-                    estatisticas.put("noticiasPublicadas", noticiaService.contarPublicadas());
-                    estatisticas.put("meusComentarios", comentarioService.contarPorAutor(usuarioLogado.getId()));
+                    // TODO: Implementar métodos nos serviços
+                    // estatisticas.put("noticiasPublicadas", noticiaService.countPublicadas());
+                    // estatisticas.put("meusComentarios", comentarioService.countByAutor(usuarioLogado.getId()));
                     break;
                     
                 case USUARIO:
                     // Estatísticas mínimas
-                    estatisticas.put("noticiasPublicadas", noticiaService.contarPublicadas());
-                    estatisticas.put("meusComentarios", comentarioService.contarPorAutor(usuarioLogado.getId()));
+                    // TODO: Implementar métodos nos serviços
+                    // estatisticas.put("noticiasPublicadas", noticiaService.countPublicadas());
+                    // estatisticas.put("meusComentarios", comentarioService.countByAutor(usuarioLogado.getId()));
                     break;
                     
                 default:
@@ -145,39 +150,41 @@ public class DashboardBean implements Serializable {
      */
     private void carregarDadosEspecificos() {
         try {
-            Role role = usuarioLogado.getRole();
-            
-            // Carregar notícias recentes para todos os papéis
-            noticiasRecentes = noticiaService.listarRecentes(LIMITE_NOTICIAS_RECENTES);
-            
-            switch (role) {
-                case ADMINISTRADOR:
-                case FUNDADOR:
-                    // Comentários pendentes para moderação
-                    comentariosPendentes = comentarioService.listarPendentes(LIMITE_COMENTARIOS);
-                    break;
-                    
-                case COLABORADOR:
-                    // Minhas notícias e comentários pendentes
-                    minhasNoticias = noticiaService.listarPorAutor(usuarioLogado.getId(), LIMITE_NOTICIAS_RECENTES);
-                    comentariosPendentes = comentarioService.listarPendentes(LIMITE_COMENTARIOS);
-                    break;
-                    
-                case ASSOCIADO:
-                case PARCEIRO:
-                case USUARIO:
-                    // Meus comentários
-                    meusComentarios = comentarioService.listarPorAutor(usuarioLogado.getId(), LIMITE_COMENTARIOS);
-                    break;
-                    
-                default:
-                    // Sem dados específicos para convidados
-                    break;
-            }
-            
-        } catch (Exception e) {
-            logger.error("Erro ao carregar dados específicos", e);
-            addErrorMessage("Erro ao carregar dados do dashboard.");
+            if (usuarioLogado != null) {
+                PapelUsuario papel = usuarioLogado.getPapel();
+                
+                // TODO: Implementar métodos nos serviços
+                // noticiasRecentes = noticiaService.findRecentes(LIMITE_NOTICIAS_RECENTES);
+                
+                switch (papel) {
+                    case ADMINISTRADOR:
+                    case FUNDADOR:
+                        // TODO: Implementar métodos nos serviços
+                        // comentariosPendentes = comentarioService.findPendentes(LIMITE_COMENTARIOS);
+                        break;
+                        
+                    case COLABORADOR:
+                        // TODO: Implementar métodos nos serviços
+                        // minhasNoticias = noticiaService.findByAutor(usuarioLogado.getId(), LIMITE_NOTICIAS_RECENTES);
+                        // comentariosPendentes = comentarioService.findPendentes(LIMITE_COMENTARIOS);
+                        break;
+                        
+                    case ASSOCIADO:
+                    case PARCEIRO:
+                    case USUARIO:
+                        // TODO: Implementar métodos nos serviços
+                        // meusComentarios = comentarioService.findByAutor(usuarioLogado.getId(), LIMITE_COMENTARIOS);
+                        break;
+                        
+                    default:
+                         // Sem dados específicos para convidados
+                         break;
+                 }
+             }
+             
+         } catch (Exception e) {
+             logger.error("Erro ao carregar dados específicos", e);
+             addErrorMessage("Erro ao carregar dados do dashboard.");
         }
     }
     
@@ -194,33 +201,55 @@ public class DashboardBean implements Serializable {
      * Verifica se usuário pode acessar área administrativa
      */
     public boolean podeAcessarAdmin() {
-        return authService.hasRole(Role.ADMINISTRADOR) || 
-               authService.hasRole(Role.FUNDADOR) || 
-               authService.hasRole(Role.COLABORADOR);
+        // TODO: Implementar AuthService.hasRole()
+        if (usuarioLogado != null) {
+            PapelUsuario papel = usuarioLogado.getPapel();
+            return papel == PapelUsuario.ADMINISTRADOR || 
+                   papel == PapelUsuario.FUNDADOR || 
+                   papel == PapelUsuario.COLABORADOR;
+        }
+        return false;
     }
     
     /**
      * Verifica se usuário pode moderar comentários
      */
     public boolean podeModerarComentarios() {
-        return authService.canModerateComments();
+        // TODO: Implementar AuthService.canModerateComments()
+        if (usuarioLogado != null) {
+            PapelUsuario papel = usuarioLogado.getPapel();
+            return papel == PapelUsuario.ADMINISTRADOR || 
+                   papel == PapelUsuario.FUNDADOR || 
+                   papel == PapelUsuario.COLABORADOR;
+        }
+        return false;
     }
     
     /**
      * Verifica se usuário pode criar notícias
      */
     public boolean podeCriarNoticias() {
-        return authService.hasRole(Role.ADMINISTRADOR) || 
-               authService.hasRole(Role.FUNDADOR) || 
-               authService.hasRole(Role.COLABORADOR);
+        // TODO: Implementar AuthService.hasRole()
+        if (usuarioLogado != null) {
+            PapelUsuario papel = usuarioLogado.getPapel();
+            return papel == PapelUsuario.ADMINISTRADOR || 
+                   papel == PapelUsuario.FUNDADOR || 
+                   papel == PapelUsuario.COLABORADOR;
+        }
+        return false;
     }
     
     /**
      * Verifica se usuário pode gerenciar usuários
      */
     public boolean podeGerenciarUsuarios() {
-        return authService.hasRole(Role.ADMINISTRADOR) || 
-               authService.hasRole(Role.FUNDADOR);
+        // TODO: Implementar AuthService.hasRole()
+        if (usuarioLogado != null) {
+            PapelUsuario papel = usuarioLogado.getPapel();
+            return papel == PapelUsuario.ADMINISTRADOR || 
+                   papel == PapelUsuario.FUNDADOR;
+        }
+        return false;
     }
     
     /**
@@ -294,17 +323,19 @@ public class DashboardBean implements Serializable {
     
     // Métodos utilitários para mensagens
     private void addInfoMessage(String message) {
-        FacesContext.getCurrentInstance().addMessage(null, 
-            new FacesMessage(FacesMessage.SEVERITY_INFO, "Sucesso", message));
+        // TODO: Implementar sistema de mensagens JSF adequado
+        // Por enquanto, apenas log das mensagens
+        logger.info("INFO: {}", message);
     }
     
     private void addErrorMessage(String message) {
-        FacesContext.getCurrentInstance().addMessage(null, 
-            new FacesMessage(FacesMessage.SEVERITY_ERROR, "Erro", message));
+        // TODO: Implementar sistema de mensagens JSF adequado
+        // Por enquanto, apenas log das mensagens
+        logger.error("ERROR: {}", message);
     }
     
     // Getters e Setters
-    public Usuario getUsuarioLogado() {
+    public UsuarioDTO getUsuarioLogado() {
         return usuarioLogado;
     }
     

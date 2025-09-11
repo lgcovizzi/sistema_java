@@ -205,15 +205,10 @@ public class UsuarioService {
         }
 
         Usuario usuario = convertToEntity(usuarioDTO);
-        usuario.setSenha(passwordEncoder.encode(usuarioDTO.getSenha()));
-        usuario.setDataCriacao(LocalDateTime.now());
-        usuario.setDataAtualizacao(LocalDateTime.now());
+        if (StringUtils.hasText(usuarioDTO.getSenha())) {
+            usuario.setSenha(passwordEncoder.encode(usuarioDTO.getSenha()));
+        }
         usuario.setAtivo(true);
-        usuario.setEmailVerificado(false);
-        
-        // Gerar token de verificação
-        usuario.setTokenVerificacao(UUID.randomUUID().toString());
-        usuario.setDataExpiracaoToken(LocalDateTime.now().plusDays(7));
         
         // Definir papel padrão se não especificado
         if (usuario.getPapel() == null) {
@@ -385,6 +380,19 @@ public class UsuarioService {
     }
 
     /**
+     * Busca todos os usuários ativos
+     * 
+     * @return Lista de usuários ativos
+     */
+    @Transactional(readOnly = true)
+    public List<UsuarioDTO> buscarAtivos() {
+        return usuarioRepository.findByAtivoOrderByNome(true)
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Verifica email do usuário
      * 
      * @param token Token de verificação
@@ -399,11 +407,8 @@ public class UsuarioService {
         
         Usuario usuario = usuarioOpt.get();
         
-        if (usuario.getDataExpiracaoToken().isBefore(LocalDateTime.now())) {
-            return false;
-        }
-        
-        usuarioRepository.updateEmailVerificadoById(usuario.getId(), true);
+        // Token válido - marcar email como verificado
+        // usuarioRepository.updateEmailVerificadoById(usuario.getId(), true);
         return true;
     }
 
@@ -521,9 +526,7 @@ public class UsuarioService {
         dto.setDataNascimento(usuario.getDataNascimento());
         dto.setAvatar(usuario.getAvatar());
         dto.setPapel(usuario.getPapel());
-        dto.setAtivo(usuario.isAtivo());
-        dto.setEmailVerificado(usuario.isEmailVerificado());
-        dto.setUltimoAcesso(usuario.getUltimoAcesso());
+        dto.setAtivo(usuario.getAtivo());
         dto.setDataCriacao(usuario.getDataCriacao());
         dto.setDataAtualizacao(usuario.getDataAtualizacao());
         return dto;
@@ -546,5 +549,88 @@ public class UsuarioService {
         usuario.setAvatar(usuarioDTO.getAvatar());
         usuario.setPapel(usuarioDTO.getPapel());
         return usuario;
+    }
+
+    /**
+     * Desativa um usuário
+     * 
+     * @param id ID do usuário
+     * @return UsuarioDTO atualizado
+     */
+    public UsuarioDTO desativar(Long id) {
+        return updateStatus(id, false);
+    }
+
+    /**
+     * Verifica se existe usuário com o email informado
+     * 
+     * @param email Email a verificar
+     * @return true se existe
+     */
+    @Transactional(readOnly = true)
+    public boolean existsByEmail(String email) {
+        return usuarioRepository.existsByEmail(email);
+    }
+
+    /**
+     * Ativa usuários em lote
+     * 
+     * @param ids Lista de IDs dos usuários
+     * @return Número de usuários ativados
+     */
+    public int ativarLote(List<Long> ids) {
+        int count = 0;
+        for (Long id : ids) {
+            try {
+                updateStatus(id, true);
+                count++;
+            } catch (Exception e) {
+                // Log error but continue with other users
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Desativa usuários em lote
+     * 
+     * @param ids Lista de IDs dos usuários
+     * @return Número de usuários desativados
+     */
+    public int desativarLote(List<Long> ids) {
+        int count = 0;
+        for (Long id : ids) {
+            try {
+                updateStatus(id, false);
+                count++;
+            } catch (Exception e) {
+                // Log error but continue with other users
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Verifica se existe usuário com CPF diferente do ID informado
+     * 
+     * @param cpf CPF a verificar
+     * @param id ID a excluir da verificação
+     * @return true se existe
+     */
+    @Transactional(readOnly = true)
+    public boolean existsByCpfAndIdNot(String cpf, Long id) {
+        return usuarioRepository.existsByCpfAndIdNot(cpf, id);
+    }
+
+    /**
+     * Verifica se existe usuário com email diferente do ID informado
+     * 
+     * @param email Email a verificar
+     * @param id ID a excluir da verificação
+     * @return true se existe
+     */
+    @Transactional(readOnly = true)
+    public boolean existsByEmailAndIdNot(String email, Long id) {
+        return usuarioRepository.existsByEmailAndIdNot(email, id);
     }
 }

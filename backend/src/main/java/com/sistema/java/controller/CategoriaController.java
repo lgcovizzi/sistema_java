@@ -11,9 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 import java.util.Optional;
 
@@ -341,9 +341,9 @@ public class CategoriaController {
      * @param ex Exceção de validação
      * @return Resposta de erro
      */
-    @ExceptionHandler(javax.validation.ConstraintViolationException.class)
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
     public ResponseEntity<String> handleValidationException(
-            javax.validation.ConstraintViolationException ex) {
+            jakarta.validation.ConstraintViolationException ex) {
         return ResponseEntity.badRequest().body("Erro de validação: " + ex.getMessage());
     }
 

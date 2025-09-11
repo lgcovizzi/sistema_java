@@ -3,9 +3,12 @@ package com.sistema.java.service;
 import com.sistema.java.model.dto.CategoriaDTO;
 import com.sistema.java.model.entity.Categoria;
 import com.sistema.java.repository.CategoriaRepository;
+import org.primefaces.model.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,7 +50,7 @@ public class CategoriaService {
      */
     @Transactional(readOnly = true)
     public Page<CategoriaDTO> findAtivas(Pageable pageable) {
-        return categoriaRepository.findByAtivaTrue(pageable)
+        return categoriaRepository.findByAtiva(true, pageable)
                 .map(this::convertToDTO);
     }
 
@@ -95,7 +98,20 @@ public class CategoriaService {
      */
     @Transactional(readOnly = true)
     public List<CategoriaDTO> findAtivasParaSelecao() {
-        return categoriaRepository.findAtivasParaSelecao()
+        return categoriaRepository.findByAtivaOrderByNome(true)
+                .stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Busca todas as categorias ativas
+     * 
+     * @return Lista de categorias ativas
+     */
+    @Transactional(readOnly = true)
+    public List<CategoriaDTO> buscarAtivas() {
+        return categoriaRepository.findByAtivaOrderByNome(true)
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -122,7 +138,7 @@ public class CategoriaService {
      */
     @Transactional(readOnly = true)
     public List<CategoriaDTO> findMaisUtilizadas(int limite) {
-        return categoriaRepository.findCategoriasMaisUtilizadas(limite)
+        return categoriaRepository.findCategoriasMaisUtilizadas(Pageable.ofSize(limite))
                 .stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
@@ -137,7 +153,7 @@ public class CategoriaService {
      */
     @Transactional(readOnly = true)
     public Page<CategoriaDTO> buscarPorTermo(String termo, Pageable pageable) {
-        return categoriaRepository.buscarPorTermo(termo, pageable)
+        return categoriaRepository.buscarPorTermo(termo, true, pageable)
                 .map(this::convertToDTO);
     }
 
@@ -226,7 +242,7 @@ public class CategoriaService {
         }
 
         // Verifica se a categoria pode ser removida
-        if (!categoriaRepository.podeSerRemovida(id)) {
+        if (!categoriaRepository.podeSerExcluida(id)) {
             throw new IllegalStateException("Categoria não pode ser removida pois possui notícias associadas");
         }
 
@@ -260,7 +276,7 @@ public class CategoriaService {
      */
     @Transactional(readOnly = true)
     public List<Object[]> getEstatisticas() {
-        return categoriaRepository.getEstatisticasCategorias();
+        return categoriaRepository.findEstatisticasCategorias();
     }
 
     /**
@@ -271,7 +287,7 @@ public class CategoriaService {
      */
     @Transactional(readOnly = true)
     public boolean podeSerRemovida(Long id) {
-        return categoriaRepository.podeSerRemovida(id);
+        return categoriaRepository.podeSerExcluida(id);
     }
 
     /**
@@ -282,7 +298,11 @@ public class CategoriaService {
      * @return Número de categorias atualizadas
      */
     public int atualizarStatusLote(List<Long> ids, boolean ativo) {
-        return categoriaRepository.atualizarStatusAtivo(ids, ativo);
+        int count = 0;
+        for (Long id : ids) {
+            count += categoriaRepository.updateAtivaById(id, ativo);
+        }
+        return count;
     }
 
     /**
@@ -300,7 +320,7 @@ public class CategoriaService {
         dto.setDataCriacao(categoria.getDataCriacao());
         
         // Conta notícias da categoria
-        long totalNoticias = categoriaRepository.contarNoticiasPorCategoria(categoria.getId());
+        long totalNoticias = categoriaRepository.countNoticiasByCategoria(categoria.getId(), true);
         dto.setTotalNoticias((int) totalNoticias);
         
         return dto;
@@ -319,5 +339,58 @@ public class CategoriaService {
         categoria.setDescricao(categoriaDTO.getDescricao());
         categoria.setAtiva(categoriaDTO.getAtiva());
         return categoria;
+    }
+
+    /**
+     * Busca categorias com paginação e filtros
+     */
+    @Transactional(readOnly = true)
+    public List<CategoriaDTO> buscarComPaginacao(int first, int pageSize, String sortField, 
+                                               SortOrder sortOrder, String termo, Boolean ativa) {
+        // Configurar ordenação
+        Sort sort = Sort.unsorted();
+        if (sortField != null && !sortField.isEmpty()) {
+            Sort.Direction direction = (sortOrder == SortOrder.DESCENDING) ? 
+                Sort.Direction.DESC : Sort.Direction.ASC;
+            sort = Sort.by(direction, sortField);
+        } else {
+            sort = Sort.by(Sort.Direction.ASC, "nome"); // Ordenação padrão
+        }
+        
+        // Configurar paginação
+        int page = first / pageSize;
+        Pageable pageable = PageRequest.of(page, pageSize, sort);
+        
+        // Buscar com filtros
+        Page<Categoria> resultado;
+        if (termo != null && !termo.trim().isEmpty() && ativa != null) {
+            resultado = categoriaRepository.findByNomeContainingIgnoreCaseAndAtiva(termo.trim(), ativa, pageable);
+        } else if (termo != null && !termo.trim().isEmpty()) {
+            resultado = categoriaRepository.findByNomeContainingIgnoreCase(termo.trim(), pageable);
+        } else if (ativa != null) {
+            resultado = categoriaRepository.findByAtiva(ativa, pageable);
+        } else {
+            resultado = categoriaRepository.findAll(pageable);
+        }
+        
+        return resultado.getContent().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Conta categorias com filtros
+     */
+    @Transactional(readOnly = true)
+    public long contarComFiltros(String termo, Boolean ativa) {
+        if (termo != null && !termo.trim().isEmpty() && ativa != null) {
+            return categoriaRepository.countByNomeContainingIgnoreCaseAndAtiva(termo.trim(), ativa);
+        } else if (termo != null && !termo.trim().isEmpty()) {
+            return categoriaRepository.countByNomeContainingIgnoreCase(termo.trim());
+        } else if (ativa != null) {
+            return categoriaRepository.countByAtiva(ativa);
+        } else {
+            return categoriaRepository.count();
+        }
     }
 }

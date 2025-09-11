@@ -271,4 +271,12 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     @Query("UPDATE Usuario u SET u.tokenVerificacao = null, u.tokenResetSenha = null, " +
            "u.dataExpiracaoToken = null WHERE u.dataExpiracaoToken < :agora")
     int limparTokensExpirados(@Param("agora") LocalDateTime agora);
+
+    /**
+     * Busca todos os avatars em uso pelos usuários
+     * 
+     * @return Lista com os caminhos dos avatars em uso
+     */
+    @Query("SELECT u.avatar FROM Usuario u WHERE u.avatar IS NOT NULL")
+    List<String> findAllAvatarsEmUso();
 }

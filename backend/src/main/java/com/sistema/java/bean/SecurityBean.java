@@ -5,8 +5,8 @@ import com.sistema.java.model.enums.PapelUsuario;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import javax.faces.context.FacesContext;
-import javax.servlet.http.HttpSession;
+import jakarta.faces.context.FacesContext;
+import jakarta.servlet.http.HttpSession;
 import java.io.Serializable;
 
 /**

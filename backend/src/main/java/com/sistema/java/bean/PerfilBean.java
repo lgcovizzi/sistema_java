@@ -1,6 +1,7 @@
 package com.sistema.java.bean;
 
-import com.sistema.java.model.Usuario;
+import com.sistema.java.model.entity.Usuario;
+import com.sistema.java.model.dto.UsuarioDTO;
 import com.sistema.java.service.AuthService;
 import com.sistema.java.service.FileUploadService;
 import com.sistema.java.service.UsuarioService;
@@ -59,8 +60,11 @@ public class PerfilBean implements Serializable {
         Usuario usuarioLogado = authService.getUsuarioLogado();
         if (usuarioLogado != null) {
             // Recarregar dados atualizados do banco
-            this.usuario = usuarioService.findById(usuarioLogado.getId());
-            this.usuarioOriginal = cloneUsuario(this.usuario);
+            UsuarioDTO dto = usuarioService.findById(usuarioLogado.getId());
+            if (dto != null) {
+                this.usuario = convertToEntity(dto);
+                this.usuarioOriginal = cloneUsuario(this.usuario);
+            }
         } else {
             addErrorMessage("Usuário não encontrado. Faça login novamente.");
         }
@@ -93,7 +97,9 @@ public class PerfilBean implements Serializable {
             }
             
             // Atualizar dados
-            Usuario usuarioAtualizado = usuarioService.update(usuario);
+            UsuarioDTO usuarioDTO = convertToDTO(usuario);
+            UsuarioDTO usuarioAtualizadoDTO = usuarioService.update(usuario.getId(), usuarioDTO);
+            Usuario usuarioAtualizado = convertToEntity(usuarioAtualizadoDTO);
             
             if (usuarioAtualizado != null) {
                 this.usuario = usuarioAtualizado;
@@ -143,7 +149,9 @@ public class PerfilBean implements Serializable {
             
             // Atualizar senha
             usuario.setSenha(passwordEncoder.encode(novaSenha));
-            Usuario usuarioAtualizado = usuarioService.update(usuario);
+            UsuarioDTO dto = convertToDTO(usuario);
+            UsuarioDTO dtoAtualizado = usuarioService.update(usuario.getId(), dto);
+            Usuario usuarioAtualizado = convertToEntity(dtoAtualizado);
             
             if (usuarioAtualizado != null) {
                 this.usuario = usuarioAtualizado;
@@ -180,7 +188,9 @@ public class PerfilBean implements Serializable {
                 
                 // Atualizar usuário
                 usuario.setAvatar(avatarPath);
-                Usuario usuarioAtualizado = usuarioService.update(usuario);
+                UsuarioDTO dto = convertToDTO(usuario);
+                UsuarioDTO dtoAtualizado = usuarioService.update(usuario.getId(), dto);
+                Usuario usuarioAtualizado = convertToEntity(dtoAtualizado);
                 
                 if (usuarioAtualizado != null) {
                     this.usuario = usuarioAtualizado;
@@ -208,7 +218,9 @@ public class PerfilBean implements Serializable {
                 
                 // Atualizar usuário
                 usuario.setAvatar(null);
-                Usuario usuarioAtualizado = usuarioService.update(usuario);
+                UsuarioDTO usuarioDTO = convertToDTO(usuario);
+                UsuarioDTO usuarioAtualizadoDTO = usuarioService.update(usuario.getId(), usuarioDTO);
+                Usuario usuarioAtualizado = convertToEntity(usuarioAtualizadoDTO);
                 
                 if (usuarioAtualizado != null) {
                     this.usuario = usuarioAtualizado;
@@ -383,7 +395,6 @@ public class PerfilBean implements Serializable {
         clone.setEmailVerificado(original.getEmailVerificado());
         clone.setDataCriacao(original.getDataCriacao());
         clone.setDataAtualizacao(original.getDataAtualizacao());
-        clone.setUltimoAcesso(original.getUltimoAcesso());
         
         return clone;
     }
@@ -499,12 +510,51 @@ public class PerfilBean implements Serializable {
     // Métodos utilitários
     
     private void addErrorMessage(String message) {
-        FacesContext.getCurrentInstance().addMessage(null, 
-            new FacesMessage(FacesMessage.SEVERITY_ERROR, "Erro", message));
+        // TODO: Implementar sistema de mensagens JSF adequado
+        // Por enquanto, apenas log das mensagens
+        System.out.println("ERROR: " + message);
     }
     
     private void addInfoMessage(String message) {
         FacesContext.getCurrentInstance().addMessage(null, 
             new FacesMessage(FacesMessage.SEVERITY_INFO, "Sucesso", message));
+    }
+
+    /**
+     * Converte Usuario para UsuarioDTO
+     */
+    private UsuarioDTO convertToDTO(Usuario usuario) {
+        UsuarioDTO dto = new UsuarioDTO();
+        dto.setNome(usuario.getNome());
+        dto.setSobrenome(usuario.getSobrenome());
+        dto.setEmail(usuario.getEmail());
+        dto.setCpf(usuario.getCpf());
+        dto.setTelefone(usuario.getTelefone());
+        dto.setDataNascimento(usuario.getDataNascimento());
+        dto.setAvatar(usuario.getAvatar());
+        dto.setPapel(usuario.getPapel());
+        dto.setAtivo(usuario.isAtivo());
+        return dto;
+    }
+
+    /**
+     * Converte UsuarioDTO para Usuario
+     */
+    private Usuario convertToEntity(UsuarioDTO dto) {
+        Usuario usuario = new Usuario();
+        usuario.setId(this.usuario.getId()); // Manter o ID original
+        usuario.setNome(dto.getNome());
+        usuario.setSobrenome(dto.getSobrenome());
+        usuario.setEmail(dto.getEmail());
+        usuario.setCpf(dto.getCpf());
+        usuario.setTelefone(dto.getTelefone());
+        usuario.setDataNascimento(dto.getDataNascimento());
+        usuario.setAvatar(dto.getAvatar());
+        usuario.setPapel(dto.getPapel());
+        usuario.setAtivo(dto.getAtivo());
+        usuario.setSenha(this.usuario.getSenha()); // Manter senha original
+        usuario.setDataCriacao(this.usuario.getDataCriacao());
+        usuario.setDataAtualizacao(this.usuario.getDataAtualizacao());
+        return usuario;
     }
 }

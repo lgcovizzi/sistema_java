@@ -1,6 +1,8 @@
 package com.sistema.java.service;
 
 import com.sistema.java.model.dto.ComentarioDTO;
+import com.sistema.java.model.dto.NoticiaDTO;
+import com.sistema.java.model.dto.UsuarioDTO;
 import com.sistema.java.model.entity.Comentario;
 import com.sistema.java.model.entity.Noticia;
 import com.sistema.java.model.entity.Usuario;
@@ -347,7 +349,10 @@ public class ComentarioService {
      */
     @Transactional(readOnly = true)
     public List<Object[]> findUsuariosMaisAtivos(int limite) {
-        return comentarioRepository.findUsuariosMaisAtivos(limite);
+        List<Usuario> usuarios = comentarioRepository.findUsuariosMaisAtivos(limite);
+        return usuarios.stream()
+                .map(usuario -> new Object[]{usuario.getId(), usuario.getNome(), usuario.getEmail()})
+                .collect(Collectors.toList());
     }
 
     /**
@@ -362,9 +367,21 @@ public class ComentarioService {
         dto.setConteudo(comentario.getConteudo());
         dto.setAprovado(comentario.getAprovado());
         dto.setDataCriacao(comentario.getDataCriacao());
-        dto.setAutor(comentario.getAutor().getNome());
-        dto.setNoticiaId(comentario.getNoticia().getId());
-        dto.setNoticiaTitle(comentario.getNoticia().getTitulo());
+        
+        // Criar UsuarioDTO para o autor
+        UsuarioDTO autorDTO = new UsuarioDTO();
+        autorDTO.setId(comentario.getAutor().getId());
+        autorDTO.setNome(comentario.getAutor().getNome());
+        autorDTO.setSobrenome(comentario.getAutor().getSobrenome());
+        autorDTO.setEmail(comentario.getAutor().getEmail());
+        dto.setAutor(autorDTO);
+        
+        // Criar NoticiaDTO básico para a notícia
+        NoticiaDTO noticiaDTO = new NoticiaDTO();
+        noticiaDTO.setId(comentario.getNoticia().getId());
+        noticiaDTO.setTitulo(comentario.getNoticia().getTitulo());
+        dto.setNoticia(noticiaDTO);
+        
         return dto;
     }
 

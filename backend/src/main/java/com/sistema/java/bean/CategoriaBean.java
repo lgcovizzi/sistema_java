@@ -10,6 +10,8 @@ import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import org.primefaces.model.LazyDataModel;
 import org.primefaces.model.SortOrder;
+import org.primefaces.model.FilterMeta;
+import org.primefaces.model.SortMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,8 +75,27 @@ public class CategoriaBean implements Serializable {
     private void configurarLazyModel() {
         categoriasLazy = new LazyDataModel<CategoriaDTO>() {
             @Override
-            public List<CategoriaDTO> load(int first, int pageSize, String sortField, 
-                                         SortOrder sortOrder, Map<String, Object> filters) {
+            public int count(Map<String, FilterMeta> filterBy) {
+                try {
+                    String termo = filtroTermo;
+                    Boolean ativa = null;
+                    
+                    if ("ativas".equals(filtroStatus)) {
+                        ativa = true;
+                    } else if ("inativas".equals(filtroStatus)) {
+                        ativa = false;
+                    }
+                    
+                    return (int) categoriaService.contarComFiltros(termo, ativa);
+                } catch (Exception e) {
+                    logger.error("Erro ao contar categorias", e);
+                    return 0;
+                }
+            }
+            
+            @Override
+            public List<CategoriaDTO> load(int first, int pageSize, Map<String, SortMeta> sortBy, 
+                                         Map<String, FilterMeta> filterBy) {
                 try {
                     // Aplicar filtros
                     String termo = filtroTermo;
@@ -84,6 +105,15 @@ public class CategoriaBean implements Serializable {
                         ativa = true;
                     } else if ("inativas".equals(filtroStatus)) {
                         ativa = false;
+                    }
+                    
+                    // Determinar ordenação
+                    String sortField = null;
+                    SortOrder sortOrder = SortOrder.ASCENDING;
+                    if (sortBy != null && !sortBy.isEmpty()) {
+                        SortMeta sortMeta = sortBy.values().iterator().next();
+                        sortField = sortMeta.getField();
+                        sortOrder = sortMeta.getOrder();
                     }
                     
                     // Buscar categorias com paginação
@@ -111,7 +141,7 @@ public class CategoriaBean implements Serializable {
      */
     public void carregarCategorias() {
         try {
-            categorias = categoriaService.listarAtivas();
+            categorias = categoriaService.buscarAtivas();
         } catch (Exception e) {
             logger.error("Erro ao carregar categorias", e);
             addErrorMessage("Erro ao carregar categorias.");
@@ -166,10 +196,10 @@ public class CategoriaBean implements Serializable {
     public void salvar() {
         try {
             if (modoEdicao) {
-                categoriaService.atualizar(novaCategoria);
+                categoriaService.update(novaCategoria.getId(), novaCategoria);
                 addInfoMessage("Categoria atualizada com sucesso!");
             } else {
-                categoriaService.criar(novaCategoria);
+                categoriaService.create(novaCategoria);
                 addInfoMessage("Categoria criada com sucesso!");
             }
             
@@ -188,7 +218,7 @@ public class CategoriaBean implements Serializable {
     public void alterarStatus(CategoriaDTO categoria) {
         try {
             categoria.setAtiva(!categoria.getAtiva());
-            categoriaService.atualizar(categoria);
+            categoriaService.update(categoria.getId(), categoria);
             
             String status = categoria.getAtiva() ? "ativada" : "desativada";
             addInfoMessage("Categoria " + status + " com sucesso!");
@@ -206,7 +236,7 @@ public class CategoriaBean implements Serializable {
      */
     public void excluir(CategoriaDTO categoria) {
         try {
-            categoriaService.excluir(categoria.getId());
+            categoriaService.delete(categoria.getId());
             addInfoMessage("Categoria excluída com sucesso!");
             carregarCategorias();
             
@@ -226,13 +256,15 @@ public class CategoriaBean implements Serializable {
     
     // Métodos utilitários para mensagens
     private void addInfoMessage(String message) {
-        FacesContext.getCurrentInstance().addMessage(null, 
-            new FacesMessage(FacesMessage.SEVERITY_INFO, "Sucesso", message));
+        // TODO: Implementar sistema de mensagens JSF adequado
+        // Por enquanto, apenas log das mensagens
+        logger.info("INFO: {}", message);
     }
     
     private void addErrorMessage(String message) {
-        FacesContext.getCurrentInstance().addMessage(null, 
-            new FacesMessage(FacesMessage.SEVERITY_ERROR, "Erro", message));
+        // TODO: Implementar sistema de mensagens JSF adequado
+        // Por enquanto, apenas log das mensagens
+        logger.error("ERROR: {}", message);
     }
     
     // Getters e Setters

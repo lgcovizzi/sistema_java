@@ -77,6 +77,9 @@ public class Usuario {
     @Column(name = "ativo", nullable = false)
     private Boolean ativo = true;
     
+    @Column(name = "email_verificado", nullable = false)
+    private Boolean emailVerificado = false;
+    
     @CreationTimestamp
     @Column(name = "data_criacao", nullable = false, updatable = false)
     private LocalDateTime dataCriacao;
@@ -202,6 +205,30 @@ public class Usuario {
     
     public void setAtivo(Boolean ativo) {
         this.ativo = ativo;
+    }
+    
+    public Boolean getEmailVerificado() {
+        return emailVerificado;
+    }
+    
+    public void setEmailVerificado(Boolean emailVerificado) {
+        this.emailVerificado = emailVerificado;
+    }
+    
+    /**
+     * Método de conveniência para verificar se o usuário está ativo
+     * Referência: Controle de Acesso - project_rules.md
+     */
+    public boolean isAtivo() {
+        return ativo != null && ativo;
+    }
+    
+    /**
+     * Método de conveniência para verificar se o email foi verificado
+     * Referência: Login e Registro - project_rules.md
+     */
+    public boolean isEmailVerificado() {
+        return emailVerificado != null && emailVerificado;
     }
     
     public LocalDateTime getDataCriacao() {

@@ -5,8 +5,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.context.ServletContextAware;
 
-import javax.faces.webapp.FacesServlet;
-import javax.servlet.ServletContext;
+import jakarta.faces.webapp.FacesServlet;
+import jakarta.servlet.ServletContext;
 import java.util.HashMap;
 import java.util.Map;
 

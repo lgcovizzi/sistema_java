@@ -16,7 +16,6 @@
 /home/lg/sistema_java/backend/src/main/java/com/sistema/java/util/JwtUtil.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/java/controller/UsuarioController.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/java/config/JsfConfig.java
-/home/lg/sistema_java/backend/src/main/java/com/sistema/java/model/Usuario.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/java/bean/AuthBean.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/java/controller/AvatarController.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/java/model/entity/Usuario.java

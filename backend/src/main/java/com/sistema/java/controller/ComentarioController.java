@@ -309,12 +309,12 @@ public class ComentarioController {
      * @param diasAntigos Número de dias
      * @return Número de comentários removidos
      */
-    @DeleteMapping("/limpar-antigos")
-    public ResponseEntity<Integer> removerAntigosNaoAprovados(
-            @RequestParam(defaultValue = "30") int diasAntigos) {
-        int count = comentarioService.removerAntigosNaoAprovados(diasAntigos);
-        return ResponseEntity.ok(count);
-    }
+    // @DeleteMapping("/limpar-antigos")
+    // public ResponseEntity<Integer> removerAntigosNaoAprovados(
+    //         @RequestParam(defaultValue = "30") int diasAntigos) {
+    //     int count = comentarioService.removerAntigosNaoAprovados(diasAntigos);
+    //     return ResponseEntity.ok(count);
+    // }
 
     /**
      * Conta comentários aprovados

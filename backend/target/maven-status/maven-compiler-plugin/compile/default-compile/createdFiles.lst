@@ -36,7 +36,6 @@ com/sistema/java/controller/HealthController.class
 com/sistema/java/controller/CategoriaController$DesativarLoteRequest.class
 com/sistema/java/model/entity/Noticia.class
 com/sistema/java/config/SecurityInterceptor.class
-com/sistema/java/model/Usuario.class
 com/sistema/java/bean/NoticiaAdminBean$1.class
 com/sistema/java/service/ComentarioService.class
 com/sistema/java/model/dto/RegistroResponseDTO.class

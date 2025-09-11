@@ -18,24 +18,40 @@ ADD COLUMN IF NOT EXISTS data_expiracao_token TIMESTAMP,
 ADD COLUMN IF NOT EXISTS ultimo_acesso TIMESTAMP;
 
 -- Adicionar constraint para validar papel
-ALTER TABLE usuarios 
-ADD CONSTRAINT IF NOT EXISTS chk_papel 
-CHECK (papel IN ('ADMINISTRADOR', 'FUNDADOR', 'COLABORADOR', 'PARCEIRO', 'ASSOCIADO', 'USUARIO', 'CONVIDADO'));
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_papel') THEN
+        ALTER TABLE usuarios ADD CONSTRAINT chk_papel 
+        CHECK (papel IN ('ADMINISTRADOR', 'FUNDADOR', 'COLABORADOR', 'PARCEIRO', 'ASSOCIADO', 'USUARIO', 'CONVIDADO'));
+    END IF;
+END $$;
 
 -- Adicionar constraint para validar CPF (11 dígitos)
-ALTER TABLE usuarios 
-ADD CONSTRAINT IF NOT EXISTS chk_cpf_format 
-CHECK (cpf IS NULL OR cpf ~ '^\\d{11}$');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_cpf_format') THEN
+        ALTER TABLE usuarios ADD CONSTRAINT chk_cpf_format 
+        CHECK (cpf IS NULL OR cpf ~ '^[0-9]{11}$');
+    END IF;
+END $$;
 
 -- Adicionar constraint para validar email
-ALTER TABLE usuarios 
-ADD CONSTRAINT IF NOT EXISTS chk_email_format 
-CHECK (email ~ '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_email_format') THEN
+        ALTER TABLE usuarios ADD CONSTRAINT chk_email_format 
+        CHECK (email ~ '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    END IF;
+END $$;
 
 -- Adicionar constraint para validar telefone
-ALTER TABLE usuarios 
-ADD CONSTRAINT IF NOT EXISTS chk_telefone_format 
-CHECK (telefone IS NULL OR telefone ~ '^\\(?\\d{2}\\)?[\\s-]?\\d{4,5}[\\s-]?\\d{4}$');
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_telefone_format') THEN
+        ALTER TABLE usuarios ADD CONSTRAINT chk_telefone_format 
+        CHECK (telefone IS NULL OR telefone ~ '^[0-9\-()+ ]{8,20}$');
+    END IF;
+END $$;
 
 -- Criar índices para performance
 CREATE INDEX IF NOT EXISTS idx_usuario_cpf ON usuarios(cpf);

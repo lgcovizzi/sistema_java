@@ -198,9 +198,9 @@ public interface ComentarioRepository extends JpaRepository<Comentario, Long> {
      * @param dataLimite Data limite para remoção
      * @return Número de comentários removidos
      */
-    @Query("DELETE FROM Comentario c WHERE c.aprovado = false " +
-           "AND c.dataCriacao < :dataLimite")
-    int removeComentariosAntigosNaoAprovados(@Param("dataLimite") LocalDateTime dataLimite);
+    // @Query("DELETE FROM Comentario c WHERE c.aprovado = false " +
+    //        "AND c.dataCriacao < :dataLimite")
+    // int removeComentariosAntigosNaoAprovados(@Param("dataLimite") LocalDateTime dataLimite);
 
     /**
      * Busca comentários por notícia com paginação otimizada
@@ -249,9 +249,9 @@ public interface ComentarioRepository extends JpaRepository<Comentario, Long> {
      * @param dataLimite Data limite para remoção
      * @return Número de registros removidos
      */
-    @Modifying
-    @Query("DELETE FROM Comentario c WHERE c.aprovado = false AND c.dataCriacao < :dataLimite")
-    int removerAntigosNaoAprovados(@Param("dataLimite") LocalDateTime dataLimite);
+    // @Modifying
+    // @Query("DELETE FROM Comentario c WHERE c.aprovado = false AND c.dataCriacao < :dataLimite")
+    // int removerAntigosNaoAprovados(@Param("dataLimite") LocalDateTime dataLimite);
 
     /**
      * Obtém estatísticas de comentários por notícia

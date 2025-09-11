@@ -296,10 +296,10 @@ public class ComentarioService {
      * @param diasAntigos Número de dias
      * @return Número de comentários removidos
      */
-    public int removerAntigosNaoAprovados(int diasAntigos) {
-        LocalDateTime dataLimite = LocalDateTime.now().minusDays(diasAntigos);
-        return comentarioRepository.removerAntigosNaoAprovados(dataLimite);
-    }
+    // public int removerAntigosNaoAprovados(int diasAntigos) {
+    //     LocalDateTime dataLimite = LocalDateTime.now().minusDays(diasAntigos);
+    //     return comentarioRepository.removerAntigosNaoAprovados(dataLimite);
+    // }
 
     /**
      * Conta comentários aprovados

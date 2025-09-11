@@ -211,7 +211,7 @@ class CategoriaRepositoryIntegrationTest {
 
         // Assert
         Categoria categoriaVerificada = categoriaRepository.findById(categoriaAtualizada.getId()).orElseThrow();
-        assertThat(categoriaVerificada.isAtiva()).isFalse();
+        assertThat(categoriaVerificada.getAtiva()).isFalse();
     }
 
     @Test
@@ -259,34 +259,35 @@ class CategoriaRepositoryIntegrationTest {
     @Test
     void should_SearchCategoriesByNameOrDescription_When_UsingFullTextSearch() {
         // Act
-        List<Categoria> resultadosPorNome = categoriaRepository.findByNomeContainingIgnoreCaseOrDescricaoContainingIgnoreCase("tec", "tec");
-        List<Categoria> resultadosPorDescricao = categoriaRepository.findByNomeContainingIgnoreCaseOrDescricaoContainingIgnoreCase("artigos", "artigos");
+        Page<Categoria> resultadosPorNome = categoriaRepository.buscarPorTermo("tec", true, PageRequest.of(0, 10));
+        Page<Categoria> resultadosPorDescricao = categoriaRepository.buscarPorTermo("artigos", true, PageRequest.of(0, 10));
 
         // Assert
-        assertThat(resultadosPorNome).hasSize(1);
-        assertThat(resultadosPorNome.get(0).getNome()).isEqualTo("Tecnologia");
+        assertThat(resultadosPorNome.getContent()).hasSize(1);
+        assertThat(resultadosPorNome.getContent().get(0).getNome()).isEqualTo("Tecnologia");
         
-        assertThat(resultadosPorDescricao).hasSize(3); // Todas têm "artigos" na descrição
+        assertThat(resultadosPorDescricao.getContent()).hasSize(2); // Apenas categorias ativas
     }
 
     @Test
     void should_FindMostRecentCategories_When_OrderingByCreationDate() {
         // Act
-        List<Categoria> categoriasRecentes = categoriaRepository.findTop10ByOrderByDataCriacaoDesc();
+        List<Categoria> categoriasRecentes = categoriaRepository.findAllAtivasOrdenadas();
 
         // Assert
-        assertThat(categoriasRecentes).hasSize(3);
-        // A ordem depende da ordem de inserção no setUp
+        assertThat(categoriasRecentes).hasSize(2); // Apenas categorias ativas
+        assertThat(categoriasRecentes.get(0).getNome()).isEqualTo("Esportes");
+        assertThat(categoriasRecentes.get(1).getNome()).isEqualTo("Tecnologia");
     }
 
     @Test
     void should_FindCategoriesByActiveStatusAndNamePattern_When_FilteringByMultipleCriteria() {
         // Act
-        List<Categoria> categorias = categoriaRepository.findByAtivaAndNomeContainingIgnoreCase(true, "e");
+        Page<Categoria> categorias = categoriaRepository.findByNomeContainingIgnoreCaseAndAtiva("e", true, PageRequest.of(0, 10));
 
         // Assert
-        assertThat(categorias).hasSize(2); // "Tecnologia" e "Esportes" contêm "e"
-        assertThat(categorias)
+        assertThat(categorias.getContent()).hasSize(2); // "Tecnologia" e "Esportes" contêm "e"
+        assertThat(categorias.getContent())
             .extracting(Categoria::getNome)
             .containsExactlyInAnyOrder("Tecnologia", "Esportes");
     }
@@ -314,7 +315,7 @@ class CategoriaRepositoryIntegrationTest {
     @Test
     void should_HandleNullValues_When_SearchingWithNullParameters() {
         // Act
-        List<Categoria> resultados = categoriaRepository.findByNomeContainingIgnoreCase("");
+        Page<Categoria> resultados = categoriaRepository.findByNomeContainingIgnoreCase("", PageRequest.of(0, 10));
 
         // Assert
         assertThat(resultados).hasSize(3); // String vazia deve retornar todas

@@ -271,7 +271,8 @@ class NoticiaRepositoryIntegrationTest {
         LocalDateTime dataFim = LocalDateTime.now().minusHours(6);
 
         // Act
-        List<Noticia> noticias = noticiaRepository.findByDataPublicacaoBetween(dataInicio, dataFim);
+        Page<Noticia> page = noticiaRepository.findByPublicadaTrueAndDataPublicacaoBetween(dataInicio, dataFim, PageRequest.of(0, 10));
+        List<Noticia> noticias = page.getContent();
 
         // Assert
         assertThat(noticias).hasSize(2);

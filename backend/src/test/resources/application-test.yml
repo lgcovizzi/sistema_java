@@ -1,0 +1,205 @@
+# Configuração de teste para o sistema Java
+# Referência: Testes e Qualidade de Código - project_rules.md
+# Referência: Configurações de Ambiente - project_rules.md
+
+spring:
+  profiles:
+    active: test
+  
+  # Configuração do banco H2 para testes unitários
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+  
+  # JPA/Hibernate para testes
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: false
+        use_sql_comments: false
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        generate_statistics: false
+  
+  # Redis para testes (embedded)
+  redis:
+    host: localhost
+    port: 6370  # Porta diferente para não conflitar
+    timeout: 2000ms
+    jedis:
+      pool:
+        max-active: 5
+        max-idle: 5
+        min-idle: 1
+  
+  # Email para testes (mock)
+  mail:
+    host: localhost
+    port: 2525  # Porta mock
+    username: test
+    password: test
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+  
+  # JSF para testes
+  faces:
+    project-stage: UnitTest
+    facelets:
+      development: false
+      refresh-period: -1
+  
+  # Configurações de segurança para testes
+  security:
+    jwt:
+      secret: test-secret-key-for-testing-purposes-only
+      expiration: 3600000  # 1 hora
+  
+  # Cache para testes
+  cache:
+    type: simple
+    cache-names:
+      - usuarios
+      - noticias
+      - categorias
+      - comentarios
+  
+  # Configurações de upload para testes
+  servlet:
+    multipart:
+      max-file-size: 1MB
+      max-request-size: 1MB
+      location: ${java.io.tmpdir}/uploads/test
+
+# Configurações de logging para testes
+logging:
+  level:
+    com.sistema.java: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: ERROR
+    org.hibernate.type.descriptor.sql.BasicBinder: ERROR
+    org.springframework.web: ERROR
+    org.springframework.test: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Configurações específicas da aplicação para testes
+aplicacao:
+  nome: "Sistema Java Test"
+  versao: "1.0.0-TEST"
+  ambiente: "test"
+  
+  # Configurações de avatar para testes
+  avatar:
+    diretorio: "${java.io.tmpdir}/avatars/test"
+    tamanhos:
+      pequeno: 64
+      medio: 256
+      grande: 512
+    formatos-aceitos:
+      - "image/jpeg"
+      - "image/png"
+    tamanho-maximo: 5242880  # 5MB
+  
+  # Configurações de paginação para testes
+  paginacao:
+    tamanho-padrao: 5
+    tamanho-maximo: 20
+  
+  # Configurações de validação para testes
+  validacao:
+    senha:
+      tamanho-minimo: 6  # Reduzido para testes
+      requer-maiuscula: false
+      requer-numero: false
+      requer-simbolo: false
+    cpf:
+      validar-digitos: true
+    email:
+      validar-formato: true
+  
+  # URLs para testes
+  urls:
+    base: "http://localhost:8080"
+    frontend: "http://localhost:3000"
+    api: "http://localhost:8080/api"
+
+# Configurações do TestContainers
+testcontainers:
+  reuse:
+    enable: true
+  
+# Configurações de performance para testes
+performance:
+  timeout:
+    conexao: 5000
+    leitura: 10000
+    escrita: 10000
+  
+  pool:
+    tamanho-inicial: 2
+    tamanho-maximo: 5
+    timeout-idle: 60000
+
+# Configurações de métricas para testes
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    enable:
+      jvm: false
+      system: false
+      web: false
+
+# Configurações específicas para JSF em testes
+primefaces:
+  theme: saga
+  font-awesome: true
+  client-side-validation: false
+  transform-metadata: false
+  
+# Configurações de internacionalização para testes
+internacionalizacao:
+  locale-padrao: pt_BR
+  locales-suportados:
+    - pt_BR
+    - en_US
+  encoding: UTF-8
+
+# Configurações de CORS para testes
+cors:
+  allowed-origins:
+    - "http://localhost:3000"
+    - "http://localhost:8080"
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowed-headers:
+    - "*"
+  allow-credentials: true
+  max-age: 3600

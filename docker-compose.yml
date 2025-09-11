@@ -1,49 +1,86 @@
-version: '3.9'
+version: '3.8'
+
 services:
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
+  postgres:
+    image: postgres:15-alpine
+    container_name: sistema_java_postgres
     environment:
-      POSTGRES_DB: appdb
-      POSTGRES_USER: app
-      POSTGRES_PASSWORD: app
+      POSTGRES_DB: sistema_java
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
     ports:
       - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
-
-  mailhog:
-    image: mailhog/mailhog:v1.0.1
-    restart: unless-stopped
-    ports:
-      - "8025:8025"  # UI
-      - "1025:1025"  # SMTP
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sistema_java_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   redis:
     image: redis:7-alpine
-    restart: unless-stopped
+    container_name: sistema_java_redis
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - sistema_java_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  app:
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: sistema_java_mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - sistema_java_network
+
+  backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
-    depends_on:
-      - db
-      - mailhog
-      - redis
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
+    container_name: sistema_java_backend
     ports:
       - "8080:8080"
-    command: ["java", "-jar", "/app/app.jar"]
+    environment:
+      - SPRING_PROFILES_ACTIVE=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=sistema_java
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres123
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MAIL_HOST=mailhog
+      - MAIL_PORT=1025
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    networks:
+      - sistema_java_network
     volumes:
-      - ./keys:/app/keys
-      - ./uploads:/app/uploads
-      - ./tmp-uploads:/app/tmp-uploads
+      - ./backend:/app
+    restart: unless-stopped
 
 volumes:
-  db_data:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
 
-
+networks:
+  sistema_java_network:
+    driver: bridge

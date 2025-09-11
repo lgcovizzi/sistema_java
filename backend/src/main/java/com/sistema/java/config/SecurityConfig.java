@@ -55,9 +55,10 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authz -> authz
                 // Endpoints públicos - acessíveis para CONVIDADO
-                .requestMatchers("/api/auth/login", "/api/auth/registro").permitAll()
+                .requestMatchers("/api/auth/login", "/api/auth/registro", "/api/auth/validar-token").permitAll()
                 .requestMatchers("/api/noticias/publicas").permitAll()
                 .requestMatchers("/api/email/mailhog-info").permitAll()
+                .requestMatchers("/error").permitAll()
                 
                 // Recursos estáticos
                 .requestMatchers("/resources/**", "/static/**", "/css/**", "/js/**", "/images/**").permitAll()

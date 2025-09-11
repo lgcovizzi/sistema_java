@@ -279,11 +279,26 @@ public class AuthService {
                 token = token.substring(7);
             }
 
-            // TODO: Implementar JwtUtil.isTokenValid()
-            // return jwtUtil.isTokenValid(token);
-            return true; // Implementação temporária
+            // Validar token usando JwtUtil
+            String username = jwtUtil.getUsernameFromToken(token);
+            if (username != null) {
+                // Carregar detalhes do usuário para validação completa
+                Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(username);
+                if (usuarioOpt.isPresent() && usuarioOpt.get().isAtivo()) {
+                    Usuario usuario = usuarioOpt.get();
+                    // Criar UserDetails para validação
+                    org.springframework.security.core.userdetails.User userDetails = 
+                        new org.springframework.security.core.userdetails.User(
+                            usuario.getEmail(),
+                            usuario.getSenha(),
+                            List.of(new SimpleGrantedAuthority("ROLE_" + usuario.getPapel().name()))
+                        );
+                    return jwtUtil.validateToken(token, userDetails);
+                }
+            }
+            return false;
         } catch (Exception e) {
-            logger.warn("Erro ao validar token", e);
+            logger.warn("Erro ao validar token: {}", e.getMessage());
             return false;
         }
     }
@@ -398,19 +413,19 @@ public class AuthService {
                 token = token.substring(7);
             }
 
-            // TODO: Implementar JwtUtil.extractUsername() e validação
-            // if (!jwtUtil.isTokenValid(token)) {
-            //     return null;
-            // }
-            // 
-            // String email = jwtUtil.extractUsername(token);
-            // return usuarioRepository.findByEmailAndAtivoTrue(email).orElse(null);
+            // Validar token e extrair usuário
+            if (validarToken(token)) {
+                String email = jwtUtil.getUsernameFromToken(token);
+                Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
+                if (usuarioOpt.isPresent() && usuarioOpt.get().isAtivo()) {
+                    return usuarioOpt.get();
+                }
+            }
             
-            // Implementação temporária - retorna null
             return null;
 
         } catch (Exception e) {
-            logger.warn("Erro ao obter usuário atual do token", e);
+            logger.warn("Erro ao obter usuário atual do token: {}", e.getMessage());
             return null;
         }
     }

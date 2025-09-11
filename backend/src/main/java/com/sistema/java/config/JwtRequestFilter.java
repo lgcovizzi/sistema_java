@@ -172,7 +172,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
      * Referência: Controle de Acesso - project_rules.md
      * 
      * @param request Requisição HTTP
-     * @return false para aplicar o filtro (comportamento padrão)
+     * @return true para NÃO aplicar o filtro (pular filtro)
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -196,6 +196,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         
         // Pular filtro para endpoints públicos (não aplicar filtro JWT)
         // Se NÃO requer autenticação, então NÃO aplicar o filtro
-        return !requiresAuthentication(path);
+        boolean isPublic = !requiresAuthentication(path);
+        logger.debug("Endpoint {} é público: {} - shouldNotFilter: {}", path, isPublic, isPublic);
+        return isPublic;
     }
 }

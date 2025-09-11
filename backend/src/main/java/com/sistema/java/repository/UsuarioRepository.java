@@ -222,9 +222,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
      * @param agora Data/hora atual
      * @return Lista de usuários com tokens expirados
      */
-    // @Query("SELECT u FROM Usuario u WHERE (u.tokenVerificacao IS NOT NULL OR u.tokenResetSenha IS NOT NULL) " +
-    //        "AND u.dataExpiracaoToken < :agora")
-    // List<Usuario> findUsuariosComTokensExpirados(@Param("agora") LocalDateTime agora);
+    @Query("SELECT u FROM Usuario u WHERE (u.tokenVerificacao IS NOT NULL OR u.tokenResetSenha IS NOT NULL) " +
+           "AND u.dataExpiracaoToken < :agora")
+    List<Usuario> findUsuariosComTokensExpirados(@Param("agora") LocalDateTime agora);
 
     /**
      * Busca usuários mais ativos (com mais notícias)

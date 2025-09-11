@@ -91,6 +91,17 @@ public class Usuario {
     @Column(name = "ultimo_login")
     private LocalDateTime ultimoLogin;
     
+    @Size(max = 255, message = "Token de verificação deve ter no máximo 255 caracteres")
+    @Column(name = "token_verificacao", length = 255)
+    private String tokenVerificacao;
+    
+    @Size(max = 255, message = "Token de reset de senha deve ter no máximo 255 caracteres")
+    @Column(name = "token_reset_senha", length = 255)
+    private String tokenResetSenha;
+    
+    @Column(name = "data_expiracao_token")
+    private LocalDateTime dataExpiracaoToken;
+    
     // Relacionamentos
     @OneToMany(mappedBy = "autor", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Noticia> noticias;
@@ -300,8 +311,32 @@ public class Usuario {
     public void setComentarios(List<Comentario> comentarios) {
         this.comentarios = comentarios;
     }
-    
-    // equals e hashCode baseados no ID
+
+    public String getTokenVerificacao() {
+        return tokenVerificacao;
+    }
+
+    public void setTokenVerificacao(String tokenVerificacao) {
+        this.tokenVerificacao = tokenVerificacao;
+    }
+
+    public String getTokenResetSenha() {
+        return tokenResetSenha;
+    }
+
+    public void setTokenResetSenha(String tokenResetSenha) {
+        this.tokenResetSenha = tokenResetSenha;
+    }
+
+    public LocalDateTime getDataExpiracaoToken() {
+        return dataExpiracaoToken;
+    }
+
+    public void setDataExpiracaoToken(LocalDateTime dataExpiracaoToken) {
+        this.dataExpiracaoToken = dataExpiracaoToken;
+    }
+
+    // Métodos auxiliares equals e hashCode baseados no ID
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

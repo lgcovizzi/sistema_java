@@ -381,7 +381,9 @@ class NoticiaRepositoryIntegrationTest {
     @Test
     void should_FindNewsByAuthorAndStatus_When_FilteringByMultipleCriteria() {
         // Act
-        List<Noticia> noticias = noticiaRepository.findByAutorAndPublicada(autor1, true);
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Noticia> noticiasPage = noticiaRepository.findByAutorAndPublicada(autor1, true, pageable);
+        List<Noticia> noticias = noticiasPage.getContent();
 
         // Assert
         assertThat(noticias).hasSize(1);
@@ -391,7 +393,9 @@ class NoticiaRepositoryIntegrationTest {
     @Test
     void should_FindNewsByCategoryAndStatus_When_FilteringByMultipleCriteria() {
         // Act
-        List<Noticia> noticias = noticiaRepository.findByCategoriasAndPublicada(categoria1, true);
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Noticia> noticiasPage = noticiaRepository.findByCategoriaAndPublicada(categoria1.getId(), true, pageable);
+        List<Noticia> noticias = noticiasPage.getContent();
 
         // Assert
         assertThat(noticias).hasSize(2);

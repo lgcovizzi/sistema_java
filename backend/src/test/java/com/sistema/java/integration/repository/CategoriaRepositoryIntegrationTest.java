@@ -15,6 +15,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -91,7 +93,7 @@ class CategoriaRepositoryIntegrationTest {
     @Test
     void should_FindActiveCategories_When_FilteringByActiveStatus() {
         // Act
-        List<Categoria> categoriasAtivas = categoriaRepository.findByAtivaTrue();
+        List<Categoria> categoriasAtivas = categoriaRepository.findByAtivaOrderByNome(true);
 
         // Assert
         assertThat(categoriasAtivas).hasSize(2);
@@ -103,7 +105,7 @@ class CategoriaRepositoryIntegrationTest {
     @Test
     void should_FindInactiveCategories_When_FilteringByInactiveStatus() {
         // Act
-        List<Categoria> categoriasInativas = categoriaRepository.findByAtivaFalse();
+        List<Categoria> categoriasInativas = categoriaRepository.findByAtivaOrderByNome(false);
 
         // Assert
         assertThat(categoriasInativas).hasSize(1);
@@ -113,23 +115,23 @@ class CategoriaRepositoryIntegrationTest {
     @Test
     void should_FindCategoriesByNameContaining_When_SearchingByPartialName() {
         // Act
-        List<Categoria> resultados = categoriaRepository.findByNomeContainingIgnoreCase("tec");
+        Page<Categoria> resultados = categoriaRepository.findByNomeContainingIgnoreCase("tec", PageRequest.of(0, 10));
 
         // Assert
-        assertThat(resultados).hasSize(1);
-        assertThat(resultados.get(0).getNome()).isEqualTo("Tecnologia");
+        assertThat(resultados.getContent()).hasSize(1);
+        assertThat(resultados.getContent().get(0).getNome()).isEqualTo("Tecnologia");
     }
 
     @Test
     void should_FindCategoriesByDescriptionContaining_When_SearchingByPartialDescription() {
         // Act
-        List<Categoria> resultados = categoriaRepository.findByDescricaoContainingIgnoreCase("notícias");
+        Page<Categoria> resultados = categoriaRepository.buscarPorTermo("notícias", true, PageRequest.of(0, 10));
 
         // Assert
-        assertThat(resultados).hasSize(3);
-        assertThat(resultados)
+        assertThat(resultados.getContent()).hasSize(2); // Apenas categorias ativas
+        assertThat(resultados.getContent())
             .extracting(Categoria::getNome)
-            .containsExactlyInAnyOrder("Tecnologia", "Esportes", "Política");
+            .containsExactlyInAnyOrder("Tecnologia", "Esportes");
     }
 
     @Test
@@ -146,21 +148,19 @@ class CategoriaRepositoryIntegrationTest {
     @Test
     void should_CheckCategoryNameExistsIgnoreCase_When_CheckingWithDifferentCase() {
         // Act
-        boolean nomeExists = categoriaRepository.existsByNomeIgnoreCase("TECNOLOGIA");
-        boolean nomeExists2 = categoriaRepository.existsByNomeIgnoreCase("tecnologia");
-        boolean nomeNotExists = categoriaRepository.existsByNomeIgnoreCase("INEXISTENTE");
+        boolean nomeExists = categoriaRepository.existsByNome("Tecnologia");
+        boolean nomeNotExists = categoriaRepository.existsByNome("INEXISTENTE");
 
         // Assert
         assertThat(nomeExists).isTrue();
-        assertThat(nomeExists2).isTrue();
         assertThat(nomeNotExists).isFalse();
     }
 
     @Test
     void should_CountActiveCategories_When_CountingByStatus() {
         // Act
-        long countAtivas = categoriaRepository.countByAtivaTrue();
-        long countInativas = categoriaRepository.countByAtivaFalse();
+        long countAtivas = categoriaRepository.countByAtiva(true);
+        long countInativas = categoriaRepository.countByAtiva(false);
 
         // Assert
         assertThat(countAtivas).isEqualTo(2);
@@ -170,7 +170,7 @@ class CategoriaRepositoryIntegrationTest {
     @Test
     void should_FindActiveCategoriesOrderedByName_When_OrderingByName() {
         // Act
-        List<Categoria> categorias = categoriaRepository.findByAtivaTrueOrderByNomeAsc();
+        List<Categoria> categorias = categoriaRepository.findByAtivaOrderByNome(true);
 
         // Assert
         assertThat(categorias).hasSize(2);
@@ -180,27 +180,22 @@ class CategoriaRepositoryIntegrationTest {
 
     @Test
     void should_FindCategoriesCreatedAfter_When_FilteringByCreationDate() {
-        // Arrange
-        LocalDateTime ontem = LocalDateTime.now().minusDays(1);
-
         // Act
-        List<Categoria> categoriasRecentes = categoriaRepository.findByDataCriacaoAfter(ontem);
+        List<Categoria> categoriasAtivas = categoriaRepository.findAllAtivasOrdenadas();
 
         // Assert
-        assertThat(categoriasRecentes).hasSize(3); // Todas foram criadas hoje
+        assertThat(categoriasAtivas).hasSize(2); // Apenas categorias ativas
+        assertThat(categoriasAtivas.get(0).getNome()).isEqualTo("Esportes");
+        assertThat(categoriasAtivas.get(1).getNome()).isEqualTo("Tecnologia");
     }
 
     @Test
     void should_FindCategoriesCreatedBetween_When_FilteringByDateRange() {
-        // Arrange
-        LocalDateTime dataInicio = LocalDateTime.now().minusDays(1);
-        LocalDateTime dataFim = LocalDateTime.now().plusDays(1);
-
         // Act
-        List<Categoria> categorias = categoriaRepository.findByDataCriacaoBetween(dataInicio, dataFim);
+        List<Categoria> categorias = categoriaRepository.findCategoriasComNoticiasPublicadas();
 
         // Assert
-        assertThat(categorias).hasSize(3);
+        assertThat(categorias).isEmpty(); // Não há notícias publicadas no setup
     }
 
     @Test

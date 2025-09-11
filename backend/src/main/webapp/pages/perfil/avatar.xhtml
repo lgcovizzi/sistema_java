@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+
+<!-- 
+    Página de gerenciamento de avatar
+    Referência: Regras de Avatar - project_rules.md
+    Referência: Regras de Edição de Perfil - project_rules.md
+-->
+
+<ui:composition template="/WEB-INF/templates/layout.xhtml">
+    
+    <ui:define name="title">Gerenciar Avatar</ui:define>
+    
+    <ui:define name="head">
+        <style>
+            .avatar-container {
+                text-align: center;
+                margin: 20px 0;
+            }
+            
+            .avatar-preview {
+                border-radius: 50%;
+                border: 3px solid #e5e7eb;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                transition: all 0.3s ease;
+            }
+            
+            .avatar-preview:hover {
+                transform: scale(1.05);
+                box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            }
+            
+            .avatar-sm {
+                width: 64px;
+                height: 64px;
+            }
+            
+            .avatar-md {
+                width: 128px;
+                height: 128px;
+            }
+            
+            .avatar-lg {
+                width: 256px;
+                height: 256px;
+            }
+            
+            .avatar-placeholder {
+                background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #6b7280;
+                font-size: 2rem;
+            }
+            
+            .crop-container {
+                margin: 20px 0;
+                padding: 20px;
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                background: #f9fafb;
+            }
+            
+            .crop-preview {
+                max-width: 400px;
+                max-height: 400px;
+                border: 2px dashed #3b82f6;
+                margin: 10px auto;
+            }
+            
+            .upload-area {
+                border: 2px dashed #d1d5db;
+                border-radius: 8px;
+                padding: 40px 20px;
+                text-align: center;
+                background: #f9fafb;
+                transition: all 0.3s ease;
+            }
+            
+            .upload-area:hover {
+                border-color: #3b82f6;
+                background: #eff6ff;
+            }
+            
+            .upload-icon {
+                font-size: 3rem;
+                color: #6b7280;
+                margin-bottom: 10px;
+            }
+            
+            .file-info {
+                background: #f3f4f6;
+                padding: 15px;
+                border-radius: 6px;
+                margin: 10px 0;
+            }
+            
+            .processing-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+            }
+            
+            .processing-content {
+                background: white;
+                padding: 30px;
+                border-radius: 8px;
+                text-align: center;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            }
+        </style>
+    </ui:define>
+    
+    <ui:define name="content">
+        <div class="container-fluid">
+            
+            <!-- Header da página -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-1">Gerenciar Avatar</h2>
+                            <p class="text-muted mb-0">Personalize sua foto de perfil</p>
+                        </div>
+                        <div>
+                            <p:commandButton value="Voltar ao Perfil" 
+                                           styleClass="btn btn-outline-secondary"
+                                           action="perfil?faces-redirect=true"
+                                           icon="pi pi-arrow-left" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Avatar atual -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <p:panel header="Avatar Atual" styleClass="mb-3">
+                        <div class="avatar-container">
+                            <h:graphicImage value="#{avatarBean.avatarUrl}"
+                                          styleClass="#{avatarBean.avatarClass}"
+                                          alt="Avatar do usuário" />
+                            
+                            <div class="mt-3">
+                                <h:outputText value="Nenhum avatar definido" 
+                                            rendered="#{!avatarBean.temAvatar}"
+                                            styleClass="text-muted" />
+                                            
+                                <div class="mt-2" rendered="#{avatarBean.permitirEdicao}">
+                                    <p:selectOneMenu value="#{avatarBean.tamanhoExibicao}" 
+                                                   onchange="submit()" 
+                                                   styleClass="me-2">
+                                        <f:selectItem itemLabel="Pequeno" itemValue="pequeno" />
+                                        <f:selectItem itemLabel="Médio" itemValue="medio" />
+                                        <f:selectItem itemLabel="Grande" itemValue="grande" />
+                                    </p:selectOneMenu>
+                                    
+                                    <p:commandButton value="Remover" 
+                                                   action="#{avatarBean.removerAvatar}"
+                                                   styleClass="btn btn-outline-danger btn-sm"
+                                                   icon="pi pi-trash"
+                                                   rendered="#{avatarBean.temAvatar}"
+                                                   onclick="return confirm('Tem certeza que deseja remover o avatar?');"
+                                                   update="@form" />
+                                </div>
+                            </div>
+                        </div>
+                    </p:panel>
+                </div>
+            </div>
+            
+            <!-- Upload de novo avatar -->
+            <div class="row mb-4" rendered="#{avatarBean.permitirEdicao}">
+                <div class="col-12">
+                    <p:panel header="Enviar Novo Avatar" styleClass="mb-3">
+                        
+                        <!-- Área de upload -->
+                        <div class="upload-area" rendered="#{!avatarBean.mostrarCrop}">
+                            <div class="upload-icon">
+                                <i class="pi pi-cloud-upload"></i>
+                            </div>
+                            <h5>Selecione uma imagem</h5>
+                            <p class="text-muted mb-3">
+                                Formatos aceitos: JPEG, PNG<br/>
+                                Tamanho máximo: 5MB
+                            </p>
+                            
+                            <p:fileUpload listener="#{avatarBean.handleFileUpload}"
+                                        mode="advanced"
+                                        auto="true"
+                                        sizeLimit="5242880"
+                                        allowTypes="/(\.|\/)(jpe?g|png)$/i"
+                                        invalidSizeMessage="Arquivo muito grande (máximo 5MB)"
+                                        invalidFileMessage="Formato não suportado (use JPEG ou PNG)"
+                                        uploadLabel="Selecionar"
+                                        cancelLabel="Cancelar"
+                                        chooseLabel="Escolher Arquivo"
+                                        update="@form"
+                                        styleClass="custom-file-upload" />
+                        </div>
+                        
+                        <!-- Interface de crop -->
+                        <div class="crop-container" rendered="#{avatarBean.mostrarCrop}">
+                            <h5 class="mb-3">Configurar Recorte</h5>
+                            
+                            <!-- Informações do arquivo -->
+                            <div class="file-info mb-3">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <strong>Arquivo:</strong> #{avatarBean.nomeArquivoOriginal}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>Tamanho:</strong> #{avatarBean.tamanhoArquivoFormatado}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong>Tipo:</strong> #{avatarBean.tipoMime}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Preview da imagem -->
+                            <div class="text-center mb-3">
+                                <h:graphicImage value="#{avatarBean.previewUrl}"
+                                              styleClass="crop-preview"
+                                              alt="Preview da imagem"
+                                              rendered="#{avatarBean.previewUrl != null}" />
+                            </div>
+                            
+                            <!-- Opções de crop -->
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <p:selectBooleanCheckbox value="#{avatarBean.cropCentralizado}"
+                                                           itemLabel="Recorte centralizado automático"
+                                                           onchange="#{avatarBean.atualizarCrop()}"
+                                                           update="cropManual" />
+                                </div>
+                            </div>
+                            
+                            <!-- Configurações manuais de crop -->
+                            <h:panelGroup id="cropManual">
+                                <div class="row mb-3" rendered="#{!avatarBean.cropCentralizado}">
+                                    <div class="col-md-3">
+                                        <p:outputLabel for="cropX" value="Posição X:" />
+                                        <p:inputNumber id="cropX" 
+                                                     value="#{avatarBean.cropX}"
+                                                     minValue="0"
+                                                     styleClass="form-control" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p:outputLabel for="cropY" value="Posição Y:" />
+                                        <p:inputNumber id="cropY" 
+                                                     value="#{avatarBean.cropY}"
+                                                     minValue="0"
+                                                     styleClass="form-control" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p:outputLabel for="cropLargura" value="Largura:" />
+                                        <p:inputNumber id="cropLargura" 
+                                                     value="#{avatarBean.cropLargura}"
+                                                     minValue="64"
+                                                     maxValue="512"
+                                                     styleClass="form-control" />
+                                    </div>
+                                    <div class="col-md-3">
+                                        <p:outputLabel for="cropAltura" value="Altura:" />
+                                        <p:inputNumber id="cropAltura" 
+                                                     value="#{avatarBean.cropAltura}"
+                                                     minValue="64"
+                                                     maxValue="512"
+                                                     styleClass="form-control" />
+                                    </div>
+                                </div>
+                            </h:panelGroup>
+                            
+                            <!-- Botões de ação -->
+                            <div class="text-center">
+                                <p:commandButton value="Aplicar e Processar"
+                                               action="#{avatarBean.aplicarCropEUpload}"
+                                               styleClass="btn btn-primary me-2"
+                                               icon="pi pi-check"
+                                               disabled="#{avatarBean.processandoUpload}"
+                                               update="@form" />
+                                               
+                                <p:commandButton value="Cancelar"
+                                               action="#{avatarBean.cancelarCrop}"
+                                               styleClass="btn btn-outline-secondary"
+                                               icon="pi pi-times"
+                                               immediate="true"
+                                               update="@form" />
+                            </div>
+                        </div>
+                        
+                    </p:panel>
+                </div>
+            </div>
+            
+            <!-- Mensagem para usuários sem permissão -->
+            <div class="row" rendered="#{!avatarBean.permitirEdicao}">
+                <div class="col-12">
+                    <p:panel styleClass="mb-3">
+                        <div class="text-center text-muted">
+                            <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 10px;"></i>
+                            <h5>Sem Permissão de Edição</h5>
+                            <p>Você não tem permissão para editar este avatar.</p>
+                        </div>
+                    </p:panel>
+                </div>
+            </div>
+            
+            <!-- Informações adicionais -->
+            <div class="row">
+                <div class="col-12">
+                    <p:panel header="Informações" styleClass="mb-3">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Formatos Suportados</h6>
+                                <ul class="list-unstyled text-muted">
+                                    <li><i class="pi pi-check text-success"></i> JPEG (.jpg, .jpeg)</li>
+                                    <li><i class="pi pi-check text-success"></i> PNG (.png)</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Processamento</h6>
+                                <ul class="list-unstyled text-muted">
+                                    <li><i class="pi pi-info-circle"></i> Tamanho máximo: 5MB</li>
+                                    <li><i class="pi pi-info-circle"></i> Redimensionamento automático</li>
+                                    <li><i class="pi pi-info-circle"></i> Processamento em segundo plano</li>
+                                    <li><i class="pi pi-info-circle"></i> Múltiplos tamanhos gerados</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </p:panel>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- Overlay de processamento -->
+        <div class="processing-overlay" rendered="#{avatarBean.processandoUpload}">
+            <div class="processing-content">
+                <p:progressSpinner strokeWidth="4" animationDuration="1s" />
+                <h5 class="mt-3">Processando Avatar</h5>
+                <p class="text-muted mb-0">Aguarde enquanto processamos sua imagem...</p>
+            </div>
+        </div>
+        
+    </ui:define>
+    
+    <ui:define name="scripts">
+        <script>
+            // Atualizar página automaticamente após processamento
+            function verificarStatusProcessamento() {
+                if (#{avatarBean.processandoUpload}) {
+                    setTimeout(function() {
+                        location.reload();
+                    }, 3000);
+                }
+            }
+            
+            // Executar verificação ao carregar
+            document.addEventListener('DOMContentLoaded', verificarStatusProcessamento);
+            
+            // Drag and drop para upload
+            function setupDragAndDrop() {
+                const uploadArea = document.querySelector('.upload-area');
+                if (!uploadArea) return;
+                
+                uploadArea.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    this.style.borderColor = '#3b82f6';
+                    this.style.backgroundColor = '#eff6ff';
+                });
+                
+                uploadArea.addEventListener('dragleave', function(e) {
+                    e.preventDefault();
+                    this.style.borderColor = '#d1d5db';
+                    this.style.backgroundColor = '#f9fafb';
+                });
+                
+                uploadArea.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.style.borderColor = '#d1d5db';
+                    this.style.backgroundColor = '#f9fafb';
+                    
+                    // Processar arquivos soltos
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        // Integrar com PrimeFaces FileUpload
+                        console.log('Arquivo solto:', files[0].name);
+                    }
+                });
+            }
+            
+            // Configurar drag and drop
+            document.addEventListener('DOMContentLoaded', setupDragAndDrop);
+        </script>
+    </ui:define>
+    
+</ui:composition>
+
+</html>

@@ -1,29 +1,78 @@
 /**
- * CSS Customizado - Sistema Java
+ * Estilos Customizados - Sistema Java
  * Referência: Sistema de Temas Claros e Escuros - project_rules.md
- * Referência: Frontend JSF + PrimeFaces - project_rules.md
+ * Referência: Frontend JSF com PrimeFaces - project_rules.md
+ * Referência: Configurar recursos estáticos - project_rules.md
  */
 
-/* Detecção automática de preferência do sistema */
-@media (prefers-color-scheme: light) {
-  html:not(.dark-theme):not(.light-theme) {
-    @import url('themes/light-theme.css');
-  }
+/* Importações de recursos */
+@import url('./fonts/fonts.css');
+@import url('./components.css');
+
+/* ==========================================================================
+   VARIÁVEIS CSS GLOBAIS
+   ========================================================================== */
+
+:root {
+    /* Cores do Tema Claro */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f8fafc;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --primary-color: #1e3a8a;
+    --primary-dark: #1e40af;
+    --border-color: #e5e7eb;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    
+    /* Transições */
+    --transition-theme: all 0.3s ease;
+    
+    /* Z-index layers */
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 1040;
+    --z-modal: 1050;
+    --z-popover: 1060;
+    --z-tooltip: 1070;
+    --z-toast: 9999;
 }
 
-@media (prefers-color-scheme: dark) {
-  html:not(.dark-theme):not(.light-theme) {
-    @import url('themes/dark-theme.css');
-  }
+/* ==========================================================================
+   RESET E BASE
+   ========================================================================== */
+
+* {
+    box-sizing: border-box;
 }
 
-/* Aplicação forçada dos temas */
-html.light-theme {
-  @import url('themes/light-theme.css');
+body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-family-primary);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: var(--transition-theme);
+    line-height: var(--line-height-normal);
+    font-size: var(--font-size-base);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-html.dark-theme {
-  @import url('themes/dark-theme.css');
+/* Scroll suave */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Seleção de texto */
+::selection {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+::-moz-selection {
+    background-color: var(--primary-color);
+    color: white;
 }
 
 /* Transições suaves entre temas */
@@ -31,21 +80,27 @@ html.dark-theme {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-/* Customizações específicas do PrimeFaces */
+/* ==========================================================================
+   INTEGRAÇÃO COM PRIMEFACES
+   ========================================================================== */
+
+/* Customização de componentes PrimeFaces */
 .ui-widget {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    font-family: var(--font-family-primary);
+    font-size: var(--font-size-base);
 }
 
 .ui-widget-content {
-  background-color: var(--bg-primary) !important;
-  color: var(--text-primary) !important;
-  border-color: var(--border-color) !important;
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
 }
 
 .ui-widget-header {
-  background-color: var(--blue-primary) !important;
-  color: white !important;
-  border-color: var(--blue-primary) !important;
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-medium);
 }
 
 .ui-state-default {
@@ -64,88 +119,160 @@ html.dark-theme {
   color: white !important;
 }
 
+/* DataTable */
 .ui-datatable .ui-datatable-header {
-  background-color: var(--bg-secondary) !important;
-  color: var(--text-primary) !important;
-  border-color: var(--border-color) !important;
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
 }
 
 .ui-datatable .ui-datatable-data tr {
-  background-color: var(--bg-primary) !important;
-  color: var(--text-primary) !important;
+    border-color: var(--border-color);
+    transition: background-color 0.2s ease;
 }
 
 .ui-datatable .ui-datatable-data tr:hover {
-  background-color: var(--hover-bg) !important;
+    background: var(--bg-secondary);
 }
 
 .ui-datatable .ui-datatable-data tr.ui-state-highlight {
-  background-color: var(--blue-secondary) !important;
-  color: white !important;
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--text-primary);
 }
 
-.ui-inputfield {
-  background-color: var(--bg-primary) !important;
-  color: var(--text-primary) !important;
-  border-color: var(--border-color) !important;
+/* Inputs */
+.ui-inputtext,
+.ui-inputtextarea {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    border-radius: 0.375rem;
+    transition: var(--transition-theme);
+    font-family: var(--font-family-primary);
 }
 
-.ui-inputfield:focus {
-  border-color: var(--blue-primary) !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+.ui-inputtext:focus,
+.ui-inputtextarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
 }
 
+/* Botões */
 .ui-button {
-  background-color: var(--blue-primary) !important;
-  color: white !important;
-  border-color: var(--blue-primary) !important;
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    font-weight: var(--font-weight-medium);
+    transition: var(--transition-theme);
+    border-radius: 0.375rem;
 }
 
 .ui-button:hover {
-  background-color: var(--blue-secondary) !important;
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.ui-button:active {
+    transform: translateY(0);
 }
 
 .ui-button.ui-button-secondary {
-  background-color: var(--bg-secondary) !important;
-  color: var(--text-primary) !important;
-  border-color: var(--border-color) !important;
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
 }
 
+.ui-button.ui-button-secondary:hover {
+    background: var(--bg-primary);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* Panels */
+.ui-panel .ui-panel-titlebar {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.ui-panel .ui-panel-content {
+    background: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    border-radius: 0 0 0.5rem 0.5rem;
+}
+
+/* Dialog */
 .ui-dialog {
-  background-color: var(--bg-primary) !important;
-  color: var(--text-primary) !important;
-  border-color: var(--border-color) !important;
+    border-radius: 0.5rem;
+    box-shadow: 0 20px 25px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
 }
 
 .ui-dialog .ui-dialog-titlebar {
-  background-color: var(--blue-primary) !important;
-  color: white !important;
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+    border-radius: 0.5rem 0.5rem 0 0;
 }
 
+.ui-dialog .ui-dialog-content {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* Menu */
 .ui-menu {
-  background-color: var(--bg-primary) !important;
-  color: var(--text-primary) !important;
-  border-color: var(--border-color) !important;
+    border-radius: 0.375rem;
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+    border-color: var(--border-color);
+    background: var(--bg-primary);
 }
 
 .ui-menu .ui-menuitem-link {
-  color: var(--text-primary) !important;
+    color: var(--text-primary);
+    transition: var(--transition-theme);
 }
 
 .ui-menu .ui-menuitem-link:hover {
-  background-color: var(--hover-bg) !important;
+    background: var(--bg-secondary);
+    color: var(--primary-color);
 }
 
-.ui-panel {
-  background-color: var(--bg-primary) !important;
-  color: var(--text-primary) !important;
-  border-color: var(--border-color) !important;
+/* Messages */
+.ui-messages {
+    border-radius: 0.375rem;
 }
 
-.ui-panel .ui-panel-titlebar {
-  background-color: var(--bg-secondary) !important;
-  color: var(--text-primary) !important;
-  border-color: var(--border-color) !important;
+.ui-messages .ui-messages-info {
+    background: #dbeafe;
+    border-color: #bfdbfe;
+    color: #1e40af;
+}
+
+.ui-messages .ui-messages-warn {
+    background: #fef3c7;
+    border-color: #fde68a;
+    color: #92400e;
+}
+
+.ui-messages .ui-messages-error {
+    background: #fee2e2;
+    border-color: #fecaca;
+    color: #991b1b;
+}
+
+.ui-messages .ui-messages-success {
+    background: #d1fae5;
+    border-color: #a7f3d0;
+    color: #065f46;
 }
 
 .ui-tabs .ui-tabs-nav {
@@ -167,6 +294,60 @@ html.dark-theme {
   background-color: var(--bg-primary) !important;
   color: var(--text-primary) !important;
   border-color: var(--border-color) !important;
+}
+
+/* ==========================================================================
+   TEMA ESCURO
+   ========================================================================== */
+
+.dark-theme {
+    --bg-primary: #111827;
+    --bg-secondary: #1f2937;
+    --text-primary: #f9fafb;
+    --text-secondary: #d1d5db;
+    --primary-color: #3b82f6;
+    --primary-dark: #60a5fa;
+    --border-color: #374151;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+.dark-theme .theme-toggle {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.dark-theme .theme-toggle:hover {
+    background: var(--bg-primary);
+}
+
+/* Ajustes específicos para PrimeFaces no tema escuro */
+.dark-theme .ui-messages .ui-messages-info {
+    background: #1e3a8a;
+    border-color: #3b82f6;
+    color: #bfdbfe;
+}
+
+.dark-theme .ui-messages .ui-messages-warn {
+    background: #78350f;
+    border-color: #f59e0b;
+    color: #fde68a;
+}
+
+.dark-theme .ui-messages .ui-messages-error {
+    background: #7f1d1d;
+    border-color: #ef4444;
+    color: #fecaca;
+}
+
+.dark-theme .ui-messages .ui-messages-success {
+    background: #14532d;
+    border-color: #10b981;
+    color: #bbf7d0;
+}
+
+.dark-theme .ui-datatable .ui-datatable-data tr.ui-state-highlight {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--text-primary);
 }
 
 /* Customizações específicas do sistema */
@@ -464,6 +645,25 @@ html.dark-theme {
 
 .sistema-empty-state-description {
   margin-bottom: 1.5rem;
+}
+
+/* ==========================================================================
+   RESPONSIVIDADE
+   ========================================================================== */
+
+/* Mobile First */
+@media (max-width: 640px) {
+    .content-wrapper {
+        padding: 1rem;
+    }
+    
+    .page-title {
+        font-size: var(--font-size-2xl);
+    }
+    
+    .theme-toggle {
+        padding: 0.5rem;
+    }
 }
 
 /* Responsividade específica do sistema */

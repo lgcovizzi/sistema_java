@@ -618,6 +618,17 @@ public class UsuarioService {
     }
 
     /**
+     * Verifica se existe usuário com o CPF informado
+     * 
+     * @param cpf CPF a verificar
+     * @return true se existe
+     */
+    @Transactional(readOnly = true)
+    public boolean existsByCpf(String cpf) {
+        return usuarioRepository.existsByCpf(cpf);
+    }
+
+    /**
      * Ativa usuários em lote
      * 
      * @param ids Lista de IDs dos usuários

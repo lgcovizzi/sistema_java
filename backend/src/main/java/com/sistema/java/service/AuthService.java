@@ -666,4 +666,29 @@ public class AuthService {
     public boolean isAdmin() {
         return hasRole(PapelUsuario.ADMINISTRADOR);
     }
+
+    /**
+     * Autentica usuário com email e senha
+     * Referência: Login e Registro - project_rules.md
+     * 
+     * @param email Email do usuário
+     * @param senha Senha do usuário
+     * @return Usuario autenticado ou null se credenciais inválidas
+     */
+    @Transactional(readOnly = true)
+    public Usuario autenticar(String email, String senha) {
+        try {
+            Optional<Usuario> usuarioOpt = usuarioRepository.findByEmail(email);
+            if (usuarioOpt.isPresent()) {
+                Usuario usuario = usuarioOpt.get();
+                if (passwordEncoder.matches(senha, usuario.getSenha()) && usuario.isAtivo()) {
+                    return usuario;
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            logger.error("Erro ao autenticar usuário: {}", e.getMessage());
+            return null;
+        }
+    }
 }

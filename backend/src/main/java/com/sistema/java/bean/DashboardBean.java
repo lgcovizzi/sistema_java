@@ -1,32 +1,32 @@
 package com.sistema.java.bean;
 
-import com.sistema.java.model.Usuario;
-import com.sistema.java.model.dto.ComentarioDTO;
+import com.sistema.java.model.entity.Usuario;
+import com.sistema.java.model.entity.Noticia;
+import com.sistema.java.model.entity.Comentario;
 import com.sistema.java.model.dto.NoticiaDTO;
-import com.sistema.java.model.enums.Role;
+import com.sistema.java.model.dto.ComentarioDTO;
+import com.sistema.java.model.enums.PapelUsuario;
 import com.sistema.java.service.AuthService;
-import com.sistema.java.service.ComentarioService;
 import com.sistema.java.service.NoticiaService;
+import com.sistema.java.service.ComentarioService;
 import com.sistema.java.service.UsuarioService;
-import jakarta.annotation.PostConstruct;
-import jakarta.enterprise.context.ViewScoped;
-import jakarta.faces.application.FacesMessage;
-import jakarta.faces.context.FacesContext;
-import jakarta.inject.Inject;
-import jakarta.inject.Named;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.faces.view.ViewScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import java.io.Serializable;
-import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 /**
- * Managed Bean para o dashboard principal.
- * Referência: Implementar beans JSF - project_rules.md
+ * Managed Bean para dashboard do usuário
  * Referência: Controle de Acesso - project_rules.md
+ * Referência: Padrões de Desenvolvimento - project_rules.md
  */
 @Named("dashboardBean")
 @ViewScoped
@@ -46,261 +46,256 @@ public class DashboardBean implements Serializable {
     @Inject
     private UsuarioService usuarioService;
     
-    // Dados do usuário
+    // Dados do dashboard
     private Usuario usuarioLogado;
-    
-    // Estatísticas gerais
+    private List<NoticiaDTO> ultimasNoticias;
+    private List<ComentarioDTO> ultimosComentarios;
     private Map<String, Long> estatisticas;
     
-    // Dados específicos por papel
-    private List<NoticiaDTO> minhasNoticias;
-    private List<NoticiaDTO> noticiasRecentes;
-    private List<ComentarioDTO> comentariosPendentes;
-    private List<ComentarioDTO> meusComentarios;
-    
-    // Configurações
-    private static final int LIMITE_NOTICIAS_RECENTES = 5;
-    private static final int LIMITE_COMENTARIOS = 10;
+    // Flags de carregamento
+    private boolean dadosCarregados = false;
     
     @PostConstruct
     public void init() {
         try {
-            carregarDadosUsuario();
-            carregarEstatisticas();
-            carregarDadosEspecificos();
+            logger.info("Inicializando DashboardBean");
+            carregarDadosDashboard();
         } catch (Exception e) {
-            logger.error("Erro ao inicializar DashboardBean", e);
-            addErrorMessage("Erro ao carregar dashboard.");
+            logger.error("Erro ao inicializar dashboard", e);
         }
     }
     
     /**
-     * Carrega dados do usuário logado
+     * Carrega os dados do dashboard baseado no papel do usuário
      * Referência: Controle de Acesso - project_rules.md
      */
-    private void carregarDadosUsuario() {
-        usuarioLogado = authService.getUsuarioLogado();
-        if (usuarioLogado == null) {
-            addErrorMessage("Usuário não encontrado. Faça login novamente.");
-        }
-    }
-    
-    /**
-     * Carrega estatísticas baseadas no papel do usuário
-     * Referência: Controle de Acesso - project_rules.md
-     */
-    private void carregarEstatisticas() {
-        estatisticas = new HashMap<>();
-        
+    public void carregarDadosDashboard() {
         try {
-            Role role = usuarioLogado.getRole();
+            usuarioLogado = authService.getUsuarioLogado();
             
-            switch (role) {
+            if (usuarioLogado == null) {
+                logger.warn("Usuário não está logado ao acessar dashboard");
+                return;
+            }
+            
+            logger.info("Carregando dashboard para usuário: {} ({})", 
+                       usuarioLogado.getEmail(), usuarioLogado.getPapel());
+            
+            // Carregar dados baseado no papel do usuário
+            switch (usuarioLogado.getPapel()) {
                 case ADMINISTRADOR:
                 case FUNDADOR:
-                    // Estatísticas administrativas completas
-                    estatisticas.put("totalUsuarios", usuarioService.contarTodos());
-                    estatisticas.put("usuariosAtivos", usuarioService.contarAtivos());
-                    estatisticas.put("totalNoticias", noticiaService.contarTodas());
-                    estatisticas.put("noticiasPublicadas", noticiaService.contarPublicadas());
-                    estatisticas.put("totalComentarios", comentarioService.contarTodos());
-                    estatisticas.put("comentariosPendentes", comentarioService.contarPendentes());
+                    carregarDashboardAdmin();
                     break;
-                    
                 case COLABORADOR:
-                    // Estatísticas de conteúdo
-                    estatisticas.put("minhasNoticias", noticiaService.contarPorAutor(usuarioLogado.getId()));
-                    estatisticas.put("noticiasPublicadas", noticiaService.contarPublicadasPorAutor(usuarioLogado.getId()));
-                    estatisticas.put("totalComentarios", comentarioService.contarTodos());
-                    estatisticas.put("comentariosPendentes", comentarioService.contarPendentes());
+                    carregarDashboardColaborador();
                     break;
-                    
                 case ASSOCIADO:
+                    carregarDashboardAssociado();
+                    break;
                 case PARCEIRO:
-                    // Estatísticas básicas
-                    estatisticas.put("noticiasPublicadas", noticiaService.contarPublicadas());
-                    estatisticas.put("meusComentarios", comentarioService.contarPorAutor(usuarioLogado.getId()));
+                    carregarDashboardParceiro();
                     break;
-                    
                 case USUARIO:
-                    // Estatísticas mínimas
-                    estatisticas.put("noticiasPublicadas", noticiaService.contarPublicadas());
-                    estatisticas.put("meusComentarios", comentarioService.contarPorAutor(usuarioLogado.getId()));
-                    break;
-                    
                 default:
-                    // Sem estatísticas para convidados
+                    carregarDashboardUsuario();
                     break;
             }
             
+            dadosCarregados = true;
+            
         } catch (Exception e) {
-            logger.error("Erro ao carregar estatísticas", e);
-            addErrorMessage("Erro ao carregar estatísticas.");
+            logger.error("Erro ao carregar dados do dashboard", e);
+            dadosCarregados = false;
         }
     }
     
     /**
-     * Carrega dados específicos baseados no papel do usuário
-     * Referência: Controle de Acesso - project_rules.md
+     * Carrega dashboard para administradores
      */
-    private void carregarDadosEspecificos() {
+    private void carregarDashboardAdmin() {
         try {
-            Role role = usuarioLogado.getRole();
+            // Estatísticas gerais do sistema
+            estatisticas = new HashMap<>();
+            estatisticas.put("totalUsuarios", usuarioService.countTotal());
+            estatisticas.put("totalNoticias", noticiaService.countTotal());
+            estatisticas.put("totalComentarios", comentarioService.countTotal());
+            estatisticas.put("comentariosPendentes", comentarioService.countPendentes());
             
-            // Carregar notícias recentes para todos os papéis
-            noticiasRecentes = noticiaService.listarRecentes(LIMITE_NOTICIAS_RECENTES);
+            // Últimas notícias (todas)
+             ultimasNoticias = noticiaService.findAll(
+                 PageRequest.of(0, 5)).getContent();
             
-            switch (role) {
-                case ADMINISTRADOR:
-                case FUNDADOR:
-                    // Comentários pendentes para moderação
-                    comentariosPendentes = comentarioService.listarPendentes(LIMITE_COMENTARIOS);
-                    break;
-                    
-                case COLABORADOR:
-                    // Minhas notícias e comentários pendentes
-                    minhasNoticias = noticiaService.listarPorAutor(usuarioLogado.getId(), LIMITE_NOTICIAS_RECENTES);
-                    comentariosPendentes = comentarioService.listarPendentes(LIMITE_COMENTARIOS);
-                    break;
-                    
-                case ASSOCIADO:
-                case PARCEIRO:
-                case USUARIO:
-                    // Meus comentários
-                    meusComentarios = comentarioService.listarPorAutor(usuarioLogado.getId(), LIMITE_COMENTARIOS);
-                    break;
-                    
-                default:
-                    // Sem dados específicos para convidados
-                    break;
-            }
+            // Últimos comentários (todos)
+             ultimosComentarios = comentarioService.findAll(
+                 PageRequest.of(0, 5)).getContent();
+            
+            logger.info("Dashboard admin carregado com {} notícias e {} comentários", 
+                       ultimasNoticias.size(), ultimosComentarios.size());
             
         } catch (Exception e) {
-            logger.error("Erro ao carregar dados específicos", e);
-            addErrorMessage("Erro ao carregar dados do dashboard.");
+            logger.error("Erro ao carregar dashboard admin", e);
         }
     }
     
     /**
-     * Atualiza dados do dashboard
+     * Carrega dashboard para colaboradores
+     */
+    private void carregarDashboardColaborador() {
+        try {
+            // Estatísticas de conteúdo
+            estatisticas = new HashMap<>();
+            estatisticas.put("minhasNoticias", noticiaService.findByAutor(usuarioLogado.getId(),
+                 PageRequest.of(0, Integer.MAX_VALUE)).getTotalElements());
+            estatisticas.put("totalNoticias", noticiaService.countTotal());
+            estatisticas.put("comentariosPendentes", comentarioService.countPendentes());
+            
+            // Minhas últimas notícias
+             ultimasNoticias = noticiaService.findByAutor(usuarioLogado.getId(),
+                 PageRequest.of(0, 5)).getContent();
+            
+            // Comentários para moderar
+             ultimosComentarios = comentarioService.findPendentes(
+                 PageRequest.of(0, 5)).getContent();
+            
+            logger.info("Dashboard colaborador carregado para usuário: {}", usuarioLogado.getEmail());
+            
+        } catch (Exception e) {
+            logger.error("Erro ao carregar dashboard colaborador", e);
+        }
+    }
+    
+    /**
+     * Carrega dashboard para associados
+     */
+    private void carregarDashboardAssociado() {
+        try {
+            // Estatísticas básicas
+            estatisticas = new HashMap<>();
+            estatisticas.put("totalNoticias", noticiaService.countPublicadas());
+            estatisticas.put("meusComentarios", comentarioService.findByAutor(usuarioLogado.getId(),
+                 PageRequest.of(0, Integer.MAX_VALUE)).getTotalElements());
+            
+            // Últimas notícias publicadas
+             ultimasNoticias = noticiaService.findPublicadas(
+                 PageRequest.of(0, 5)).getContent();
+            
+            // Meus últimos comentários
+             ultimosComentarios = comentarioService.findByAutor(usuarioLogado.getId(),
+                 PageRequest.of(0, 5)).getContent();
+            
+            logger.info("Dashboard associado carregado para usuário: {}", usuarioLogado.getEmail());
+            
+        } catch (Exception e) {
+            logger.error("Erro ao carregar dashboard associado", e);
+        }
+    }
+    
+    /**
+     * Carrega dashboard para parceiros
+     */
+    private void carregarDashboardParceiro() {
+        try {
+            // Estatísticas específicas para parceiros
+            estatisticas = new HashMap<>();
+            estatisticas.put("totalNoticias", noticiaService.contarPublicadas());
+            estatisticas.put("meusComentarios", comentarioService.findByAutor(usuarioLogado.getId(),
+                PageRequest.of(0, Integer.MAX_VALUE)).getTotalElements());
+            
+            // Últimas notícias publicadas
+            ultimasNoticias = noticiaService.findPublicadas(
+                PageRequest.of(0, 5)).getContent();
+            
+            // Meus últimos comentários
+            ultimosComentarios = comentarioService.findByAutor(usuarioLogado.getId(),
+                PageRequest.of(0, 5)).getContent();
+            
+            logger.info("Dashboard parceiro carregado para usuário: {}", usuarioLogado.getEmail());
+            
+        } catch (Exception e) {
+            logger.error("Erro ao carregar dashboard parceiro", e);
+        }
+    }
+    
+    /**
+     * Carrega dashboard para usuários comuns
+     */
+    private void carregarDashboardUsuario() {
+        try {
+            // Estatísticas básicas
+            estatisticas = new HashMap<>();
+            estatisticas.put("totalNoticias", noticiaService.contarPublicadas());
+            estatisticas.put("meusComentarios", comentarioService.findByAutor(usuarioLogado.getId(),
+                PageRequest.of(0, Integer.MAX_VALUE)).getTotalElements());
+            
+            // Últimas notícias publicadas
+            ultimasNoticias = noticiaService.findPublicadas(
+                PageRequest.of(0, 5)).getContent();
+            
+            // Meus últimos comentários
+            ultimosComentarios = comentarioService.findByAutor(usuarioLogado.getId(),
+                PageRequest.of(0, 5)).getContent();
+            
+            logger.info("Dashboard usuário carregado para usuário: {}", usuarioLogado.getEmail());
+            
+        } catch (Exception e) {
+            logger.error("Erro ao carregar dashboard usuário", e);
+        }
+    }
+    
+    /**
+     * Atualiza os dados do dashboard
      */
     public void atualizarDados() {
-        carregarEstatisticas();
-        carregarDadosEspecificos();
-        addInfoMessage("Dashboard atualizado com sucesso!");
+        logger.info("Atualizando dados do dashboard");
+        carregarDadosDashboard();
+    }
+    
+    // Métodos de verificação de permissões
+    public boolean podeGerenciarUsuarios() {
+        return usuarioLogado != null && 
+               (usuarioLogado.getPapel() == PapelUsuario.ADMINISTRADOR || 
+                usuarioLogado.getPapel() == PapelUsuario.FUNDADOR);
+    }
+    
+    public boolean podeCriarNoticias() {
+        return usuarioLogado != null && 
+               (usuarioLogado.getPapel() == PapelUsuario.ADMINISTRADOR || 
+                usuarioLogado.getPapel() == PapelUsuario.FUNDADOR || 
+                usuarioLogado.getPapel() == PapelUsuario.COLABORADOR);
+    }
+    
+    public boolean podeModerarComentarios() {
+        return usuarioLogado != null && 
+               (usuarioLogado.getPapel() == PapelUsuario.ADMINISTRADOR || 
+                usuarioLogado.getPapel() == PapelUsuario.FUNDADOR || 
+                usuarioLogado.getPapel() == PapelUsuario.COLABORADOR);
+    }
+    
+    public boolean isAdmin() {
+        return usuarioLogado != null && 
+               (usuarioLogado.getPapel() == PapelUsuario.ADMINISTRADOR || 
+                usuarioLogado.getPapel() == PapelUsuario.FUNDADOR);
     }
     
     /**
-     * Verifica se usuário pode acessar área administrativa
+     * Verifica se o usuário pode acessar área administrativa
      */
     public boolean podeAcessarAdmin() {
-        return authService.hasRole(Role.ADMINISTRADOR) || 
-               authService.hasRole(Role.FUNDADOR) || 
-               authService.hasRole(Role.COLABORADOR);
+        return usuarioLogado != null &&
+               (usuarioLogado.getPapel() == PapelUsuario.ADMINISTRADOR || 
+                usuarioLogado.getPapel() == PapelUsuario.FUNDADOR ||
+                usuarioLogado.getPapel() == PapelUsuario.COLABORADOR);
     }
     
     /**
-     * Verifica se usuário pode moderar comentários
+     * Retorna o nome completo do usuário logado
      */
-    public boolean podeModerarComentarios() {
-        return authService.canModerateComments();
-    }
-    
-    /**
-     * Verifica se usuário pode criar notícias
-     */
-    public boolean podeCriarNoticias() {
-        return authService.hasRole(Role.ADMINISTRADOR) || 
-               authService.hasRole(Role.FUNDADOR) || 
-               authService.hasRole(Role.COLABORADOR);
-    }
-    
-    /**
-     * Verifica se usuário pode gerenciar usuários
-     */
-    public boolean podeGerenciarUsuarios() {
-        return authService.hasRole(Role.ADMINISTRADOR) || 
-               authService.hasRole(Role.FUNDADOR);
-    }
-    
-    /**
-     * Obtém saudação personalizada baseada no horário
-     */
-    public String getSaudacao() {
-        LocalDateTime agora = LocalDateTime.now();
-        int hora = agora.getHour();
-        
-        String periodo;
-        if (hora < 12) {
-            periodo = "Bom dia";
-        } else if (hora < 18) {
-            periodo = "Boa tarde";
-        } else {
-            periodo = "Boa noite";
+    public String getNomeCompleto() {
+        if (usuarioLogado != null) {
+            return usuarioLogado.getNome() + " " + usuarioLogado.getSobrenome();
         }
-        
-        return periodo + ", " + usuarioLogado.getNome() + "!";
-    }
-    
-    /**
-     * Obtém descrição do papel do usuário
-     */
-    public String getDescricaoPapel() {
-        if (usuarioLogado == null) return "";
-        
-        return switch (usuarioLogado.getRole()) {
-            case ADMINISTRADOR -> "Administrador do Sistema";
-            case FUNDADOR -> "Fundador";
-            case COLABORADOR -> "Colaborador";
-            case ASSOCIADO -> "Associado";
-            case PARCEIRO -> "Parceiro";
-            case USUARIO -> "Usuário";
-            case CONVIDADO -> "Convidado";
-        };
-    }
-    
-    /**
-     * Navega para página de criação de notícia
-     */
-    public String criarNoticia() {
-        if (podeCriarNoticias()) {
-            return "/admin/noticias/nova?faces-redirect=true";
-        }
-        addErrorMessage("Você não tem permissão para criar notícias.");
-        return null;
-    }
-    
-    /**
-     * Navega para página de gerenciamento de usuários
-     */
-    public String gerenciarUsuarios() {
-        if (podeGerenciarUsuarios()) {
-            return "/admin/usuarios?faces-redirect=true";
-        }
-        addErrorMessage("Você não tem permissão para gerenciar usuários.");
-        return null;
-    }
-    
-    /**
-     * Navega para página de moderação de comentários
-     */
-    public String moderarComentarios() {
-        if (podeModerarComentarios()) {
-            return "/admin/comentarios?faces-redirect=true";
-        }
-        addErrorMessage("Você não tem permissão para moderar comentários.");
-        return null;
-    }
-    
-    // Métodos utilitários para mensagens
-    private void addInfoMessage(String message) {
-        FacesContext.getCurrentInstance().addMessage(null, 
-            new FacesMessage(FacesMessage.SEVERITY_INFO, "Sucesso", message));
-    }
-    
-    private void addErrorMessage(String message) {
-        FacesContext.getCurrentInstance().addMessage(null, 
-            new FacesMessage(FacesMessage.SEVERITY_ERROR, "Erro", message));
+        return "";
     }
     
     // Getters e Setters
@@ -308,23 +303,39 @@ public class DashboardBean implements Serializable {
         return usuarioLogado;
     }
     
+    public void setUsuarioLogado(Usuario usuarioLogado) {
+        this.usuarioLogado = usuarioLogado;
+    }
+    
+    public List<NoticiaDTO> getUltimasNoticias() {
+        return ultimasNoticias;
+    }
+
+    public void setUltimasNoticias(List<NoticiaDTO> ultimasNoticias) {
+        this.ultimasNoticias = ultimasNoticias;
+    }
+
+    public List<ComentarioDTO> getUltimosComentarios() {
+        return ultimosComentarios;
+    }
+
+    public void setUltimosComentarios(List<ComentarioDTO> ultimosComentarios) {
+        this.ultimosComentarios = ultimosComentarios;
+    }
+    
     public Map<String, Long> getEstatisticas() {
         return estatisticas;
     }
     
-    public List<NoticiaDTO> getMinhasNoticias() {
-        return minhasNoticias;
+    public void setEstatisticas(Map<String, Long> estatisticas) {
+        this.estatisticas = estatisticas;
     }
     
-    public List<NoticiaDTO> getNoticiasRecentes() {
-        return noticiasRecentes;
+    public boolean isDadosCarregados() {
+        return dadosCarregados;
     }
     
-    public List<ComentarioDTO> getComentariosPendentes() {
-        return comentariosPendentes;
-    }
-    
-    public List<ComentarioDTO> getMeusComentarios() {
-        return meusComentarios;
+    public void setDadosCarregados(boolean dadosCarregados) {
+        this.dadosCarregados = dadosCarregados;
     }
 }

@@ -24,7 +24,8 @@ public class FilterConfig {
     public FilterRegistrationBean<SessionFilter> sessionFilterRegistration() {
         FilterRegistrationBean<SessionFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(sessionFilter);
-        registration.addUrlPatterns("/*");
+        // Aplica apenas às páginas JSF, excluindo endpoints da API
+        registration.addUrlPatterns("*.xhtml", "/pages/*", "/");
         registration.setOrder(1);
         registration.setName("sessionFilter");
         return registration;

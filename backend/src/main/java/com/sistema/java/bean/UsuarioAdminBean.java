@@ -1,158 +1,126 @@
 package com.sistema.java.bean;
 
+import com.sistema.java.model.entity.Usuario;
 import com.sistema.java.model.dto.UsuarioDTO;
+import com.sistema.java.model.enums.PapelUsuario;
+import com.sistema.java.service.AuthService;
 import com.sistema.java.service.UsuarioService;
-import jakarta.annotation.PostConstruct;
-import jakarta.enterprise.context.ViewScoped;
-import jakarta.faces.application.FacesMessage;
-import jakarta.faces.context.FacesContext;
-import jakarta.inject.Inject;
-import jakarta.inject.Named;
-import org.primefaces.model.LazyDataModel;
-import org.primefaces.model.SortOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Pageable;
 
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+import jakarta.faces.application.FacesMessage;
+import jakarta.faces.context.FacesContext;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Managed Bean para administração de usuários.
- * Responsável por gerenciar CRUD e operações administrativas de usuários.
+ * Managed Bean para administração de usuários
+ * Referência: Controle de Acesso - project_rules.md
+ * Referência: Padrões de Desenvolvimento - project_rules.md
  */
-@Named("usuarioAdminBean")
-@ViewScoped
+@Component("usuarioAdminBean")
+@Scope("view")
 public class UsuarioAdminBean implements Serializable {
     
     private static final Logger logger = LoggerFactory.getLogger(UsuarioAdminBean.class);
     
-    @Inject
+    @Autowired
     private UsuarioService usuarioService;
     
-    // Propriedades para listagem
-    private LazyDataModel<UsuarioDTO> usuariosLazy;
-    private List<UsuarioDTO> usuariosSelecionados;
+    @Autowired
+    private AuthService authService;
     
-    // Propriedades para filtros
+    // Estado do componente// Atributos
+    private List<UsuarioDTO> usuarios;
+    private List<UsuarioDTO> usuariosFiltrados;
+    private UsuarioDTO usuarioSelecionado;
+    private UsuarioDTO novoUsuario;
+    private boolean dialogoEdicaoAberto = false;
+    private boolean dialogoNovoUsuarioAberto = false;
+    
+    // Filtros
     private String filtroNome;
     private String filtroEmail;
+    private PapelUsuario filtroPapel;
     private Boolean filtroAtivo;
-    private Date dataInicio;
-    private Date dataFim;
-    private String termoPesquisa;
-    
-    // Propriedades para CRUD
-    private UsuarioDTO usuarioEdicao;
-    private UsuarioDTO usuarioVisualizacao;
-    private boolean modoEdicao;
-    private String senhaConfirmacao;
-    private String novaSenha;
-    
-    // Estatísticas
-    private long totalUsuarios;
-    private long usuariosAtivos;
-    private long usuariosInativos;
-    private long usuariosCadastradosHoje;
     
     @PostConstruct
     public void init() {
         try {
-            inicializarDados();
-            configurarLazyModel();
-            carregarEstatisticas();
+            logger.info("Inicializando UsuarioAdminBean");
+            verificarPermissoes();
+            carregarUsuarios();
+            inicializarNovoUsuario();
         } catch (Exception e) {
             logger.error("Erro ao inicializar UsuarioAdminBean", e);
+            adicionarMensagemErro("Erro ao carregar dados de usuários");
         }
     }
     
     /**
-     * Inicializa os dados necessários
+     * Verifica se o usuário atual tem permissões para administrar usuários
+     * Referência: Controle de Acesso - project_rules.md
      */
-    private void inicializarDados() {
-        this.usuariosSelecionados = new ArrayList<>();
-        inicializarUsuarioEdicao();
-    }
-    
-    /**
-     * Configura o modelo lazy para paginação
-     */
-    private void configurarLazyModel() {
-        this.usuariosLazy = new LazyDataModel<UsuarioDTO>() {
-            @Override
-            public int count(Map<String, Object> filterBy) {
-                try {
-                    return (int) usuarioService.contarComFiltros(
-                        filtroNome, filtroEmail, filtroAtivo, dataInicio, dataFim, termoPesquisa
-                    );
-                } catch (Exception e) {
-                    logger.error("Erro ao contar usuários", e);
-                    return 0;
-                }
-            }
+    private void verificarPermissoes() {
+        Usuario usuarioAtual = authService.getUsuarioLogado();
+        if (usuarioAtual == null || 
+            (!usuarioAtual.getPapel().equals(PapelUsuario.ADMINISTRADOR) && 
+             !usuarioAtual.getPapel().equals(PapelUsuario.FUNDADOR))) {
             
-            @Override
-            public List<UsuarioDTO> load(int first, int pageSize, Map<String, Object> sortBy, Map<String, Object> filterBy) {
-                try {
-                    int pagina = first / pageSize;
-                    String ordenacao = determinarOrdenacao(sortBy);
-                    
-                    return usuarioService.buscarComFiltros(
-                        filtroNome, filtroEmail, filtroAtivo, dataInicio, dataFim, termoPesquisa,
-                        ordenacao, pagina, pageSize
-                    );
-                } catch (Exception e) {
-                    logger.error("Erro ao carregar usuários", e);
-                    return new ArrayList<>();
-                }
-            }
-        };
-        
-        this.usuariosLazy.setRowCount(20);
-    }
-    
-    /**
-     * Determina a ordenação baseada nos parâmetros
-     */
-    private String determinarOrdenacao(Map<String, Object> sortBy) {
-        if (sortBy != null && !sortBy.isEmpty()) {
-            String campo = sortBy.keySet().iterator().next();
-            SortOrder ordem = (SortOrder) sortBy.get(campo);
-            return campo + (ordem == SortOrder.DESCENDING ? " DESC" : " ASC");
+            logger.warn("Acesso negado para administração de usuários. Usuário: {}", 
+                       usuarioAtual != null ? usuarioAtual.getEmail() : "não logado");
+            
+            adicionarMensagemErro("Acesso negado. Você não tem permissão para administrar usuários.");
+            throw new SecurityException("Acesso negado para administração de usuários");
         }
-        return "dataCriacao DESC";
     }
     
     /**
-     * Carrega as estatísticas dos usuários
+     * Carrega todos os usuários do sistema
      */
-    private void carregarEstatisticas() {
+    public void carregarUsuarios() {
         try {
-            this.totalUsuarios = usuarioService.contar();
-            this.usuariosAtivos = usuarioService.contarAtivos();
-            this.usuariosInativos = usuarioService.contarInativos();
-            this.usuariosCadastradosHoje = usuarioService.contarCadastradosHoje();
-            
-            logger.debug("Estatísticas carregadas - Total: {}, Ativos: {}, Inativos: {}, Hoje: {}", 
-                        totalUsuarios, usuariosAtivos, usuariosInativos, usuariosCadastradosHoje);
+            logger.debug("Carregando lista de usuários");
+            usuarios = usuarioService.findAll(Pageable.unpaged()).getContent();
+            usuariosFiltrados = new ArrayList<>(usuarios);
+            logger.info("Carregados {} usuários", usuarios.size());
         } catch (Exception e) {
-            logger.error("Erro ao carregar estatísticas", e);
+            logger.error("Erro ao carregar usuários", e);
+            adicionarMensagemErro("Erro ao carregar lista de usuários");
+            usuarios = new ArrayList<>();
+            usuariosFiltrados = new ArrayList<>();
         }
     }
     
     /**
-     * Aplica os filtros de pesquisa
+     * Aplica filtros na lista de usuários
      */
     public void aplicarFiltros() {
         try {
-            configurarLazyModel();
-            logger.debug("Filtros aplicados - Nome: {}, Email: {}, Ativo: {}", 
-                        filtroNome, filtroEmail, filtroAtivo);
+            logger.debug("Aplicando filtros: nome={}, email={}, papel={}, ativo={}", 
+                        filtroNome, filtroEmail, filtroPapel, filtroAtivo);
+            
+            usuariosFiltrados = usuarios.stream()
+                .filter(u -> filtroNome == null || filtroNome.isEmpty() || 
+                           u.getNome().toLowerCase().contains(filtroNome.toLowerCase()) ||
+                           u.getSobrenome().toLowerCase().contains(filtroNome.toLowerCase()))
+                .filter(u -> filtroEmail == null || filtroEmail.isEmpty() || 
+                           u.getEmail().toLowerCase().contains(filtroEmail.toLowerCase()))
+                .filter(u -> filtroPapel == null || u.getPapel().equals(filtroPapel))
+                .filter(u -> filtroAtivo == null || u.getAtivo().equals(filtroAtivo))
+                .toList();
+                
+            logger.debug("Filtros aplicados. {} usuários encontrados", usuariosFiltrados.size());
         } catch (Exception e) {
             logger.error("Erro ao aplicar filtros", e);
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao aplicar filtros");
+            adicionarMensagemErro("Erro ao filtrar usuários");
         }
     }
     
@@ -160,302 +128,360 @@ public class UsuarioAdminBean implements Serializable {
      * Limpa todos os filtros
      */
     public void limparFiltros() {
-        this.filtroNome = null;
-        this.filtroEmail = null;
-        this.filtroAtivo = null;
-        this.dataInicio = null;
-        this.dataFim = null;
-        this.termoPesquisa = null;
-        aplicarFiltros();
+        logger.debug("Limpando filtros");
+        filtroNome = null;
+        filtroEmail = null;
+        filtroPapel = null;
+        filtroAtivo = null;
+        usuariosFiltrados = new ArrayList<>(usuarios);
     }
     
     /**
-     * Pesquisa usuários por termo
+     * Prepara para editar um usuário
      */
-    public void pesquisar() {
-        aplicarFiltros();
+    public void editarUsuario(UsuarioDTO usuario) {
+        try {
+            logger.info("Preparando edição do usuário: {}", usuario.getEmail());
+            
+            // Verificar se pode editar este usuário
+            if (!podeEditarUsuario(usuario)) {
+                adicionarMensagemErro("Você não tem permissão para editar este usuário");
+                return;
+            }
+            
+            usuarioSelecionado = new UsuarioDTO();
+            // Copiar dados (evitar referência direta)
+            usuarioSelecionado.setId(usuario.getId());
+            usuarioSelecionado.setNome(usuario.getNome());
+            usuarioSelecionado.setSobrenome(usuario.getSobrenome());
+            usuarioSelecionado.setEmail(usuario.getEmail());
+            usuarioSelecionado.setCpf(usuario.getCpf());
+            usuarioSelecionado.setTelefone(usuario.getTelefone());
+            usuarioSelecionado.setDataNascimento(usuario.getDataNascimento());
+            usuarioSelecionado.setPapel(usuario.getPapel());
+            usuarioSelecionado.setAtivo(usuario.getAtivo());
+            
+            dialogoEdicaoAberto = true;
+            
+        } catch (Exception e) {
+            logger.error("Erro ao preparar edição do usuário", e);
+            adicionarMensagemErro("Erro ao preparar edição do usuário");
+        }
     }
     
     /**
-     * Inicializa um novo usuário para edição
+     * Verifica se o usuário atual pode editar o usuário especificado
+     * Referência: Controle de Acesso - project_rules.md
      */
-    private void inicializarUsuarioEdicao() {
-        this.usuarioEdicao = new UsuarioDTO();
-        this.usuarioEdicao.setAtivo(true);
-        this.modoEdicao = false;
-        this.senhaConfirmacao = null;
-        this.novaSenha = null;
+    private boolean podeEditarUsuario(UsuarioDTO usuario) {
+        Usuario usuarioAtual = authService.getUsuarioLogado();
+        
+        // Admin pode editar qualquer usuário
+        if (authService.hasRole(PapelUsuario.ADMINISTRADOR)) {
+            return true;
+        }
+        
+        // Fundador pode editar colaboradores, associados e usuários
+        if (authService.hasRole(PapelUsuario.FUNDADOR)) {
+            return usuario.getPapel() != PapelUsuario.ADMINISTRADOR;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Salva as alterações do usuário
+     */
+    public void salvarUsuario() {
+        try {
+            if (usuarioSelecionado == null) {
+                adicionarMensagemErro("Nenhum usuário selecionado");
+                return;
+            }
+            
+            logger.info("Salvando alterações do usuário: {}", usuarioSelecionado.getEmail());
+            
+            // Validar dados
+            if (!validarUsuario(usuarioSelecionado)) {
+                return;
+            }
+            
+            // Atualizar usuário
+            usuarioService.update(usuarioSelecionado.getId(), usuarioSelecionado);
+            
+            // Recarregar lista
+            carregarUsuarios();
+            aplicarFiltros();
+            
+            dialogoEdicaoAberto = false;
+            usuarioSelecionado = null;
+            
+            adicionarMensagemSucesso("Usuário atualizado com sucesso");
+            
+        } catch (Exception e) {
+            logger.error("Erro ao salvar usuário", e);
+            adicionarMensagemErro("Erro ao salvar usuário: " + e.getMessage());
+        }
     }
     
     /**
      * Prepara para criar um novo usuário
      */
     public void novoUsuario() {
-        inicializarUsuarioEdicao();
-        this.modoEdicao = false;
+        logger.info("Preparando criação de novo usuário");
+        inicializarNovoUsuario();
+        dialogoNovoUsuarioAberto = true;
     }
     
     /**
-     * Prepara para editar um usuário existente
+     * Inicializa objeto para novo usuário
      */
-    public void editarUsuario(UsuarioDTO usuario) {
-        try {
-            this.usuarioEdicao = usuarioService.buscarPorId(usuario.getId());
-            this.modoEdicao = true;
-            this.senhaConfirmacao = null;
-            this.novaSenha = null;
-        } catch (Exception e) {
-            logger.error("Erro ao carregar usuário para edição: " + usuario.getId(), e);
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao carregar usuário");
-        }
+    private void inicializarNovoUsuario() {
+        novoUsuario = new UsuarioDTO();
+        novoUsuario.setPapel(PapelUsuario.USUARIO); // Papel padrão
+        novoUsuario.setAtivo(true); // Ativo por padrão
     }
     
     /**
-     * Visualiza detalhes de um usuário
+     * Cria um novo usuário
      */
-    public void visualizarUsuario(UsuarioDTO usuario) {
+    public void criarUsuario() {
         try {
-            this.usuarioVisualizacao = usuarioService.buscarPorId(usuario.getId());
-        } catch (Exception e) {
-            logger.error("Erro ao carregar usuário para visualização: " + usuario.getId(), e);
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao carregar usuário");
-        }
-    }
-    
-    /**
-     * Salva o usuário (criar ou atualizar)
-     */
-    public void salvarUsuario() {
-        try {
-            // Validações
-            if (!validarUsuario()) {
+            if (novoUsuario == null) {
+                adicionarMensagemErro("Dados do usuário inválidos");
                 return;
             }
             
-            if (modoEdicao) {
-                // Atualizar usuário existente
-                if (novaSenha != null && !novaSenha.trim().isEmpty()) {
-                    usuarioEdicao.setSenha(novaSenha);
-                }
-                
-                usuarioService.atualizar(usuarioEdicao.getId(), usuarioEdicao);
-                adicionarMensagem(FacesMessage.SEVERITY_INFO, "Usuário atualizado com sucesso!");
-                
-                logger.info("Usuário atualizado: {}", usuarioEdicao.getEmail());
-            } else {
-                // Criar novo usuário
-                usuarioEdicao.setSenha(novaSenha);
-                usuarioEdicao.setDataCriacao(new Date());
-                
-                usuarioService.criar(usuarioEdicao);
-                adicionarMensagem(FacesMessage.SEVERITY_INFO, "Usuário criado com sucesso!");
-                
-                logger.info("Novo usuário criado: {}", usuarioEdicao.getEmail());
+            logger.info("Criando novo usuário: {}", novoUsuario.getEmail());
+            
+            // Validar dados
+            if (!validarUsuario(novoUsuario)) {
+                return;
             }
             
-            // Atualiza a listagem e estatísticas
-            configurarLazyModel();
-            carregarEstatisticas();
+            // Verificar se pode criar usuário com este papel
+            if (!podeAtribuirPapel(novoUsuario.getPapel())) {
+                adicionarMensagemErro("Você não tem permissão para atribuir este papel");
+                return;
+            }
+            
+            // Criar usuário
+            usuarioService.create(novoUsuario);
+            
+            // Recarregar lista
+            carregarUsuarios();
+            aplicarFiltros();
+            
+            dialogoNovoUsuarioAberto = false;
+            inicializarNovoUsuario();
+            
+            adicionarMensagemSucesso("Usuário criado com sucesso");
             
         } catch (Exception e) {
-            logger.error("Erro ao salvar usuário", e);
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao salvar usuário: " + e.getMessage());
+            logger.error("Erro ao criar usuário", e);
+            adicionarMensagemErro("Erro ao criar usuário: " + e.getMessage());
         }
+    }
+    
+    /**
+     * Verifica se o usuário atual pode atribuir o papel especificado
+     * Referência: Controle de Acesso - project_rules.md
+     */
+    private boolean podeAtribuirPapel(PapelUsuario papel) {
+        Usuario usuarioAtual = authService.getUsuarioLogado();
+        
+        // FUNDADOR pode atribuir qualquer papel
+        if (usuarioAtual.getPapel().equals(PapelUsuario.FUNDADOR)) {
+            return true;
+        }
+        
+        // ADMINISTRADOR pode atribuir todos exceto FUNDADOR
+        if (usuarioAtual.getPapel().equals(PapelUsuario.ADMINISTRADOR)) {
+            return !papel.equals(PapelUsuario.FUNDADOR);
+        }
+        
+        return false;
     }
     
     /**
      * Valida os dados do usuário
      */
-    private boolean validarUsuario() {
-        if (usuarioEdicao.getNome() == null || usuarioEdicao.getNome().trim().isEmpty()) {
-            adicionarMensagem(FacesMessage.SEVERITY_WARN, "Nome é obrigatório");
+    private boolean validarUsuario(UsuarioDTO usuario) {
+        if (usuario.getNome() == null || usuario.getNome().trim().isEmpty()) {
+            adicionarMensagemErro("Nome é obrigatório");
             return false;
         }
         
-        if (usuarioEdicao.getEmail() == null || usuarioEdicao.getEmail().trim().isEmpty()) {
-            adicionarMensagem(FacesMessage.SEVERITY_WARN, "E-mail é obrigatório");
+        if (usuario.getSobrenome() == null || usuario.getSobrenome().trim().isEmpty()) {
+            adicionarMensagemErro("Sobrenome é obrigatório");
             return false;
         }
         
-        if (!modoEdicao || (novaSenha != null && !novaSenha.trim().isEmpty())) {
-            if (novaSenha == null || novaSenha.trim().isEmpty()) {
-                adicionarMensagem(FacesMessage.SEVERITY_WARN, "Senha é obrigatória");
-                return false;
-            }
-            
-            if (novaSenha.length() < 6) {
-                adicionarMensagem(FacesMessage.SEVERITY_WARN, "Senha deve ter pelo menos 6 caracteres");
-                return false;
-            }
-            
-            if (!novaSenha.equals(senhaConfirmacao)) {
-                adicionarMensagem(FacesMessage.SEVERITY_WARN, "Senhas não conferem");
-                return false;
-            }
+        if (usuario.getEmail() == null || usuario.getEmail().trim().isEmpty()) {
+            adicionarMensagemErro("Email é obrigatório");
+            return false;
+        }
+        
+        if (usuario.getCpf() == null || usuario.getCpf().trim().isEmpty()) {
+            adicionarMensagemErro("CPF é obrigatório");
+            return false;
+        }
+        
+        if (usuario.getPapel() == null) {
+            adicionarMensagemErro("Papel é obrigatório");
+            return false;
         }
         
         return true;
     }
     
     /**
-     * Exclui um usuário
+     * Alterna o status ativo/inativo do usuário
      */
-    public void excluirUsuario(UsuarioDTO usuario) {
+    public void alternarStatusUsuario(UsuarioDTO usuario) {
         try {
-            usuarioService.excluir(usuario.getId());
-            adicionarMensagem(FacesMessage.SEVERITY_INFO, "Usuário excluído com sucesso!");
-            
-            configurarLazyModel();
-            carregarEstatisticas();
-            
-            logger.info("Usuário excluído: {}", usuario.getEmail());
-            
-        } catch (Exception e) {
-            logger.error("Erro ao excluir usuário: " + usuario.getId(), e);
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao excluir usuário: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * Ativa/desativa um usuário
-     */
-    public void alterarStatusUsuario(UsuarioDTO usuario) {
-        try {
-            usuario.setAtivo(!usuario.getAtivo());
-            usuarioService.atualizarStatus(usuario.getId(), usuario.getAtivo());
-            
-            String status = usuario.getAtivo() ? "ativado" : "desativado";
-            adicionarMensagem(FacesMessage.SEVERITY_INFO, "Usuário " + status + " com sucesso!");
-            
-            carregarEstatisticas();
-            
-            logger.info("Status do usuário alterado: {} - {}", usuario.getEmail(), status);
-            
-        } catch (Exception e) {
-            logger.error("Erro ao alterar status do usuário: " + usuario.getId(), e);
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao alterar status do usuário");
-            
-            // Reverte a alteração
-            usuario.setAtivo(!usuario.getAtivo());
-        }
-    }
-    
-    /**
-     * Ativa usuários selecionados
-     */
-    public void ativarSelecionados() {
-        try {
-            if (usuariosSelecionados.isEmpty()) {
-                adicionarMensagem(FacesMessage.SEVERITY_WARN, "Selecione pelo menos um usuário");
+            if (!podeEditarUsuario(usuario)) {
+                adicionarMensagemErro("Você não tem permissão para alterar este usuário");
                 return;
             }
             
-            List<Long> ids = usuariosSelecionados.stream()
-                .map(UsuarioDTO::getId)
-                .toList();
+            boolean novoStatus = !usuario.getAtivo();
+            logger.info("Alterando status do usuário {} para: {}", 
+                       usuario.getEmail(), novoStatus ? "ativo" : "inativo");
             
-            usuarioService.atualizarStatusEmLote(ids, true);
+            usuario.setAtivo(novoStatus);
+            usuarioService.update(usuario.getId(), usuario);
             
-            adicionarMensagem(FacesMessage.SEVERITY_INFO, 
-                usuariosSelecionados.size() + " usuário(s) ativado(s) com sucesso!");
-            
-            configurarLazyModel();
-            carregarEstatisticas();
-            usuariosSelecionados.clear();
-            
-            logger.info("Usuários ativados em lote: {}", ids.size());
+            String mensagem = novoStatus ? "Usuário ativado" : "Usuário desativado";
+            adicionarMensagemSucesso(mensagem + " com sucesso");
             
         } catch (Exception e) {
-            logger.error("Erro ao ativar usuários selecionados", e);
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao ativar usuários selecionados");
+            logger.error("Erro ao alterar status do usuário", e);
+            adicionarMensagemErro("Erro ao alterar status do usuário");
         }
     }
     
     /**
-     * Desativa usuários selecionados
+     * Cancela a edição do usuário
      */
-    public void desativarSelecionados() {
-        try {
-            if (usuariosSelecionados.isEmpty()) {
-                adicionarMensagem(FacesMessage.SEVERITY_WARN, "Selecione pelo menos um usuário");
-                return;
-            }
-            
-            List<Long> ids = usuariosSelecionados.stream()
-                .map(UsuarioDTO::getId)
-                .toList();
-            
-            usuarioService.atualizarStatusEmLote(ids, false);
-            
-            adicionarMensagem(FacesMessage.SEVERITY_INFO, 
-                usuariosSelecionados.size() + " usuário(s) desativado(s) com sucesso!");
-            
-            configurarLazyModel();
-            carregarEstatisticas();
-            usuariosSelecionados.clear();
-            
-            logger.info("Usuários desativados em lote: {}", ids.size());
-            
-        } catch (Exception e) {
-            logger.error("Erro ao desativar usuários selecionados", e);
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao desativar usuários selecionados");
-        }
+    public void cancelarEdicao() {
+        logger.debug("Cancelando edição de usuário");
+        dialogoEdicaoAberto = false;
+        usuarioSelecionado = null;
     }
     
     /**
-     * Exclui usuários selecionados
+     * Cancela a criação de novo usuário
      */
-    public void excluirSelecionados() {
-        try {
-            if (usuariosSelecionados.isEmpty()) {
-                adicionarMensagem(FacesMessage.SEVERITY_WARN, "Selecione pelo menos um usuário");
-                return;
-            }
-            
-            List<Long> ids = usuariosSelecionados.stream()
-                .map(UsuarioDTO::getId)
-                .toList();
-            
-            usuarioService.excluirEmLote(ids);
-            
-            adicionarMensagem(FacesMessage.SEVERITY_INFO, 
-                usuariosSelecionados.size() + " usuário(s) excluído(s) com sucesso!");
-            
-            configurarLazyModel();
-            carregarEstatisticas();
-            usuariosSelecionados.clear();
-            
-            logger.info("Usuários excluídos em lote: {}", ids.size());
-            
-        } catch (Exception e) {
-            logger.error("Erro ao excluir usuários selecionados", e);
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao excluir usuários selecionados");
-        }
+    public void cancelarNovoUsuario() {
+        logger.debug("Cancelando criação de novo usuário");
+        dialogoNovoUsuarioAberto = false;
+        inicializarNovoUsuario();
     }
     
     /**
-     * Adiciona mensagem ao contexto JSF
+     * Retorna lista de papéis disponíveis para atribuição
      */
-    private void adicionarMensagem(FacesMessage.Severity severity, String mensagem) {
+    public List<PapelUsuario> getPapeisDisponiveis() {
+        Usuario usuarioAtual = authService.getUsuarioLogado();
+        
+        if (usuarioAtual.getPapel().equals(PapelUsuario.FUNDADOR)) {
+            return Arrays.asList(PapelUsuario.values());
+        }
+        
+        if (usuarioAtual.getPapel().equals(PapelUsuario.ADMINISTRADOR)) {
+            return Arrays.asList(
+                PapelUsuario.ADMINISTRADOR,
+                PapelUsuario.COLABORADOR,
+                PapelUsuario.ASSOCIADO,
+                PapelUsuario.USUARIO,
+                PapelUsuario.CONVIDADO
+            );
+        }
+        
+        return Arrays.asList(PapelUsuario.USUARIO, PapelUsuario.CONVIDADO);
+    }
+    
+    /**
+     * Retorna o total de usuários
+     */
+    public int getTotalUsuarios() {
+        return usuarios != null ? usuarios.size() : 0;
+    }
+    
+    /**
+     * Retorna o total de usuários ativos
+     */
+    public int getTotalUsuariosAtivos() {
+        if (usuarios == null) return 0;
+        return (int) usuarios.stream().filter(UsuarioDTO::getAtivo).count();
+    }
+    
+    /**
+     * Retorna o total de usuários inativos
+     */
+    public int getTotalUsuariosInativos() {
+        return getTotalUsuarios() - getTotalUsuariosAtivos();
+    }
+    
+    // Métodos utilitários para mensagens
+    private void adicionarMensagemSucesso(String mensagem) {
         FacesContext.getCurrentInstance().addMessage(null, 
-            new FacesMessage(severity, mensagem, null));
+            new FacesMessage(FacesMessage.SEVERITY_INFO, "Sucesso", mensagem));
+    }
+    
+    private void adicionarMensagemErro(String mensagem) {
+        FacesContext.getCurrentInstance().addMessage(null, 
+            new FacesMessage(FacesMessage.SEVERITY_ERROR, "Erro", mensagem));
     }
     
     // Getters e Setters
-    public LazyDataModel<UsuarioDTO> getUsuariosLazy() {
-        return usuariosLazy;
+    public List<UsuarioDTO> getUsuarios() {
+        return usuarios;
     }
     
-    public void setUsuariosLazy(LazyDataModel<UsuarioDTO> usuariosLazy) {
-        this.usuariosLazy = usuariosLazy;
+    public void setUsuarios(List<UsuarioDTO> usuarios) {
+        this.usuarios = usuarios;
     }
     
-    public List<UsuarioDTO> getUsuariosSelecionados() {
-        return usuariosSelecionados;
+    public List<UsuarioDTO> getUsuariosFiltrados() {
+        return usuariosFiltrados;
     }
     
-    public void setUsuariosSelecionados(List<UsuarioDTO> usuariosSelecionados) {
-        this.usuariosSelecionados = usuariosSelecionados;
+    public void setUsuariosFiltrados(List<UsuarioDTO> usuariosFiltrados) {
+        this.usuariosFiltrados = usuariosFiltrados;
+    }
+    
+    public UsuarioDTO getUsuarioSelecionado() {
+        return usuarioSelecionado;
+    }
+    
+    public void setUsuarioSelecionado(UsuarioDTO usuarioSelecionado) {
+        this.usuarioSelecionado = usuarioSelecionado;
+    }
+    
+    public UsuarioDTO getNovoUsuario() {
+        return novoUsuario;
+    }
+    
+    public void setNovoUsuario(UsuarioDTO novoUsuario) {
+        this.novoUsuario = novoUsuario;
+    }
+    
+    public boolean isDialogoEdicaoAberto() {
+        return dialogoEdicaoAberto;
+    }
+    
+    public void setDialogoEdicaoAberto(boolean dialogoEdicaoAberto) {
+        this.dialogoEdicaoAberto = dialogoEdicaoAberto;
+    }
+    
+    public boolean isDialogoNovoUsuarioAberto() {
+        return dialogoNovoUsuarioAberto;
+    }
+    
+    public void setDialogoNovoUsuarioAberto(boolean dialogoNovoUsuarioAberto) {
+        this.dialogoNovoUsuarioAberto = dialogoNovoUsuarioAberto;
     }
     
     public String getFiltroNome() {
@@ -474,6 +500,14 @@ public class UsuarioAdminBean implements Serializable {
         this.filtroEmail = filtroEmail;
     }
     
+    public PapelUsuario getFiltroPapel() {
+        return filtroPapel;
+    }
+    
+    public void setFiltroPapel(PapelUsuario filtroPapel) {
+        this.filtroPapel = filtroPapel;
+    }
+    
     public Boolean getFiltroAtivo() {
         return filtroAtivo;
     }
@@ -482,99 +516,5 @@ public class UsuarioAdminBean implements Serializable {
         this.filtroAtivo = filtroAtivo;
     }
     
-    public Date getDataInicio() {
-        return dataInicio;
-    }
-    
-    public void setDataInicio(Date dataInicio) {
-        this.dataInicio = dataInicio;
-    }
-    
-    public Date getDataFim() {
-        return dataFim;
-    }
-    
-    public void setDataFim(Date dataFim) {
-        this.dataFim = dataFim;
-    }
-    
-    public String getTermoPesquisa() {
-        return termoPesquisa;
-    }
-    
-    public void setTermoPesquisa(String termoPesquisa) {
-        this.termoPesquisa = termoPesquisa;
-    }
-    
-    public UsuarioDTO getUsuarioEdicao() {
-        return usuarioEdicao;
-    }
-    
-    public void setUsuarioEdicao(UsuarioDTO usuarioEdicao) {
-        this.usuarioEdicao = usuarioEdicao;
-    }
-    
-    public UsuarioDTO getUsuarioVisualizacao() {
-        return usuarioVisualizacao;
-    }
-    
-    public void setUsuarioVisualizacao(UsuarioDTO usuarioVisualizacao) {
-        this.usuarioVisualizacao = usuarioVisualizacao;
-    }
-    
-    public boolean isModoEdicao() {
-        return modoEdicao;
-    }
-    
-    public void setModoEdicao(boolean modoEdicao) {
-        this.modoEdicao = modoEdicao;
-    }
-    
-    public String getSenhaConfirmacao() {
-        return senhaConfirmacao;
-    }
-    
-    public void setSenhaConfirmacao(String senhaConfirmacao) {
-        this.senhaConfirmacao = senhaConfirmacao;
-    }
-    
-    public String getNovaSenha() {
-        return novaSenha;
-    }
-    
-    public void setNovaSenha(String novaSenha) {
-        this.novaSenha = novaSenha;
-    }
-    
-    public long getTotalUsuarios() {
-        return totalUsuarios;
-    }
-    
-    public void setTotalUsuarios(long totalUsuarios) {
-        this.totalUsuarios = totalUsuarios;
-    }
-    
-    public long getUsuariosAtivos() {
-        return usuariosAtivos;
-    }
-    
-    public void setUsuariosAtivos(long usuariosAtivos) {
-        this.usuariosAtivos = usuariosAtivos;
-    }
-    
-    public long getUsuariosInativos() {
-        return usuariosInativos;
-    }
-    
-    public void setUsuariosInativos(long usuariosInativos) {
-        this.usuariosInativos = usuariosInativos;
-    }
-    
-    public long getUsuariosCadastradosHoje() {
-        return usuariosCadastradosHoje;
-    }
-    
-    public void setUsuariosCadastradosHoje(long usuariosCadastradosHoje) {
-        this.usuariosCadastradosHoje = usuariosCadastradosHoje;
-    }
+
 }

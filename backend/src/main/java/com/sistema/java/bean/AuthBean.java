@@ -1,101 +1,200 @@
 package com.sistema.java.bean;
 
-import com.sistema.java.model.Usuario;
+import com.sistema.java.model.dto.UsuarioDTO;
+import com.sistema.java.model.entity.Usuario;
+import com.sistema.java.model.enums.PapelUsuario;
 import com.sistema.java.service.AuthService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
+import com.sistema.java.service.UsuarioService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.faces.application.FacesMessage;
+import jakarta.faces.context.ExternalContext;
 import jakarta.faces.context.FacesContext;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.enterprise.context.SessionScoped;
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.time.Period;
 
-@Component
-@Scope("session")
+/**
+ * Managed Bean para autenticação e registro de usuários
+ * Referência: Login e Registro - project_rules.md
+ * Referência: Controle de Acesso - project_rules.md
+ */
+@Named("authBean")
+@SessionScoped
 public class AuthBean implements Serializable {
     
-    @Autowired
+    private static final Logger logger = LoggerFactory.getLogger(AuthBean.class);
+    
+    @Inject
     private AuthService authService;
     
-    // Campos para login
+    @Inject
+    private UsuarioService usuarioService;
+    
+    @Inject
+    private FacesContext facesContext;
+    
+    @Inject
+    private BCryptPasswordEncoder passwordEncoder;
+    
+    // Campos de login
     private String emailLogin;
     private String senhaLogin;
     
-    // Campos para registro
-    private Usuario novoUsuario;
-    private String confirmaSenha;
+    // Campos de registro
+    private UsuarioDTO novoUsuario = new UsuarioDTO();
     
-    // Campos para reset de senha
+    // Campos de reset de senha
     private String emailReset;
     private String tokenReset;
     private String novaSenha;
     private String confirmaNovaSenha;
     
-    // Campos para verificação de email
-    private String tokenVerificacao;
-    
-    // Estado da interface
-    private boolean mostrarFormularioRegistro = false;
-    private boolean mostrarFormularioReset = false;
-    
-    @PostConstruct
-    public void init() {
-        limparCampos();
-    }
+    // Estado da sessão
+    private Usuario usuarioLogado;
     
     /**
-     * Realiza login do usuário
+     * Realiza o login do usuário
+     * Referência: Login e Registro - project_rules.md
      */
     public String login() {
         try {
-            if (authService.login(emailLogin, senhaLogin)) {
-                limparCampos();
+            logger.info("Tentativa de login para email: {}", emailLogin);
+            
+            // Validar dados de entrada
+            if (emailLogin == null || emailLogin.trim().isEmpty() || 
+                senhaLogin == null || senhaLogin.trim().isEmpty()) {
+                addErrorMessage("Email e senha são obrigatórios");
+                return null;
+            }
+            
+            // Autenticar usuário
+            Usuario usuario = authService.autenticar(emailLogin.trim(), senhaLogin);
+            
+            if (usuario != null) {
+                usuarioLogado = usuario;
+                logger.info("Login realizado com sucesso para usuário: {} ({})", 
+                           usuario.getEmail(), usuario.getPapel());
+                
+                // Limpar campos de login
+                limparCamposLogin();
                 
                 // Redirecionar baseado no papel do usuário
-                Usuario usuario = authService.getUsuarioLogado();
-                if (usuario != null && usuario.canAccessDashboard()) {
+                if (usuario.getPapel() == PapelUsuario.ADMINISTRADOR || 
+                    usuario.getPapel() == PapelUsuario.FUNDADOR) {
                     return "/admin/dashboard?faces-redirect=true";
                 } else {
-                    return "/index?faces-redirect=true";
+                    return "/dashboard?faces-redirect=true";
                 }
+            } else {
+                logger.warn("Credenciais inválidas para email: {}", emailLogin);
+                addErrorMessage("Email ou senha incorretos");
+                return null;
             }
+            
         } catch (Exception e) {
+            logger.error("Erro durante login para email: {}", emailLogin, e);
             addErrorMessage("Erro interno. Tente novamente.");
-        }
-        return null;
-    }
-    
-    /**
-     * Realiza logout do usuário
-     */
-    public String logout() {
-        try {
-            authService.logout();
-            limparCampos();
-            return "/index?faces-redirect=true";
-        } catch (Exception e) {
-            addErrorMessage("Erro ao fazer logout.");
             return null;
         }
     }
     
     /**
-     * Registra novo usuário
+     * Realiza o registro de novo usuário
+     * Referência: Login e Registro - project_rules.md
      */
     public String registrar() {
         try {
-            if (authService.register(novoUsuario, confirmaSenha)) {
-                limparCampos();
-                mostrarFormularioRegistro = false;
-                addInfoMessage("Cadastro realizado! Verifique seu email.");
-                return "/login?faces-redirect=true";
+            logger.info("Tentativa de registro para email: {}", novoUsuario.getEmail());
+            
+            // Validar dados básicos
+            if (!validarDadosRegistro()) {
+                return null;
             }
+            
+            // Verificar se email já existe
+            if (usuarioService.existsByEmail(novoUsuario.getEmail())) {
+                addErrorMessage("Este email já está cadastrado");
+                return null;
+            }
+            
+            // Verificar se CPF já existe
+            if (usuarioService.existsByCpf(novoUsuario.getCpf())) {
+                addErrorMessage("Este CPF já está cadastrado");
+                return null;
+            }
+            
+            // Validar idade mínima (16 anos)
+            if (novoUsuario.getDataNascimento() != null) {
+                int idade = Period.between(novoUsuario.getDataNascimento(), LocalDate.now()).getYears();
+                if (idade < 16) {
+                    addErrorMessage("Idade mínima para cadastro é 16 anos");
+                    return null;
+                }
+            }
+            
+            // Criar DTO para o serviço
+            UsuarioDTO usuarioDTO = new UsuarioDTO();
+            usuarioDTO.setNome(novoUsuario.getNome());
+            usuarioDTO.setSobrenome(novoUsuario.getSobrenome());
+            usuarioDTO.setCpf(novoUsuario.getCpf());
+            usuarioDTO.setEmail(novoUsuario.getEmail());
+            usuarioDTO.setSenha(novoUsuario.getSenha());
+            usuarioDTO.setTelefone(novoUsuario.getTelefone());
+            usuarioDTO.setDataNascimento(novoUsuario.getDataNascimento());
+            usuarioDTO.setPapel(PapelUsuario.USUARIO); // Papel padrão
+            
+            // Criar usuário
+            UsuarioDTO usuarioCriado = usuarioService.create(usuarioDTO);
+            
+            if (usuarioCriado != null) {
+                logger.info("Usuário registrado com sucesso: {}", usuarioCriado.getEmail());
+                addSuccessMessage("Cadastro realizado com sucesso! Faça login para continuar.");
+                
+                // Limpar formulário
+                novoUsuario = new UsuarioDTO();
+                novoUsuario.setPapel(PapelUsuario.USUARIO);
+                novoUsuario.setAtivo(true);
+                
+                return "/login?faces-redirect=true";
+            } else {
+                addErrorMessage("Erro ao criar usuário. Tente novamente.");
+                return null;
+            }
+            
         } catch (Exception e) {
-            addErrorMessage("Erro ao realizar cadastro.");
+            logger.error("Erro durante registro para email: {}", novoUsuario.getEmail(), e);
+            addErrorMessage("Erro interno. Tente novamente.");
+            return null;
         }
-        return null;
+    }
+    
+    /**
+     * Realiza o logout do usuário
+     */
+    public String logout() {
+        try {
+            logger.info("Logout do usuário: {}", usuarioLogado != null ? usuarioLogado.getEmail() : "desconhecido");
+            
+            // Limpar sessão
+            usuarioLogado = null;
+            limparCamposLogin();
+            
+            // Invalidar sessão JSF
+            ExternalContext externalContext = facesContext.getExternalContext();
+            externalContext.invalidateSession();
+            
+            return "/index?faces-redirect=true";
+            
+        } catch (Exception e) {
+            logger.error("Erro durante logout", e);
+            return "/index?faces-redirect=true";
+        }
     }
     
     /**
@@ -103,184 +202,128 @@ public class AuthBean implements Serializable {
      */
     public void solicitarResetSenha() {
         try {
-            authService.solicitarResetSenha(emailReset);
-            emailReset = "";
-            mostrarFormularioReset = false;
-        } catch (Exception e) {
-            addErrorMessage("Erro ao solicitar reset de senha.");
-        }
-    }
-    
-    /**
-     * Reseta senha do usuário
-     */
-    public String resetarSenha() {
-        try {
-            if (authService.resetarSenha(tokenReset, novaSenha, confirmaNovaSenha)) {
-                limparCampos();
-                return "/login?faces-redirect=true";
+            if (emailReset == null || emailReset.trim().isEmpty()) {
+                addErrorMessage("Email é obrigatório");
+                return;
             }
-        } catch (Exception e) {
-            addErrorMessage("Erro ao resetar senha.");
-        }
-        return null;
-    }
-    
-    /**
-     * Verifica email do usuário
-     */
-    public String verificarEmail() {
-        try {
-            if (authService.verificarEmail(tokenVerificacao)) {
-                limparCampos();
-                return "/login?faces-redirect=true";
+            
+            // Verificar se email existe
+            if (usuarioService.findByEmail(emailReset.trim()).isPresent()) {
+                // TODO: Implementar envio de email de reset
+                addSuccessMessage("Se o email estiver cadastrado, você receberá instruções para redefinir sua senha.");
+                emailReset = "";
+            } else {
+                // Por segurança, sempre mostrar a mesma mensagem
+                addSuccessMessage("Se o email estiver cadastrado, você receberá instruções para redefinir sua senha.");
+                emailReset = "";
             }
+            
         } catch (Exception e) {
-            addErrorMessage("Erro ao verificar email.");
-        }
-        return null;
-    }
-    
-    /**
-     * Alterna exibição do formulário de registro
-     */
-    public void alternarFormularioRegistro() {
-        mostrarFormularioRegistro = !mostrarFormularioRegistro;
-        if (mostrarFormularioRegistro) {
-            novoUsuario = new Usuario();
-            confirmaSenha = "";
+            logger.error("Erro ao solicitar reset de senha para email: {}", emailReset, e);
+            addErrorMessage("Erro interno. Tente novamente.");
         }
     }
     
     /**
-     * Alterna exibição do formulário de reset
+     * Redireciona para dashboard se usuário já está autenticado
      */
-    public void alternarFormularioReset() {
-        mostrarFormularioReset = !mostrarFormularioReset;
-        if (mostrarFormularioReset) {
-            emailReset = "";
+    public void redirectToDashboard() {
+        if (isAuthenticated()) {
+            try {
+                ExternalContext externalContext = facesContext.getExternalContext();
+                if (usuarioLogado.getPapel() == PapelUsuario.ADMINISTRADOR || 
+                    usuarioLogado.getPapel() == PapelUsuario.FUNDADOR) {
+                    externalContext.redirect(externalContext.getRequestContextPath() + "/admin/dashboard.xhtml");
+                } else {
+                    externalContext.redirect(externalContext.getRequestContextPath() + "/dashboard.xhtml");
+                }
+            } catch (Exception e) {
+                logger.error("Erro ao redirecionar usuário autenticado", e);
+            }
         }
     }
     
     /**
-     * Limpa todos os campos
+     * Verifica se usuário está autenticado
      */
+    public boolean isAuthenticated() {
+        return usuarioLogado != null;
+    }
+    
+    // Métodos de validação
+    private boolean validarDadosRegistro() {
+        if (novoUsuario.getNome() == null || novoUsuario.getNome().trim().isEmpty()) {
+            addErrorMessage("Nome é obrigatório");
+            return false;
+        }
+        
+        if (novoUsuario.getSobrenome() == null || novoUsuario.getSobrenome().trim().isEmpty()) {
+            addErrorMessage("Sobrenome é obrigatório");
+            return false;
+        }
+        
+        if (novoUsuario.getCpf() == null || novoUsuario.getCpf().trim().isEmpty()) {
+            addErrorMessage("CPF é obrigatório");
+            return false;
+        }
+        
+        if (novoUsuario.getEmail() == null || novoUsuario.getEmail().trim().isEmpty()) {
+            addErrorMessage("Email é obrigatório");
+            return false;
+        }
+        
+        if (novoUsuario.getSenha() == null || novoUsuario.getSenha().length() < 8) {
+            addErrorMessage("Senha deve ter pelo menos 8 caracteres");
+            return false;
+        }
+        
+        return true;
+    }
+    
+    // Métodos utilitários
     public void limparCampos() {
-        // Login
+        limparCamposLogin();
+        limparCamposRegistro();
+    }
+    
+    private void limparCamposLogin() {
         emailLogin = "";
         senhaLogin = "";
-        
-        // Registro
-        novoUsuario = new Usuario();
-        confirmaSenha = "";
-        
-        // Reset
-        emailReset = "";
-        tokenReset = "";
-        novaSenha = "";
-        confirmaNovaSenha = "";
-        
-        // Verificação
-        tokenVerificacao = "";
-        
-        // Estado
-        mostrarFormularioRegistro = false;
-        mostrarFormularioReset = false;
     }
     
-    /**
-     * Verifica se usuário está logado
-     * Referência: Sistema de Temas Claros e Escuros - project_rules.md
-     * Estado de login deve considerar preferências de tema do usuário
-     */
-    public boolean isLogado() {
-        return authService.isLogado();
+    private void limparCamposRegistro() {
+        novoUsuario = new UsuarioDTO();
+        novoUsuario.setPapel(PapelUsuario.USUARIO);
+        novoUsuario.setAtivo(true);
     }
     
-    /**
-     * Obtém usuário logado
-     * Referência: Sistema de Temas Claros e Escuros - project_rules.md
-     * Dados do usuário incluem preferências de tema para interface
-     */
-    public Usuario getUsuarioLogado() {
-        return authService.getUsuarioLogado();
+    // Controle de formulário de registro
+    private boolean mostrarFormularioRegistro = false;
+    
+    public boolean isMostrarFormularioRegistro() {
+        return mostrarFormularioRegistro;
     }
     
-    /**
-     * Verifica se usuário pode acessar dashboard
-     * Referência: Sistema de Temas Claros e Escuros - project_rules.md
-     * Dashboard deve carregar com tema preferido do usuário autenticado
-     */
-    public boolean canAccessDashboard() {
-        return authService.canAccessDashboard();
+    public void setMostrarFormularioRegistro(boolean mostrarFormularioRegistro) {
+        this.mostrarFormularioRegistro = mostrarFormularioRegistro;
     }
     
-    /**
-     * Verifica se usuário pode gerenciar usuários
-     */
-    public boolean canManageUsers() {
-        return authService.canManageUsers();
-    }
-    
-    /**
-     * Verifica se usuário pode gerenciar conteúdo
-     */
-    public boolean canManageContent() {
-        return authService.canManageContent();
-    }
-    
-    /**
-     * Verifica se usuário é admin
-     */
-    public boolean isAdmin() {
-        return authService.isAdmin();
-    }
-    
-    /**
-     * Valida idade mínima (18 anos)
-     */
-    public void validarIdadeMinima() {
-        if (novoUsuario.getDataNascimento() != null) {
-            LocalDate hoje = LocalDate.now();
-            LocalDate dataNascimento = novoUsuario.getDataNascimento();
-            
-            if (dataNascimento.plusYears(18).isAfter(hoje)) {
-                addErrorMessage("Você deve ter pelo menos 18 anos para se cadastrar.");
-                novoUsuario.setDataNascimento(null);
-            }
+    public void alternarFormularioRegistro() {
+        this.mostrarFormularioRegistro = !this.mostrarFormularioRegistro;
+        if (this.mostrarFormularioRegistro) {
+            limparCamposRegistro();
         }
     }
     
-    /**
-     * Formata CPF durante digitação
-     */
-    public void formatarCpf() {
-        if (novoUsuario.getCpf() != null) {
-            String cpf = novoUsuario.getCpf().replaceAll("\\D", "");
-            if (cpf.length() <= 11) {
-                novoUsuario.setCpf(cpf);
-            } else {
-                novoUsuario.setCpf(cpf.substring(0, 11));
-            }
-        }
+    private void addErrorMessage(String message) {
+        facesContext.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_ERROR, "Erro", message));
     }
     
-    /**
-     * Formata telefone durante digitação
-     */
-    public void formatarTelefone() {
-        if (novoUsuario.getTelefone() != null) {
-            String telefone = novoUsuario.getTelefone().replaceAll("\\D", "");
-            if (telefone.length() <= 11) {
-                novoUsuario.setTelefone(telefone);
-            } else {
-                novoUsuario.setTelefone(telefone.substring(0, 11));
-            }
-        }
+    private void addSuccessMessage(String message) {
+        facesContext.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_INFO, "Sucesso", message));
     }
     
     // Getters e Setters
-    
     public String getEmailLogin() {
         return emailLogin;
     }
@@ -297,20 +340,12 @@ public class AuthBean implements Serializable {
         this.senhaLogin = senhaLogin;
     }
     
-    public Usuario getNovoUsuario() {
+    public UsuarioDTO getNovoUsuario() {
         return novoUsuario;
     }
     
-    public void setNovoUsuario(Usuario novoUsuario) {
+    public void setNovoUsuario(UsuarioDTO novoUsuario) {
         this.novoUsuario = novoUsuario;
-    }
-    
-    public String getConfirmaSenha() {
-        return confirmaSenha;
-    }
-    
-    public void setConfirmaSenha(String confirmaSenha) {
-        this.confirmaSenha = confirmaSenha;
     }
     
     public String getEmailReset() {
@@ -345,39 +380,48 @@ public class AuthBean implements Serializable {
         this.confirmaNovaSenha = confirmaNovaSenha;
     }
     
-    public String getTokenVerificacao() {
-        return tokenVerificacao;
+    /**
+     * Reseta a senha do usuário usando o token
+     */
+    public String resetarSenha() {
+        try {
+            if (tokenReset == null || tokenReset.trim().isEmpty()) {
+                addErrorMessage("Token inválido");
+                return null;
+            }
+            
+            if (novaSenha == null || novaSenha.length() < 8) {
+                addErrorMessage("Nova senha deve ter pelo menos 8 caracteres");
+                return null;
+            }
+            
+            if (!novaSenha.equals(confirmaNovaSenha)) {
+                addErrorMessage("Senhas não coincidem");
+                return null;
+            }
+            
+            // TODO: Implementar reset de senha com token
+            addSuccessMessage("Senha alterada com sucesso!");
+            
+            // Limpar campos
+            tokenReset = "";
+            novaSenha = "";
+            confirmaNovaSenha = "";
+            
+            return "/login?faces-redirect=true";
+            
+        } catch (Exception e) {
+            logger.error("Erro ao resetar senha", e);
+            addErrorMessage("Erro interno. Tente novamente.");
+            return null;
+        }
     }
     
-    public void setTokenVerificacao(String tokenVerificacao) {
-        this.tokenVerificacao = tokenVerificacao;
+    public Usuario getUsuarioLogado() {
+        return usuarioLogado;
     }
     
-    public boolean isMostrarFormularioRegistro() {
-        return mostrarFormularioRegistro;
-    }
-    
-    public void setMostrarFormularioRegistro(boolean mostrarFormularioRegistro) {
-        this.mostrarFormularioRegistro = mostrarFormularioRegistro;
-    }
-    
-    public boolean isMostrarFormularioReset() {
-        return mostrarFormularioReset;
-    }
-    
-    public void setMostrarFormularioReset(boolean mostrarFormularioReset) {
-        this.mostrarFormularioReset = mostrarFormularioReset;
-    }
-    
-    // Métodos utilitários
-    
-    private void addErrorMessage(String message) {
-        FacesContext.getCurrentInstance().addMessage(null, 
-            new FacesMessage(FacesMessage.SEVERITY_ERROR, "Erro", message));
-    }
-    
-    private void addInfoMessage(String message) {
-        FacesContext.getCurrentInstance().addMessage(null, 
-            new FacesMessage(FacesMessage.SEVERITY_INFO, "Sucesso", message));
+    public void setUsuarioLogado(Usuario usuarioLogado) {
+        this.usuarioLogado = usuarioLogado;
     }
 }

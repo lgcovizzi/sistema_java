@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee
-         http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
-         version="4.0">
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
+         https://jakarta.ee/xml/ns/jakartaee/web-app_5_0.xsd"
+         version="5.0">
 
     <display-name>Sistema Java - JSF Application</display-name>
     <description>Sistema de notícias desenvolvido com Spring Boot e JSF</description>
@@ -50,18 +50,26 @@
         <param-value>true</param-value>
     </context-param>
 
-    <!-- Servlet do JSF -->
+    <!-- Listener do MyFaces - TEMPORARIAMENTE DESABILITADO -->
+    <!--
+    <listener>
+        <listener-class>org.apache.myfaces.webapp.StartupServletContextListener</listener-class>
+    </listener>
+    -->
+
+    <!-- Servlet do JSF - TEMPORARIAMENTE DESABILITADO -->
+    <!--
     <servlet>
         <servlet-name>Faces Servlet</servlet-name>
         <servlet-class>javax.faces.webapp.FacesServlet</servlet-class>
         <load-on-startup>1</load-on-startup>
     </servlet>
 
-    <!-- Mapeamento do servlet JSF -->
     <servlet-mapping>
         <servlet-name>Faces Servlet</servlet-name>
         <url-pattern>*.xhtml</url-pattern>
     </servlet-mapping>
+    -->
 
     <!-- Filtro de encoding UTF-8 -->
     <filter>

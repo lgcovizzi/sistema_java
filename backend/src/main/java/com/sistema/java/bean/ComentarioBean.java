@@ -1,375 +1,222 @@
 package com.sistema.java.bean;
 
 import com.sistema.java.model.dto.ComentarioDTO;
-import com.sistema.java.service.AuthService;
+import com.sistema.java.model.dto.NoticiaDTO;
+import com.sistema.java.model.entity.Comentario;
+import com.sistema.java.model.entity.Noticia;
+import com.sistema.java.model.entity.Usuario;
 import com.sistema.java.service.ComentarioService;
+import com.sistema.java.service.NoticiaService;
+import com.sistema.java.service.AuthService;
+import org.primefaces.model.LazyDataModel;
+import org.primefaces.model.SortOrder;
+import org.primefaces.model.SortMeta;
+import org.primefaces.model.FilterMeta;
+
 import jakarta.annotation.PostConstruct;
-import jakarta.enterprise.context.ViewScoped;
+import jakarta.enterprise.context.SessionScoped;
 import jakarta.faces.application.FacesMessage;
 import jakarta.faces.context.FacesContext;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
-import org.primefaces.model.LazyDataModel;
-import org.primefaces.model.SortOrder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Serializable;
-import java.util.List;
+import java.util.*;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Managed Bean para gerenciamento de comentários.
- * Referência: Implementar beans JSF - project_rules.md
+ * Bean para gerenciamento de comentários
+ * Referência: Sistema de Temas Claros e Escuros - project_rules.md
  * Referência: Controle de Acesso - project_rules.md
  */
-@Named("comentarioBean")
-@ViewScoped
+@Named
+@SessionScoped
 public class ComentarioBean implements Serializable {
-    
-    private static final Logger logger = LoggerFactory.getLogger(ComentarioBean.class);
-    
+
     @Inject
     private ComentarioService comentarioService;
-    
+
+    @Inject
+    private NoticiaService noticiaService;
+
     @Inject
     private AuthService authService;
-    
-    // Propriedades para listagem
+
     private LazyDataModel<ComentarioDTO> comentariosLazy;
-    private List<ComentarioDTO> comentarios;
-    private String filtroTermo;
-    private String filtroStatus = "todos"; // todos, aprovados, pendentes
-    private Long filtroNoticia;
-    
-    // Propriedades para moderação
-    private ComentarioDTO comentarioSelecionado;
-    private String motivoRejeicao;
-    private boolean dialogoModeracaoVisivel = false;
-    
-    // Propriedades para novo comentário
     private ComentarioDTO novoComentario;
+    private ComentarioDTO comentarioAtual;
     private Long noticiaId;
-    private boolean comentarioEnviado = false;
-    
-    // Configurações
-    private static final int ITENS_POR_PAGINA = 20;
-    
+    private Map<String, Object> filtros = new HashMap<>();
+
     @PostConstruct
     public void init() {
-        try {
-            inicializarDados();
-            configurarLazyModel();
-        } catch (Exception e) {
-            logger.error("Erro ao inicializar ComentarioBean", e);
-            addErrorMessage("Erro ao carregar comentários.");
-        }
-    }
-    
-    /**
-     * Inicializa os dados necessários
-     * Referência: Inicialização de beans JSF - project_rules.md
-     */
-    private void inicializarDados() {
         novoComentario = new ComentarioDTO();
-        comentarioEnviado = false;
+        comentarioAtual = new ComentarioDTO();
+        initLazyModel();
     }
-    
-    /**
-     * Configura o modelo lazy para paginação
-     * Referência: Componentes PrimeFaces - project_rules.md
-     */
-    private void configurarLazyModel() {
+
+    private void initLazyModel() {
         comentariosLazy = new LazyDataModel<ComentarioDTO>() {
             @Override
-            public List<ComentarioDTO> load(int first, int pageSize, String sortField, 
-                                          SortOrder sortOrder, Map<String, Object> filters) {
-                try {
-                    // Aplicar filtros
-                    String termo = filtroTermo;
-                    Boolean aprovado = null;
-                    
-                    if ("aprovados".equals(filtroStatus)) {
-                        aprovado = true;
-                    } else if ("pendentes".equals(filtroStatus)) {
-                        aprovado = false;
-                    }
-                    
-                    // Buscar comentários com paginação
-                    List<ComentarioDTO> resultado = comentarioService.buscarComPaginacao(
-                        first, pageSize, sortField, sortOrder, termo, aprovado, filtroNoticia);
-                    
-                    // Definir total de registros
-                    long total = comentarioService.contarComFiltros(termo, aprovado, filtroNoticia);
-                    this.setRowCount((int) total);
-                    
-                    return resultado;
-                } catch (Exception e) {
-                    logger.error("Erro ao carregar comentários lazy", e);
-                    addErrorMessage("Erro ao carregar comentários.");
-                    return List.of();
+            public List<ComentarioDTO> load(int first, int pageSize, Map<String, SortMeta> sortBy, 
+                                           Map<String, FilterMeta> filterBy) {
+                // Implementação do lazy loading
+                String sortField = null;
+                boolean ascending = true;
+                
+                if (sortBy != null && !sortBy.isEmpty()) {
+                    SortMeta sortMeta = sortBy.values().iterator().next();
+                    sortField = sortMeta.getField();
+                    ascending = sortMeta.getOrder() == SortOrder.ASCENDING;
                 }
+                
+                Map<String, Object> filters = new HashMap<>();
+                if (filterBy != null) {
+                    for (Map.Entry<String, FilterMeta> entry : filterBy.entrySet()) {
+                        filters.put(entry.getKey(), entry.getValue().getFilterValue());
+                    }
+                }
+                
+                String orderBy = sortField != null ? sortField : "dataCriacao";
+                
+                List<Comentario> comentarios = comentarioService.listarComFiltros(filters, first, pageSize, orderBy, ascending);
+                long total = comentarioService.contarComFiltros(filters);
+                
+                this.setRowCount((int) total);
+                
+                return comentarios.stream()
+                    .map(this::convertToDTO)
+                    .toList();
+            }
+            
+            @Override
+            public int count(Map<String, FilterMeta> filterBy) {
+                Map<String, Object> filters = new HashMap<>();
+                if (filterBy != null) {
+                    for (Map.Entry<String, FilterMeta> entry : filterBy.entrySet()) {
+                        filters.put(entry.getKey(), entry.getValue().getFilterValue());
+                    }
+                }
+                return (int) comentarioService.contarComFiltros(filters);
+            }
+            
+            private ComentarioDTO convertToDTO(Comentario comentario) {
+                ComentarioDTO dto = new ComentarioDTO();
+                dto.setId(comentario.getId());
+                dto.setConteudo(comentario.getConteudo());
+                dto.setAprovado(comentario.getAprovado());
+                dto.setDataCriacao(comentario.getDataCriacao());
+                if (comentario.getAutor() != null) {
+                    dto.setAutorNome(comentario.getAutor().getNome() + " " + comentario.getAutor().getSobrenome());
+                }
+                if (comentario.getNoticia() != null) {
+                    dto.setNoticiaId(comentario.getNoticia().getId());
+                    dto.setNoticiaTitulo(comentario.getNoticia().getTitulo());
+                }
+                return dto;
             }
         };
-        
-        comentariosLazy.setPageSize(ITENS_POR_PAGINA);
     }
-    
-    /**
-     * Carrega comentários para uma notícia específica
-     */
-    public void carregarComentariosPorNoticia(Long noticiaId) {
+
+    public void criarComentario() {
         try {
-            this.noticiaId = noticiaId;
-            comentarios = comentarioService.listarPorNoticia(noticiaId, true); // apenas aprovados
+            Usuario usuario = authService.getUsuarioLogado();
+            if (usuario == null) {
+                return;
+            }
+            
+            Optional<NoticiaDTO> noticiaOpt = noticiaService.findById(comentarioAtual.getNoticiaId());
+             if (noticiaOpt.isEmpty()) {
+                 return;
+             }
+             NoticiaDTO noticiaDTO = noticiaOpt.get();
+            
+            comentarioService.criarComentario(comentarioAtual, usuario);
+            comentarioAtual = new ComentarioDTO();
         } catch (Exception e) {
-            logger.error("Erro ao carregar comentários da notícia", e);
-            addErrorMessage("Erro ao carregar comentários.");
+            // Log error
         }
     }
-    
-    /**
-     * Aplica filtros na listagem
-     */
-    public void aplicarFiltros() {
-        // O lazy model será recarregado automaticamente
+
+    public void aprovarComentario(Long id) {
+        try {
+            comentarioService.aprovarComentario(id);
+        } catch (Exception e) {
+            // Log error
+        }
+    }
+
+    public void rejeitarComentario(Long id) {
+        try {
+            comentarioService.rejeitarComentario(id);
+        } catch (Exception e) {
+            // Log error
+        }
+    }
+
+    public void deletarComentario(Long id) {
+        try {
+            comentarioService.deletarComentario(id);
+        } catch (Exception e) {
+            // Log error
+        }
+    }
+
+    public void novoComentario() {
+        comentarioAtual = new ComentarioDTO();
+    }
+
+    public void novoComentarioParaNoticia(Long noticiaId) {
+        comentarioAtual = new ComentarioDTO();
+        comentarioAtual.setNoticiaId(noticiaId);
     }
     
-    /**
-     * Limpa todos os filtros
-     */
     public void limparFiltros() {
-        filtroTermo = null;
-        filtroStatus = "todos";
-        filtroNoticia = null;
-        aplicarFiltros();
+        // Método para limpar filtros - implementação futura
     }
     
-    /**
-     * Adiciona novo comentário
-     * Referência: Validação de entrada no backend - project_rules.md
-     */
-    public void adicionarComentario() {
-        try {
-            // Verificar se usuário está logado
-            if (!authService.isLoggedIn()) {
-                addErrorMessage("Você precisa estar logado para comentar.");
-                return;
-            }
-            
-            // Definir dados do comentário
-            novoComentario.setNoticiaId(noticiaId);
-            novoComentario.setAutorId(authService.getUsuarioLogado().getId());
-            
-            // Salvar comentário
-            comentarioService.criar(novoComentario);
-            
-            // Limpar formulário e mostrar mensagem
-            novoComentario = new ComentarioDTO();
-            comentarioEnviado = true;
-            addInfoMessage("Comentário enviado! Aguarde aprovação da moderação.");
-            
-            // Recarregar comentários se estiver visualizando uma notícia
-            if (noticiaId != null) {
-                carregarComentariosPorNoticia(noticiaId);
-            }
-            
-        } catch (Exception e) {
-            logger.error("Erro ao adicionar comentário", e);
-            addErrorMessage("Erro ao enviar comentário: " + e.getMessage());
-        }
+    public void cancelarEdicao() {
+        comentarioAtual = null;
     }
-    
-    /**
-     * Aprova comentário
-     * Referência: Controle de Acesso - project_rules.md
-     */
-    public void aprovar(ComentarioDTO comentario) {
-        try {
-            // Verificar permissão
-            if (!authService.canModerateComments()) {
-                addErrorMessage("Você não tem permissão para moderar comentários.");
-                return;
-            }
-            
-            comentarioService.aprovar(comentario.getId());
-            addInfoMessage("Comentário aprovado com sucesso!");
-            
-            // Recarregar lista
-            aplicarFiltros();
-            
-        } catch (Exception e) {
-            logger.error("Erro ao aprovar comentário", e);
-            addErrorMessage("Erro ao aprovar comentário.");
-        }
-    }
-    
-    /**
-     * Prepara para rejeitar comentário
-     */
-    public void prepararRejeicao(ComentarioDTO comentario) {
-        comentarioSelecionado = comentario;
-        motivoRejeicao = "";
-        dialogoModeracaoVisivel = true;
-    }
-    
-    /**
-     * Rejeita comentário
-     * Referência: Controle de Acesso - project_rules.md
-     */
-    public void rejeitar() {
-        try {
-            // Verificar permissão
-            if (!authService.canModerateComments()) {
-                addErrorMessage("Você não tem permissão para moderar comentários.");
-                return;
-            }
-            
-            comentarioService.rejeitar(comentarioSelecionado.getId(), motivoRejeicao);
-            addInfoMessage("Comentário rejeitado.");
-            
-            // Fechar diálogo e recarregar lista
-            dialogoModeracaoVisivel = false;
-            aplicarFiltros();
-            
-        } catch (Exception e) {
-            logger.error("Erro ao rejeitar comentário", e);
-            addErrorMessage("Erro ao rejeitar comentário.");
-        }
-    }
-    
-    /**
-     * Exclui comentário
-     * Referência: Controle de Acesso - project_rules.md
-     */
-    public void excluir(ComentarioDTO comentario) {
-        try {
-            // Verificar permissão
-            if (!authService.canModerateComments()) {
-                addErrorMessage("Você não tem permissão para excluir comentários.");
-                return;
-            }
-            
-            comentarioService.excluir(comentario.getId());
-            addInfoMessage("Comentário excluído com sucesso!");
-            
-            // Recarregar lista
-            aplicarFiltros();
-            
-        } catch (Exception e) {
-            logger.error("Erro ao excluir comentário", e);
-            addErrorMessage("Erro ao excluir comentário.");
-        }
-    }
-    
-    /**
-     * Cancela operação de moderação
-     */
-    public void cancelarModeracao() {
-        dialogoModeracaoVisivel = false;
-        comentarioSelecionado = null;
-        motivoRejeicao = "";
-    }
-    
-    /**
-     * Verifica se usuário pode comentar
-     */
-    public boolean podeComentar() {
-        return authService.isLoggedIn();
-    }
-    
-    /**
-     * Verifica se usuário pode moderar
-     */
-    public boolean podeModerar() {
-        return authService.canModerateComments();
-    }
-    
-    // Métodos utilitários para mensagens
-    private void addInfoMessage(String message) {
-        FacesContext.getCurrentInstance().addMessage(null, 
-            new FacesMessage(FacesMessage.SEVERITY_INFO, "Sucesso", message));
-    }
-    
-    private void addErrorMessage(String message) {
-        FacesContext.getCurrentInstance().addMessage(null, 
-            new FacesMessage(FacesMessage.SEVERITY_ERROR, "Erro", message));
-    }
-    
+
     // Getters e Setters
     public LazyDataModel<ComentarioDTO> getComentariosLazy() {
         return comentariosLazy;
     }
-    
-    public List<ComentarioDTO> getComentarios() {
-        return comentarios;
+
+    public void setComentariosLazy(LazyDataModel<ComentarioDTO> comentariosLazy) {
+        this.comentariosLazy = comentariosLazy;
     }
-    
-    public String getFiltroTermo() {
-        return filtroTermo;
-    }
-    
-    public void setFiltroTermo(String filtroTermo) {
-        this.filtroTermo = filtroTermo;
-    }
-    
-    public String getFiltroStatus() {
-        return filtroStatus;
-    }
-    
-    public void setFiltroStatus(String filtroStatus) {
-        this.filtroStatus = filtroStatus;
-    }
-    
-    public Long getFiltroNoticia() {
-        return filtroNoticia;
-    }
-    
-    public void setFiltroNoticia(Long filtroNoticia) {
-        this.filtroNoticia = filtroNoticia;
-    }
-    
-    public ComentarioDTO getComentarioSelecionado() {
-        return comentarioSelecionado;
-    }
-    
-    public String getMotivoRejeicao() {
-        return motivoRejeicao;
-    }
-    
-    public void setMotivoRejeicao(String motivoRejeicao) {
-        this.motivoRejeicao = motivoRejeicao;
-    }
-    
-    public boolean isDialogoModeracaoVisivel() {
-        return dialogoModeracaoVisivel;
-    }
-    
-    public void setDialogoModeracaoVisivel(boolean dialogoModeracaoVisivel) {
-        this.dialogoModeracaoVisivel = dialogoModeracaoVisivel;
-    }
-    
+
     public ComentarioDTO getNovoComentario() {
         return novoComentario;
     }
-    
+
     public void setNovoComentario(ComentarioDTO novoComentario) {
         this.novoComentario = novoComentario;
     }
-    
+
+    public ComentarioDTO getComentarioAtual() {
+        return comentarioAtual;
+    }
+
+    public void setComentarioAtual(ComentarioDTO comentarioAtual) {
+        this.comentarioAtual = comentarioAtual;
+    }
+
     public Long getNoticiaId() {
         return noticiaId;
     }
-    
+
     public void setNoticiaId(Long noticiaId) {
         this.noticiaId = noticiaId;
     }
-    
-    public boolean isComentarioEnviado() {
-        return comentarioEnviado;
+
+    public Map<String, Object> getFiltros() {
+        return filtros;
     }
-    
-    public void setComentarioEnviado(boolean comentarioEnviado) {
-        this.comentarioEnviado = comentarioEnviado;
+
+    public void setFiltros(Map<String, Object> filtros) {
+        this.filtros = filtros;
     }
 }

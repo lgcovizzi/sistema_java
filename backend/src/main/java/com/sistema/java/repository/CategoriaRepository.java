@@ -75,9 +75,26 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
      * Conta categorias ativas
      * 
      * @param ativa Status ativo
-     * @return Número de categorias ativas
+     * @return Quantidade de categorias ativas
      */
     long countByAtiva(boolean ativa);
+
+    /**
+     * Conta categorias por nome (case insensitive)
+     * 
+     * @param nome Nome a ser pesquisado
+     * @return Quantidade de categorias encontradas
+     */
+    long countByNomeContainingIgnoreCase(String nome);
+
+    /**
+     * Conta categorias por nome e status ativo (case insensitive)
+     * 
+     * @param nome Nome a ser pesquisado
+     * @param ativa Status ativo
+     * @return Quantidade de categorias encontradas
+     */
+    long countByNomeContainingIgnoreCaseAndAtiva(String nome, boolean ativa);
 
     /**
      * Busca categorias com notícias publicadas

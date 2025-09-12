@@ -1,10 +1,13 @@
 package com.sistema.java.unit.service;
 
+import com.sistema.java.model.dto.ComentarioDTO;
 import com.sistema.java.model.entity.Comentario;
 import com.sistema.java.model.entity.Noticia;
 import com.sistema.java.model.entity.Usuario;
 import com.sistema.java.model.enums.PapelUsuario;
 import com.sistema.java.repository.ComentarioRepository;
+import com.sistema.java.repository.NoticiaRepository;
+import com.sistema.java.repository.UsuarioRepository;
 import com.sistema.java.service.ComentarioService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +41,12 @@ class ComentarioServiceTest {
 
     @Mock
     private ComentarioRepository comentarioRepository;
+    
+    @Mock
+    private NoticiaRepository noticiaRepository;
+    
+    @Mock
+    private UsuarioRepository usuarioRepository;
 
     @InjectMocks
     private ComentarioService comentarioService;
@@ -75,18 +84,21 @@ class ComentarioServiceTest {
     @Test
     void should_SaveComentario_When_ValidDataProvided() {
         // Arrange
+        ComentarioDTO comentarioDTO = new ComentarioDTO();
+        comentarioDTO.setConteudo("Este é um comentário de teste");
+        
+        when(usuarioRepository.findById(autor.getId())).thenReturn(Optional.of(autor));
+        when(noticiaRepository.findById(noticia.getId())).thenReturn(Optional.of(noticia));
         when(comentarioRepository.save(any(Comentario.class))).thenReturn(comentario);
 
         // Act
-        Comentario resultado = comentarioService.salvar(comentario);
+        ComentarioDTO resultado = comentarioService.create(comentarioDTO, autor.getId(), noticia.getId());
 
         // Assert
         assertThat(resultado).isNotNull();
         assertThat(resultado.getConteudo()).isEqualTo("Este é um comentário de teste");
-        assertThat(resultado.getAutor()).isEqualTo(autor);
-        assertThat(resultado.getNoticia()).isEqualTo(noticia);
-        assertThat(resultado.isAprovado()).isFalse();
-        verify(comentarioRepository).save(comentario);
+        assertThat(resultado.getAprovado()).isFalse();
+        verify(comentarioRepository).save(any(Comentario.class));
     }
 
     @Test
@@ -95,7 +107,7 @@ class ComentarioServiceTest {
         when(comentarioRepository.findById(1L)).thenReturn(Optional.of(comentario));
 
         // Act
-        Optional<Comentario> resultado = comentarioService.buscarPorId(1L);
+        Optional<ComentarioDTO> resultado = comentarioService.findById(1L);
 
         // Assert
         assertThat(resultado).isPresent();
@@ -109,7 +121,7 @@ class ComentarioServiceTest {
         when(comentarioRepository.findById(999L)).thenReturn(Optional.empty());
 
         // Act
-        Optional<Comentario> resultado = comentarioService.buscarPorId(999L);
+        Optional<ComentarioDTO> resultado = comentarioService.findById(999L);
 
         // Assert
         assertThat(resultado).isEmpty();
@@ -124,17 +136,16 @@ class ComentarioServiceTest {
         Page<Comentario> page = new PageImpl<>(comentarios);
         Pageable pageable = PageRequest.of(0, 10);
         
-        when(comentarioRepository.findByNoticiaAndAprovadoTrueOrderByDataCriacaoDesc(noticia, pageable))
+        when(comentarioRepository.findByNoticiaAndAprovado(noticia, true, pageable))
             .thenReturn(page);
 
         // Act
-        Page<Comentario> resultado = comentarioService.buscarAprovadosPorNoticia(noticia, pageable);
+        Page<ComentarioDTO> resultado = comentarioService.findByNoticia(noticia.getId(), true, pageable);
 
         // Assert
         assertThat(resultado.getContent()).hasSize(1);
-        assertThat(resultado.getContent().get(0).isAprovado()).isTrue();
-        assertThat(resultado.getContent().get(0).getNoticia()).isEqualTo(noticia);
-        verify(comentarioRepository).findByNoticiaAndAprovadoTrueOrderByDataCriacaoDesc(noticia, pageable);
+        assertThat(resultado.getContent().get(0).getAprovado()).isTrue();
+        verify(comentarioRepository).findByNoticiaAndAprovado(noticia, true, pageable);
     }
 
     @Test
@@ -148,11 +159,11 @@ class ComentarioServiceTest {
             .thenReturn(page);
 
         // Act
-        Page<Comentario> resultado = comentarioService.buscarPendentes(pageable);
+        Page<ComentarioDTO> resultado = comentarioService.findPendentes(pageable);
 
         // Assert
         assertThat(resultado.getContent()).hasSize(1);
-        assertThat(resultado.getContent().get(0).isAprovado()).isFalse();
+        assertThat(resultado.getContent().get(0).getAprovado()).isFalse();
         verify(comentarioRepository).findByAprovadoFalseOrderByDataCriacaoAsc(pageable);
     }
 
@@ -163,10 +174,10 @@ class ComentarioServiceTest {
         when(comentarioRepository.save(any(Comentario.class))).thenReturn(comentario);
 
         // Act
-        Comentario resultado = comentarioService.aprovar(1L);
+        ComentarioDTO resultado = comentarioService.aprovar(1L);
 
         // Assert
-        assertThat(resultado.isAprovado()).isTrue();
+        assertThat(resultado.getAprovado()).isTrue();
         verify(comentarioRepository).findById(1L);
         verify(comentarioRepository).save(comentario);
     }
@@ -193,10 +204,10 @@ class ComentarioServiceTest {
         when(comentarioRepository.save(any(Comentario.class))).thenReturn(comentario);
 
         // Act
-        Comentario resultado = comentarioService.rejeitar(1L);
+        ComentarioDTO resultado = comentarioService.reprovar(1L);
 
         // Assert
-        assertThat(resultado.isAprovado()).isFalse();
+        assertThat(resultado.getAprovado()).isFalse();
         verify(comentarioRepository).findById(1L);
         verify(comentarioRepository).save(comentario);
     }
@@ -208,7 +219,7 @@ class ComentarioServiceTest {
         doNothing().when(comentarioRepository).deleteById(1L);
 
         // Act
-        comentarioService.deletar(1L);
+        comentarioService.delete(1L);
 
         // Assert
         verify(comentarioRepository).existsById(1L);
@@ -221,7 +232,7 @@ class ComentarioServiceTest {
         when(comentarioRepository.existsById(999L)).thenReturn(false);
 
         // Act & Assert
-        assertThatThrownBy(() -> comentarioService.deletar(999L))
+        assertThatThrownBy(() -> comentarioService.delete(999L))
             .isInstanceOf(RuntimeException.class)
             .hasMessageContaining("Comentário não encontrado");
         
@@ -236,42 +247,42 @@ class ComentarioServiceTest {
         Page<Comentario> page = new PageImpl<>(comentarios);
         Pageable pageable = PageRequest.of(0, 10);
         
-        when(comentarioRepository.findByAutorOrderByDataCriacaoDesc(autor, pageable))
+        when(comentarioRepository.findByAutor(autor, pageable))
             .thenReturn(page);
 
         // Act
-        Page<Comentario> resultado = comentarioService.buscarPorAutor(autor, pageable);
+        Page<ComentarioDTO> resultado = comentarioService.findByAutor(autor.getId(), pageable);
 
         // Assert
         assertThat(resultado.getContent()).hasSize(1);
-        assertThat(resultado.getContent().get(0).getAutor()).isEqualTo(autor);
-        verify(comentarioRepository).findByAutorOrderByDataCriacaoDesc(autor, pageable);
+        assertThat(resultado.getContent().get(0).getAutor().getId()).isEqualTo(autor.getId());
+        verify(comentarioRepository).findByAutor(autor, pageable);
     }
 
     @Test
     void should_CountPendingComentarios_When_RequestingModerationCount() {
         // Arrange
-        when(comentarioRepository.countByAprovadoFalse()).thenReturn(5L);
+        when(comentarioRepository.countByAprovado(false)).thenReturn(5L);
 
         // Act
-        Long resultado = comentarioService.contarPendentes();
+        Long resultado = comentarioService.countPendentes();
 
         // Assert
         assertThat(resultado).isEqualTo(5L);
-        verify(comentarioRepository).countByAprovadoFalse();
+        verify(comentarioRepository).countByAprovado(false);
     }
 
     @Test
     void should_CountApprovedComentariosByNoticia_When_RequestingNoticiaStats() {
         // Arrange
-        when(comentarioRepository.countByNoticiaAndAprovadoTrue(noticia)).thenReturn(3L);
+        when(comentarioRepository.countByNoticiaAndAprovado(noticia, true)).thenReturn(3L);
 
         // Act
-        Long resultado = comentarioService.contarAprovadosPorNoticia(noticia);
+        Long resultado = comentarioService.countAprovadosPorNoticia(noticia.getId());
 
         // Assert
         assertThat(resultado).isEqualTo(3L);
-        verify(comentarioRepository).countByNoticiaAndAprovadoTrue(noticia);
+        verify(comentarioRepository).countByNoticiaAndAprovado(noticia, true);
     }
 
     @Test
@@ -287,7 +298,9 @@ class ComentarioServiceTest {
         when(comentarioRepository.save(any(Comentario.class))).thenReturn(comentarioAtualizado);
 
         // Act
-        Comentario resultado = comentarioService.atualizar(1L, comentarioAtualizado);
+        ComentarioDTO comentarioDTO = new ComentarioDTO();
+        comentarioDTO.setConteudo("Comentário atualizado");
+        ComentarioDTO resultado = comentarioService.update(1L, comentarioDTO);
 
         // Assert
         assertThat(resultado.getConteudo()).isEqualTo("Comentário atualizado");
@@ -304,7 +317,9 @@ class ComentarioServiceTest {
         when(comentarioRepository.findById(999L)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThatThrownBy(() -> comentarioService.atualizar(999L, comentarioAtualizado))
+        ComentarioDTO comentarioDTO = new ComentarioDTO();
+        comentarioDTO.setConteudo("Comentário atualizado");
+        assertThatThrownBy(() -> comentarioService.update(999L, comentarioDTO))
             .isInstanceOf(RuntimeException.class)
             .hasMessageContaining("Comentário não encontrado");
         

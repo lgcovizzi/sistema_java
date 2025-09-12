@@ -55,9 +55,10 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authz -> authz
                 // Endpoints públicos - acessíveis para CONVIDADO
-                .requestMatchers("/api/auth/login", "/api/auth/registro").permitAll()
+                .requestMatchers("/api/auth/login", "/api/auth/registro", "/api/auth/validar-token").permitAll()
                 .requestMatchers("/api/noticias/publicas").permitAll()
                 .requestMatchers("/api/email/mailhog-info").permitAll()
+                .requestMatchers("/error").permitAll()
                 
                 // Recursos estáticos
                 .requestMatchers("/resources/**", "/static/**", "/css/**", "/js/**", "/images/**").permitAll()
@@ -89,6 +90,9 @@ public class SecurityConfig {
                 // Endpoints de associado - ASSOCIADO e superiores
                 .requestMatchers("/api/associado/**").hasAnyRole("ASSOCIADO", "PARCEIRO", "COLABORADOR", "FUNDADOR", "ADMINISTRADOR")
                 .requestMatchers("/pages/associado/**").hasAnyRole("ASSOCIADO", "PARCEIRO", "COLABORADOR", "FUNDADOR", "ADMINISTRADOR")
+                
+                // Endpoints de autenticação que requerem token válido
+                .requestMatchers("/api/auth/me", "/api/auth/logout", "/api/auth/validar-token").hasAnyRole("USUARIO", "ASSOCIADO", "PARCEIRO", "COLABORADOR", "FUNDADOR", "ADMINISTRADOR")
                 
                 // Dashboard e perfil - todos os usuários autenticados (exceto CONVIDADO)
                 .requestMatchers("/api/dashboard/**", "/api/perfil/**").hasAnyRole("USUARIO", "ASSOCIADO", "PARCEIRO", "COLABORADOR", "FUNDADOR", "ADMINISTRADOR")

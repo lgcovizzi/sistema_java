@@ -1,7 +1,7 @@
 package com.sistema.java.bean;
 
-import com.sistema.java.model.Usuario;
-import com.sistema.java.model.enums.Role;
+import com.sistema.java.model.entity.Usuario;
+import com.sistema.java.model.enums.PapelUsuario;
 import com.sistema.java.service.AuthService;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.SessionScoped;
@@ -144,7 +144,7 @@ public class MenuBean implements Serializable {
         }
         
         // Configurações
-        if (authService.hasRole(Role.ADMINISTRADOR) || authService.hasRole(Role.FUNDADOR)) {
+        if (authService.hasRole(PapelUsuario.ADMINISTRADOR) || authService.hasRole(PapelUsuario.FUNDADOR)) {
             List<MenuItem> submenuConfig = new ArrayList<>();
             submenuConfig.add(new MenuItem("Sistema", "/admin/configuracoes/sistema.xhtml", "pi pi-cog", true));
             submenuConfig.add(new MenuItem("Email", "/admin/configuracoes/email.xhtml", "pi pi-envelope", true));
@@ -189,6 +189,13 @@ public class MenuBean implements Serializable {
     }
     
     /**
+     * Método alternativo para atualizar menu (usado em testes)
+     */
+    public void atualizarMenu() {
+        atualizarMenus();
+    }
+    
+    /**
      * Alterna estado do menu mobile
      */
     public void alternarMenuMobile() {
@@ -212,26 +219,26 @@ public class MenuBean implements Serializable {
     
     // Métodos de verificação de permissões
     public boolean podeAcessarAdmin() {
-        return authService.hasRole(Role.ADMINISTRADOR) || 
-               authService.hasRole(Role.FUNDADOR) || 
-               authService.hasRole(Role.COLABORADOR);
+        return authService.hasRole(PapelUsuario.ADMINISTRADOR) || 
+               authService.hasRole(PapelUsuario.FUNDADOR) || 
+               authService.hasRole(PapelUsuario.COLABORADOR);
     }
     
     public boolean podeGerenciarUsuarios() {
-        return authService.hasRole(Role.ADMINISTRADOR) || 
-               authService.hasRole(Role.FUNDADOR);
+        return authService.hasRole(PapelUsuario.ADMINISTRADOR) || 
+               authService.hasRole(PapelUsuario.FUNDADOR);
     }
     
     public boolean podeCriarNoticias() {
-        return authService.hasRole(Role.ADMINISTRADOR) || 
-               authService.hasRole(Role.FUNDADOR) || 
-               authService.hasRole(Role.COLABORADOR);
+        return authService.hasRole(PapelUsuario.ADMINISTRADOR) || 
+               authService.hasRole(PapelUsuario.FUNDADOR) || 
+               authService.hasRole(PapelUsuario.COLABORADOR);
     }
     
     public boolean podeGerenciarCategorias() {
-        return authService.hasRole(Role.ADMINISTRADOR) || 
-               authService.hasRole(Role.FUNDADOR) || 
-               authService.hasRole(Role.COLABORADOR);
+        return authService.hasRole(PapelUsuario.ADMINISTRADOR) || 
+               authService.hasRole(PapelUsuario.FUNDADOR) || 
+               authService.hasRole(PapelUsuario.COLABORADOR);
     }
     
     public boolean podeModerarComentarios() {
@@ -244,6 +251,23 @@ public class MenuBean implements Serializable {
     
     public Usuario getUsuarioLogado() {
         return authService.getUsuarioLogado();
+    }
+    
+    /**
+     * Retorna todos os itens de menu disponíveis para o usuário atual
+     */
+    public List<MenuItem> getMenuItems() {
+        List<MenuItem> allItems = new ArrayList<>();
+        if (menuPrincipal != null) {
+            allItems.addAll(menuPrincipal);
+        }
+        if (podeAcessarAdmin() && menuAdmin != null) {
+            allItems.addAll(menuAdmin);
+        }
+        if (isUsuarioLogado() && menuUsuario != null) {
+            allItems.addAll(menuUsuario);
+        }
+        return allItems;
     }
     
     // Getters e Setters

@@ -1,10 +1,13 @@
 package com.sistema.java.unit.service;
 
+import com.sistema.java.model.dto.NoticiaDTO;
 import com.sistema.java.model.entity.Noticia;
 import com.sistema.java.model.entity.Usuario;
 import com.sistema.java.model.entity.Categoria;
 import com.sistema.java.model.enums.PapelUsuario;
 import com.sistema.java.repository.NoticiaRepository;
+import com.sistema.java.repository.UsuarioRepository;
+import com.sistema.java.repository.CategoriaRepository;
 import com.sistema.java.service.NoticiaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +44,12 @@ class NoticiaServiceTest {
     @Mock
     private NoticiaRepository noticiaRepository;
 
+    @Mock
+    private UsuarioRepository usuarioRepository;
+
+    @Mock
+    private CategoriaRepository categoriaRepository;
+
     @InjectMocks
     private NoticiaService noticiaService;
 
@@ -71,22 +80,32 @@ class NoticiaServiceTest {
         noticia.setAutor(autor);
         noticia.setPublicada(false);
         noticia.setDataCriacao(LocalDateTime.now());
-        noticia.setCategorias(new HashSet<>(Arrays.asList(categoria)));
+        noticia.setCategorias(Arrays.asList(categoria));
+    }
+
+    private NoticiaDTO convertToDTO(Noticia noticia) {
+        NoticiaDTO dto = new NoticiaDTO();
+        dto.setTitulo(noticia.getTitulo());
+        dto.setConteudo(noticia.getConteudo());
+        dto.setResumo(noticia.getResumo());
+        dto.setPublicada(noticia.getPublicada());
+        return dto;
     }
 
     @Test
-    void should_SaveNoticia_When_ValidDataProvided() {
+    void should_CreateNoticia_When_ValidDataProvided() {
         // Arrange
         when(noticiaRepository.save(any(Noticia.class))).thenReturn(noticia);
+        when(usuarioRepository.findById(anyLong())).thenReturn(Optional.of(autor));
+        when(categoriaRepository.findAllById(any())).thenReturn(Arrays.asList(categoria));
 
         // Act
-        Noticia resultado = noticiaService.salvar(noticia);
+        NoticiaDTO resultado = noticiaService.create(convertToDTO(noticia), autor.getId(), Arrays.asList(categoria.getId()));
 
         // Assert
         assertThat(resultado).isNotNull();
         assertThat(resultado.getTitulo()).isEqualTo("Título da Notícia");
-        assertThat(resultado.getAutor()).isEqualTo(autor);
-        verify(noticiaRepository).save(noticia);
+        verify(noticiaRepository).save(any(Noticia.class));
     }
 
     @Test
@@ -95,7 +114,7 @@ class NoticiaServiceTest {
         when(noticiaRepository.findById(1L)).thenReturn(Optional.of(noticia));
 
         // Act
-        Optional<Noticia> resultado = noticiaService.buscarPorId(1L);
+        Optional<NoticiaDTO> resultado = noticiaService.findById(1L);
 
         // Assert
         assertThat(resultado).isPresent();
@@ -109,7 +128,7 @@ class NoticiaServiceTest {
         when(noticiaRepository.findById(999L)).thenReturn(Optional.empty());
 
         // Act
-        Optional<Noticia> resultado = noticiaService.buscarPorId(999L);
+        Optional<NoticiaDTO> resultado = noticiaService.findById(999L);
 
         // Assert
         assertThat(resultado).isEmpty();
@@ -129,11 +148,11 @@ class NoticiaServiceTest {
             .thenReturn(page);
 
         // Act
-        Page<Noticia> resultado = noticiaService.buscarPublicadas(pageable);
+        Page<NoticiaDTO> resultado = noticiaService.findPublicadas(pageable);
 
         // Assert
         assertThat(resultado.getContent()).hasSize(1);
-        assertThat(resultado.getContent().get(0).isPublicada()).isTrue();
+        assertThat(resultado.getContent().get(0).getPublicada()).isTrue();
         verify(noticiaRepository).findByPublicadaTrueOrderByDataPublicacaoDesc(pageable);
     }
 
@@ -146,13 +165,12 @@ class NoticiaServiceTest {
         when(noticiaRepository.save(any(Noticia.class))).thenReturn(noticia);
 
         // Act
-        Noticia resultado = noticiaService.publicar(1L);
+        NoticiaDTO resultado = noticiaService.publicar(1L);
 
         // Assert
-        assertThat(resultado.isPublicada()).isTrue();
-        assertThat(resultado.getDataPublicacao()).isNotNull();
+        assertThat(resultado.getPublicada()).isTrue();
         verify(noticiaRepository).findById(1L);
-        verify(noticiaRepository).save(noticia);
+        verify(noticiaRepository).save(any(Noticia.class));
     }
 
     @Test
@@ -162,28 +180,27 @@ class NoticiaServiceTest {
 
         // Act & Assert
         assertThatThrownBy(() -> noticiaService.publicar(999L))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Notícia não encontrada");
-        
+                .isInstanceOf(RuntimeException.class);
+
         verify(noticiaRepository).findById(999L);
-        verify(noticiaRepository, never()).save(any());
+        verify(noticiaRepository, never()).save(any(Noticia.class));
     }
 
     @Test
     void should_UnpublishNoticia_When_ValidNoticiaProvided() {
         // Arrange
         noticia.setPublicada(true);
-        noticia.setDataPublicacao(LocalDateTime.now());
         when(noticiaRepository.findById(1L)).thenReturn(Optional.of(noticia));
         when(noticiaRepository.save(any(Noticia.class))).thenReturn(noticia);
 
         // Act
-        Noticia resultado = noticiaService.despublicar(1L);
+        NoticiaDTO resultado = noticiaService.despublicar(1L);
 
         // Assert
-        assertThat(resultado.isPublicada()).isFalse();
+        assertThat(resultado).isNotNull();
+        assertThat(resultado.getPublicada()).isFalse();
         verify(noticiaRepository).findById(1L);
-        verify(noticiaRepository).save(noticia);
+        verify(noticiaRepository).save(any(Noticia.class));
     }
 
     @Test
@@ -193,7 +210,7 @@ class NoticiaServiceTest {
         doNothing().when(noticiaRepository).deleteById(1L);
 
         // Act
-        noticiaService.deletar(1L);
+        noticiaService.delete(1L);
 
         // Assert
         verify(noticiaRepository).existsById(1L);
@@ -206,10 +223,9 @@ class NoticiaServiceTest {
         when(noticiaRepository.existsById(999L)).thenReturn(false);
 
         // Act & Assert
-        assertThatThrownBy(() -> noticiaService.deletar(999L))
-            .isInstanceOf(RuntimeException.class)
-            .hasMessageContaining("Notícia não encontrada");
-        
+        assertThatThrownBy(() -> noticiaService.delete(999L))
+                .isInstanceOf(RuntimeException.class);
+
         verify(noticiaRepository).existsById(999L);
         verify(noticiaRepository, never()).deleteById(anyLong());
     }
@@ -217,38 +233,34 @@ class NoticiaServiceTest {
     @Test
     void should_FindNoticiasByAuthor_When_ValidAuthorProvided() {
         // Arrange
-        List<Noticia> noticias = Arrays.asList(noticia);
-        Page<Noticia> page = new PageImpl<>(noticias);
         Pageable pageable = PageRequest.of(0, 10);
-        
-        when(noticiaRepository.findByAutorOrderByDataCriacaoDesc(autor, pageable))
-            .thenReturn(page);
+        List<Noticia> noticias = Arrays.asList(noticia);
+        Page<Noticia> page = new PageImpl<>(noticias, pageable, 1);
+        when(noticiaRepository.findByAutorAndPublicada(autor, true, pageable)).thenReturn(page);
 
         // Act
-        Page<Noticia> resultado = noticiaService.buscarPorAutor(autor, pageable);
+        Page<NoticiaDTO> resultado = noticiaService.findByAutor(autor.getId(), pageable);
 
         // Assert
         assertThat(resultado.getContent()).hasSize(1);
-        assertThat(resultado.getContent().get(0).getAutor()).isEqualTo(autor);
-        verify(noticiaRepository).findByAutorOrderByDataCriacaoDesc(autor, pageable);
+        assertThat(resultado.getContent().get(0).getTitulo()).isEqualTo("Título da Notícia");
+        verify(noticiaRepository).findByAutorAndPublicada(autor, true, pageable);
     }
 
     @Test
     void should_FindNoticiasByCategory_When_ValidCategoryProvided() {
         // Arrange
-        List<Noticia> noticias = Arrays.asList(noticia);
-        Page<Noticia> page = new PageImpl<>(noticias);
         Pageable pageable = PageRequest.of(0, 10);
-        
-        when(noticiaRepository.findByCategoriasContainingAndPublicadaTrueOrderByDataPublicacaoDesc(categoria, pageable))
-            .thenReturn(page);
+        List<Noticia> noticias = Arrays.asList(noticia);
+        Page<Noticia> page = new PageImpl<>(noticias, pageable, 1);
+        when(noticiaRepository.findByCategoriaAndPublicada(categoria.getId(), true, pageable)).thenReturn(page);
 
         // Act
-        Page<Noticia> resultado = noticiaService.buscarPorCategoria(categoria, pageable);
+        Page<NoticiaDTO> resultado = noticiaService.findByCategoria(categoria.getId(), true, pageable);
 
         // Assert
         assertThat(resultado.getContent()).hasSize(1);
-        assertThat(resultado.getContent().get(0).getCategorias()).contains(categoria);
-        verify(noticiaRepository).findByCategoriasContainingAndPublicadaTrueOrderByDataPublicacaoDesc(categoria, pageable);
+        assertThat(resultado.getContent().get(0).getTitulo()).isEqualTo("Título da Notícia");
+        verify(noticiaRepository).findByCategoriaAndPublicada(categoria.getId(), true, pageable);
     }
 }

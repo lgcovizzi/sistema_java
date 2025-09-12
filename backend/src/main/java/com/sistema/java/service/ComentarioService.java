@@ -1,6 +1,8 @@
 package com.sistema.java.service;
 
 import com.sistema.java.model.dto.ComentarioDTO;
+import com.sistema.java.model.dto.NoticiaDTO;
+import com.sistema.java.model.dto.UsuarioDTO;
 import com.sistema.java.model.entity.Comentario;
 import com.sistema.java.model.entity.Noticia;
 import com.sistema.java.model.entity.Usuario;
@@ -9,12 +11,14 @@ import com.sistema.java.repository.NoticiaRepository;
 import com.sistema.java.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -294,10 +298,10 @@ public class ComentarioService {
      * @param diasAntigos Número de dias
      * @return Número de comentários removidos
      */
-    public int removerAntigosNaoAprovados(int diasAntigos) {
-        LocalDateTime dataLimite = LocalDateTime.now().minusDays(diasAntigos);
-        return comentarioRepository.removerAntigosNaoAprovados(dataLimite);
-    }
+    // public int removerAntigosNaoAprovados(int diasAntigos) {
+    //     LocalDateTime dataLimite = LocalDateTime.now().minusDays(diasAntigos);
+    //     return comentarioRepository.removerAntigosNaoAprovados(dataLimite);
+    // }
 
     /**
      * Conta comentários aprovados
@@ -317,6 +321,19 @@ public class ComentarioService {
     @Transactional(readOnly = true)
     public long countPendentes() {
         return comentarioRepository.countByAprovado(false);
+    }
+
+    /**
+     * Conta comentários aprovados por notícia
+     * 
+     * @param noticiaId ID da notícia
+     * @return Número de comentários aprovados da notícia
+     */
+    @Transactional(readOnly = true)
+    public long countAprovadosPorNoticia(Long noticiaId) {
+        Noticia noticia = noticiaRepository.findById(noticiaId)
+                .orElseThrow(() -> new IllegalArgumentException("Notícia não encontrada: " + noticiaId));
+        return comentarioRepository.countByNoticiaAndAprovado(noticia, true);
     }
 
     /**
@@ -340,6 +357,108 @@ public class ComentarioService {
     }
 
     /**
+     * Lista comentários com filtros aplicados
+     * 
+     * @param filtros Mapa de filtros
+     * @param first Primeiro registro
+     * @param pageSize Tamanho da página
+     * @param sortField Campo de ordenação
+     * @param sortOrder Ordem de classificação
+     * @return Lista de comentários filtrados
+     */
+    @Transactional(readOnly = true)
+    public List<Comentario> listarComFiltros(Map<String, Object> filtros, int first, int pageSize, String sortField, boolean sortOrder) {
+        // Implementação simplificada - retorna todos os comentários por enquanto
+        Pageable pageable = PageRequest.of(first / pageSize, pageSize);
+        return comentarioRepository.findAll(pageable).getContent();
+    }
+
+    /**
+     * Conta comentários com filtros aplicados
+     * 
+     * @param filtros Mapa de filtros
+     * @return Número de comentários que atendem aos filtros
+     */
+    @Transactional(readOnly = true)
+    public long contarComFiltros(Map<String, Object> filtros) {
+        // Implementação simplificada - retorna contagem total por enquanto
+        return comentarioRepository.count();
+    }
+
+    /**
+     * Cria um novo comentário
+     * 
+     * @param comentarioDTO Dados do comentário
+     * @param autor Autor do comentário
+     * @return Comentário criado
+     */
+    public ComentarioDTO criarComentario(ComentarioDTO comentarioDTO, Usuario autor) {
+        Noticia noticia = noticiaRepository.findById(comentarioDTO.getNoticiaId())
+                .orElseThrow(() -> new IllegalArgumentException("Notícia não encontrada: " + comentarioDTO.getNoticiaId()));
+        
+        Comentario comentario = new Comentario();
+        comentario.setConteudo(comentarioDTO.getConteudo());
+        comentario.setAutor(autor);
+        comentario.setNoticia(noticia);
+        comentario.setAprovado(false); // Comentários precisam ser aprovados
+        
+        Comentario salvo = comentarioRepository.save(comentario);
+        return convertToDTO(salvo);
+    }
+
+    /**
+     * Aprova um comentário
+     * 
+     * @param id ID do comentário
+     * @return Comentário aprovado
+     */
+    public Comentario aprovarComentario(Long id) {
+        Comentario comentario = comentarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Comentário não encontrado: " + id));
+        
+        comentario.setAprovado(true);
+        return comentarioRepository.save(comentario);
+    }
+
+    /**
+     * Rejeita um comentário
+     * 
+     * @param id ID do comentário
+     * @return Comentário rejeitado
+     */
+    public Comentario rejeitarComentario(Long id) {
+        Comentario comentario = comentarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Comentário não encontrado: " + id));
+        
+        comentario.setAprovado(false);
+        return comentarioRepository.save(comentario);
+    }
+
+    /**
+     * Deleta um comentário
+     * 
+     * @param id ID do comentário
+     */
+    public void deletarComentario(Long id) {
+        if (!comentarioRepository.existsById(id)) {
+            throw new IllegalArgumentException("Comentário não encontrado: " + id);
+        }
+        comentarioRepository.deleteById(id);
+    }
+
+    /**
+     * Busca comentário por ID (retorna entidade)
+     * 
+     * @param id ID do comentário
+     * @return Comentário encontrado
+     */
+    @Transactional(readOnly = true)
+    public Comentario buscarPorId(Long id) {
+        return comentarioRepository.findById(id)
+                .orElse(null);
+    }
+
+    /**
      * Busca usuários mais ativos nos comentários
      * 
      * @param limite Número máximo de usuários
@@ -347,7 +466,10 @@ public class ComentarioService {
      */
     @Transactional(readOnly = true)
     public List<Object[]> findUsuariosMaisAtivos(int limite) {
-        return comentarioRepository.findUsuariosMaisAtivos(limite);
+        List<Usuario> usuarios = comentarioRepository.findUsuariosMaisAtivos(limite);
+        return usuarios.stream()
+                .map(usuario -> new Object[]{usuario.getId(), usuario.getNome(), usuario.getEmail()})
+                .collect(Collectors.toList());
     }
 
     /**
@@ -362,9 +484,21 @@ public class ComentarioService {
         dto.setConteudo(comentario.getConteudo());
         dto.setAprovado(comentario.getAprovado());
         dto.setDataCriacao(comentario.getDataCriacao());
-        dto.setAutor(comentario.getAutor().getNome());
-        dto.setNoticiaId(comentario.getNoticia().getId());
-        dto.setNoticiaTitle(comentario.getNoticia().getTitulo());
+        
+        // Criar UsuarioDTO para o autor
+        UsuarioDTO autorDTO = new UsuarioDTO();
+        autorDTO.setId(comentario.getAutor().getId());
+        autorDTO.setNome(comentario.getAutor().getNome());
+        autorDTO.setSobrenome(comentario.getAutor().getSobrenome());
+        autorDTO.setEmail(comentario.getAutor().getEmail());
+        dto.setAutor(autorDTO);
+        
+        // Criar NoticiaDTO básico para a notícia
+        NoticiaDTO noticiaDTO = new NoticiaDTO();
+        noticiaDTO.setId(comentario.getNoticia().getId());
+        noticiaDTO.setTitulo(comentario.getNoticia().getTitulo());
+        dto.setNoticia(noticiaDTO);
+        
         return dto;
     }
 

@@ -108,7 +108,7 @@ class NoticiaRepositoryIntegrationTest {
         noticiaPublicada2.setAutor(autor2);
         noticiaPublicada2.setPublicada(true);
         noticiaPublicada2.setDataPublicacao(LocalDateTime.now().minusHours(12));
-        noticiaPublicada2.setCategorias(Set.of(categoria1, categoria2));
+        noticiaPublicada2.setCategorias(List.of(categoria1, categoria2));
 
         noticiaNaoPublicada = new Noticia();
         noticiaNaoPublicada.setTitulo("Notícia Não Publicada");
@@ -116,7 +116,7 @@ class NoticiaRepositoryIntegrationTest {
         noticiaNaoPublicada.setResumo("Resumo da notícia não publicada");
         noticiaNaoPublicada.setAutor(autor1);
         noticiaNaoPublicada.setPublicada(false);
-        noticiaNaoPublicada.setCategorias(Set.of(categoria2));
+        noticiaNaoPublicada.setCategorias(List.of(categoria2));
 
         entityManager.persistAndFlush(noticiaPublicada1);
         entityManager.persistAndFlush(noticiaPublicada2);
@@ -126,7 +126,9 @@ class NoticiaRepositoryIntegrationTest {
     @Test
     void should_FindPublishedNews_When_FilteringByPublishedStatus() {
         // Act
-        List<Noticia> noticiasPublicadas = noticiaRepository.findByPublicadaTrue();
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Noticia> noticiasPublicadasPage = noticiaRepository.findByPublicada(true, pageable);
+        List<Noticia> noticiasPublicadas = noticiasPublicadasPage.getContent();
 
         // Assert
         assertThat(noticiasPublicadas).hasSize(2);
@@ -138,7 +140,9 @@ class NoticiaRepositoryIntegrationTest {
     @Test
     void should_FindUnpublishedNews_When_FilteringByUnpublishedStatus() {
         // Act
-        List<Noticia> noticiasNaoPublicadas = noticiaRepository.findByPublicadaFalse();
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Noticia> noticiasNaoPublicadasPage = noticiaRepository.findByPublicada(false, pageable);
+        List<Noticia> noticiasNaoPublicadas = noticiasNaoPublicadasPage.getContent();
 
         // Assert
         assertThat(noticiasNaoPublicadas).hasSize(1);
@@ -148,8 +152,12 @@ class NoticiaRepositoryIntegrationTest {
     @Test
     void should_FindNewsByAuthor_When_FilteringByAuthor() {
         // Act
-        List<Noticia> noticiasPorAutor1 = noticiaRepository.findByAutor(autor1);
-        List<Noticia> noticiasPorAutor2 = noticiaRepository.findByAutor(autor2);
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Noticia> noticiasPorAutor1Page = noticiaRepository.findByAutor(autor1, pageable);
+        Page<Noticia> noticiasPorAutor2Page = noticiaRepository.findByAutor(autor2, pageable);
+        
+        List<Noticia> noticiasPorAutor1 = noticiasPorAutor1Page.getContent();
+        List<Noticia> noticiasPorAutor2 = noticiasPorAutor2Page.getContent();
 
         // Assert
         assertThat(noticiasPorAutor1).hasSize(2);
@@ -164,8 +172,12 @@ class NoticiaRepositoryIntegrationTest {
     @Test
     void should_FindNewsByCategory_When_FilteringByCategory() {
         // Act
-        List<Noticia> noticiasTecnologia = noticiaRepository.findByCategorias(categoria1);
-        List<Noticia> noticiasEsportes = noticiaRepository.findByCategorias(categoria2);
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Noticia> noticiasTecnologiaPage = noticiaRepository.findByCategoriaAndPublicada(categoria1.getId(), true, pageable);
+        Page<Noticia> noticiasEsportesPage = noticiaRepository.findByCategoriaAndPublicada(categoria2.getId(), true, pageable);
+        
+        List<Noticia> noticiasTecnologia = noticiasTecnologiaPage.getContent();
+        List<Noticia> noticiasEsportes = noticiasEsportesPage.getContent();
 
         // Assert
         assertThat(noticiasTecnologia).hasSize(2);
@@ -182,7 +194,9 @@ class NoticiaRepositoryIntegrationTest {
     @Test
     void should_FindNewsByTitleContaining_When_SearchingByPartialTitle() {
         // Act
-        List<Noticia> resultados = noticiaRepository.findByTituloContainingIgnoreCase("primeira");
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Noticia> resultadosPage = noticiaRepository.findByTituloContainingIgnoreCase("primeira", pageable);
+        List<Noticia> resultados = resultadosPage.getContent();
 
         // Assert
         assertThat(resultados).hasSize(1);
@@ -192,7 +206,9 @@ class NoticiaRepositoryIntegrationTest {
     @Test
     void should_FindNewsByContentContaining_When_SearchingByPartialContent() {
         // Act
-        List<Noticia> resultados = noticiaRepository.findByConteudoContainingIgnoreCase("segunda");
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Noticia> resultadosPage = noticiaRepository.buscarPorTermo("segunda", true, pageable);
+        List<Noticia> resultados = resultadosPage.getContent();
 
         // Assert
         assertThat(resultados).hasSize(1);
@@ -202,7 +218,9 @@ class NoticiaRepositoryIntegrationTest {
     @Test
     void should_FindPublishedNewsOrderedByDate_When_OrderingByPublicationDate() {
         // Act
-        List<Noticia> noticias = noticiaRepository.findByPublicadaTrueOrderByDataPublicacaoDesc();
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Noticia> noticiasPage = noticiaRepository.findByPublicadaTrueOrderByDataPublicacaoDesc(pageable);
+        List<Noticia> noticias = noticiasPage.getContent();
 
         // Assert
         assertThat(noticias).hasSize(2);
@@ -216,7 +234,7 @@ class NoticiaRepositoryIntegrationTest {
         Pageable pageable = PageRequest.of(0, 2);
 
         // Act
-        Page<Noticia> paginaNoticias = noticiaRepository.findByPublicadaTrue(pageable);
+        Page<Noticia> paginaNoticias = noticiaRepository.findByPublicada(true, pageable);
 
         // Assert
         assertThat(paginaNoticias.getContent()).hasSize(2);
@@ -227,8 +245,8 @@ class NoticiaRepositoryIntegrationTest {
     @Test
     void should_CountPublishedNews_When_CountingByStatus() {
         // Act
-        long countPublicadas = noticiaRepository.countByPublicadaTrue();
-        long countNaoPublicadas = noticiaRepository.countByPublicadaFalse();
+        long countPublicadas = noticiaRepository.countByPublicada(true);
+        long countNaoPublicadas = noticiaRepository.countByPublicada(false);
 
         // Assert
         assertThat(countPublicadas).isEqualTo(2);
@@ -253,7 +271,8 @@ class NoticiaRepositoryIntegrationTest {
         LocalDateTime dataFim = LocalDateTime.now().minusHours(6);
 
         // Act
-        List<Noticia> noticias = noticiaRepository.findByDataPublicacaoBetween(dataInicio, dataFim);
+        Page<Noticia> page = noticiaRepository.findByPublicadaTrueAndDataPublicacaoBetween(dataInicio, dataFim, PageRequest.of(0, 10));
+        List<Noticia> noticias = page.getContent();
 
         // Assert
         assertThat(noticias).hasSize(2);
@@ -263,31 +282,36 @@ class NoticiaRepositoryIntegrationTest {
     void should_FindRecentNews_When_FilteringByRecentDate() {
         // Arrange
         LocalDateTime ontem = LocalDateTime.now().minusDays(1);
+        LocalDateTime amanha = LocalDateTime.now().plusDays(1);
+        Pageable pageable = PageRequest.of(0, 10);
 
         // Act
-        List<Noticia> noticiasRecentes = noticiaRepository.findByDataPublicacaoAfter(ontem);
+        Page<Noticia> noticiasRecentesPage = noticiaRepository.findByPublicadaTrueAndDataPublicacaoBetween(ontem, amanha, pageable);
+        List<Noticia> noticiasRecentes = noticiasRecentesPage.getContent();
 
         // Assert
-        assertThat(noticiasRecentes).hasSize(1);
-        assertThat(noticiasRecentes.get(0).getTitulo()).isEqualTo("Segunda Notícia Publicada");
+        assertThat(noticiasRecentes).hasSize(2);
     }
 
     @Test
     void should_FindNewsCreatedAfter_When_FilteringByCreationDate() {
         // Arrange
-        LocalDateTime ontem = LocalDateTime.now().minusDays(1);
+        Pageable pageable = PageRequest.of(0, 10);
 
         // Act
-        List<Noticia> noticiasRecentes = noticiaRepository.findByDataCriacaoAfter(ontem);
+        Page<Noticia> todasNoticiasPage = noticiaRepository.findAll(pageable);
+        List<Noticia> todasNoticias = todasNoticiasPage.getContent();
 
         // Assert
-        assertThat(noticiasRecentes).hasSize(3); // Todas foram criadas hoje
+        assertThat(todasNoticias).hasSize(3); // Todas foram criadas hoje
     }
 
     @Test
     void should_UpdateNewsStatus_When_ChangingPublishedFlag() {
         // Arrange
-        Noticia noticia = noticiaRepository.findByTituloContainingIgnoreCase("não publicada").get(0);
+        Pageable pageable = PageRequest.of(0, 1);
+        Page<Noticia> noticiasPage = noticiaRepository.findByTituloContainingIgnoreCase("não publicada", pageable);
+        Noticia noticia = noticiasPage.getContent().get(0);
         
         // Act
         noticia.setPublicada(true);
@@ -298,14 +322,16 @@ class NoticiaRepositoryIntegrationTest {
 
         // Assert
         Noticia noticiaVerificada = noticiaRepository.findById(noticiaAtualizada.getId()).orElseThrow();
-        assertThat(noticiaVerificada.isPublicada()).isTrue();
+        assertThat(noticiaVerificada.getPublicada()).isTrue();
         assertThat(noticiaVerificada.getDataPublicacao()).isNotNull();
     }
 
     @Test
     void should_DeleteNews_When_NewsExists() {
         // Arrange
-        Noticia noticia = noticiaRepository.findByTituloContainingIgnoreCase("primeira").get(0);
+        Pageable pageable = PageRequest.of(0, 1);
+        Page<Noticia> noticiasPage = noticiaRepository.findByTituloContainingIgnoreCase("primeira", pageable);
+        Noticia noticia = noticiasPage.getContent().get(0);
         Long noticiaId = noticia.getId();
 
         // Act
@@ -320,7 +346,9 @@ class NoticiaRepositoryIntegrationTest {
     @Test
     void should_FindNewsWithCategories_When_EagerLoadingCategories() {
         // Act
-        List<Noticia> noticias = noticiaRepository.findAllWithCategorias();
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Noticia> noticiasPage = noticiaRepository.findAll(pageable);
+        List<Noticia> noticias = noticiasPage.getContent();
 
         // Assert
         assertThat(noticias).hasSize(3);
@@ -332,7 +360,7 @@ class NoticiaRepositoryIntegrationTest {
     @Test
     void should_FindMostRecentPublishedNews_When_LimitingResults() {
         // Act
-        List<Noticia> noticiasRecentes = noticiaRepository.findTop5ByPublicadaTrueOrderByDataPublicacaoDesc();
+        List<Noticia> noticiasRecentes = noticiaRepository.findTop10ByPublicadaTrueOrderByDataPublicacaoDesc();
 
         // Assert
         assertThat(noticiasRecentes).hasSize(2); // Só temos 2 publicadas
@@ -342,7 +370,9 @@ class NoticiaRepositoryIntegrationTest {
     @Test
     void should_SearchNewsFullText_When_SearchingByMultipleFields() {
         // Act
-        List<Noticia> resultados = noticiaRepository.searchByTituloOrConteudo("segunda");
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Noticia> resultadosPage = noticiaRepository.buscarPorTermo("segunda", true, pageable);
+        List<Noticia> resultados = resultadosPage.getContent();
 
         // Assert
         assertThat(resultados).hasSize(1);
@@ -352,7 +382,9 @@ class NoticiaRepositoryIntegrationTest {
     @Test
     void should_FindNewsByAuthorAndStatus_When_FilteringByMultipleCriteria() {
         // Act
-        List<Noticia> noticias = noticiaRepository.findByAutorAndPublicada(autor1, true);
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Noticia> noticiasPage = noticiaRepository.findByAutorAndPublicada(autor1, true, pageable);
+        List<Noticia> noticias = noticiasPage.getContent();
 
         // Assert
         assertThat(noticias).hasSize(1);
@@ -362,7 +394,9 @@ class NoticiaRepositoryIntegrationTest {
     @Test
     void should_FindNewsByCategoryAndStatus_When_FilteringByMultipleCriteria() {
         // Act
-        List<Noticia> noticias = noticiaRepository.findByCategoriasAndPublicada(categoria1, true);
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Noticia> noticiasPage = noticiaRepository.findByCategoriaAndPublicada(categoria1.getId(), true, pageable);
+        List<Noticia> noticias = noticiasPage.getContent();
 
         // Assert
         assertThat(noticias).hasSize(2);

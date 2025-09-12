@@ -60,6 +60,10 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         final String requestURI = request.getRequestURI();
         final String method = request.getMethod();
         
+        // Log para debug - verificar se o filtro está sendo aplicado incorretamente
+        logger.info("JwtRequestFilter aplicado para: {} {} - shouldNotFilter: {}", 
+                   method, requestURI, shouldNotFilter(request));
+        
         String username = null;
         String jwtToken = null;
         
@@ -134,6 +138,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             "/api/noticias/publicas",
             "/api/email/mailhog-info",
             "/actuator/health",
+            "/error",
             "/resources/",
             "/static/",
             "/css/",
@@ -167,24 +172,32 @@ public class JwtRequestFilter extends OncePerRequestFilter {
      * Referência: Controle de Acesso - project_rules.md
      * 
      * @param request Requisição HTTP
-     * @return false para aplicar o filtro (comportamento padrão)
+     * @return true para NÃO aplicar o filtro (pular filtro)
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
         
         // Pular filtro para recursos estáticos específicos que sabemos que não precisam
-        return path.endsWith(".css") || 
-               path.endsWith(".js") || 
-               path.endsWith(".png") || 
-               path.endsWith(".jpg") || 
-               path.endsWith(".jpeg") || 
-               path.endsWith(".gif") || 
-               path.endsWith(".ico") ||
-               path.endsWith(".svg") ||
-               path.endsWith(".woff") ||
-               path.endsWith(".woff2") ||
-               path.endsWith(".ttf") ||
-               path.endsWith(".eot");
+        if (path.endsWith(".css") || 
+            path.endsWith(".js") || 
+            path.endsWith(".png") || 
+            path.endsWith(".jpg") || 
+            path.endsWith(".jpeg") || 
+            path.endsWith(".gif") || 
+            path.endsWith(".ico") ||
+            path.endsWith(".svg") ||
+            path.endsWith(".woff") ||
+            path.endsWith(".woff2") ||
+            path.endsWith(".ttf") ||
+            path.endsWith(".eot")) {
+            return true;
+        }
+        
+        // Pular filtro para endpoints públicos (não aplicar filtro JWT)
+        // Se NÃO requer autenticação, então NÃO aplicar o filtro
+        boolean isPublic = !requiresAuthentication(path);
+        logger.debug("Endpoint {} é público: {} - shouldNotFilter: {}", path, isPublic, isPublic);
+        return isPublic;
     }
 }

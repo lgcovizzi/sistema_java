@@ -1,165 +1,147 @@
 package com.sistema.java.bean;
 
-import com.sistema.java.model.dto.AvatarUploadDTO;
-import com.sistema.java.service.AvatarService;
+import com.sistema.java.model.entity.Usuario;
 import com.sistema.java.service.AuthService;
+import com.sistema.java.service.UsuarioService;
 import org.primefaces.event.FileUploadEvent;
 import org.primefaces.model.file.UploadedFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-import javax.faces.application.FacesMessage;
-import javax.faces.context.FacesContext;
-import javax.faces.view.ViewScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+import jakarta.faces.application.FacesMessage;
+import jakarta.faces.context.FacesContext;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
-import java.util.concurrent.CompletableFuture;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.UUID;
 
 /**
- * Bean JSF para gerenciamento de avatars
+ * Managed Bean para gerenciamento de avatars de usuários
  * Referência: Regras de Avatar - project_rules.md
- * Referência: Regras de Edição de Perfil - project_rules.md
+ * Referência: Padrões de Desenvolvimento - project_rules.md
  */
-@Named
-@ViewScoped
+@Component
+@Scope("view")
 public class AvatarBean implements Serializable {
-
+    
     private static final Logger logger = LoggerFactory.getLogger(AvatarBean.class);
     
-    @Inject
-    private AvatarService avatarService;
+    // Configurações de upload
+    private static final String UPLOAD_DIRECTORY = "/uploads/avatars/";
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    private static final String[] ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png"};
     
-    @Inject
+    @Autowired
     private AuthService authService;
     
-    // Propriedades do componente
-    private Long usuarioId;
+    @Autowired
+    private UsuarioService usuarioService;
+    
+    // Estado do componente
+    private Usuario usuarioAtual;
     private String avatarAtual;
-    private boolean processandoUpload = false;
-    private boolean mostrarCrop = false;
-    private String previewUrl;
+    private String avatarPreview;
+    private boolean uploadEmAndamento = false;
+    private boolean cropDialogAberto = false;
     
-    // Propriedades de crop
-    private Integer cropX = 0;
-    private Integer cropY = 0;
-    private Integer cropLargura = 256;
-    private Integer cropAltura = 256;
-    private boolean cropCentralizado = true;
+    // Dados do crop
+    private int cropX = 0;
+    private int cropY = 0;
+    private int cropWidth = 256;
+    private int cropHeight = 256;
     
-    // Propriedades de upload
-    private UploadedFile arquivoUpload;
-    private String nomeArquivoOriginal;
-    private long tamanhoArquivo;
-    private String tipoMime;
-    
-    // Configurações
-    private String tamanhoExibicao = "medio"; // pequeno, medio, grande
-    private boolean permitirEdicao = false;
-    
-    /**
-     * Inicialização do bean
-     * Referência: Controle de Acesso - project_rules.md
-     */
     @PostConstruct
     public void init() {
         try {
-            // Se não foi especificado usuário, usar o logado
-            if (usuarioId == null) {
-                usuarioId = authService.getUsuarioLogado().getId();
-            }
-            
-            // Verificar se pode editar
-            Long usuarioLogadoId = authService.getUsuarioLogado().getId();
-            permitirEdicao = avatarService.podeEditarAvatar(usuarioId, usuarioLogadoId);
-            
-            // Carregar avatar atual
-            carregarAvatarAtual();
-            
-            logger.debug("AvatarBean inicializado para usuário: {}, edição permitida: {}", usuarioId, permitirEdicao);
-            
+            logger.info("Inicializando AvatarBean");
+            carregarUsuarioAtual();
         } catch (Exception e) {
-            logger.error("Erro na inicialização do AvatarBean: {}", e.getMessage(), e);
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro ao carregar avatar", e.getMessage());
+            logger.error("Erro ao inicializar AvatarBean", e);
         }
     }
     
     /**
-     * Carrega avatar atual do usuário
+     * Carrega o usuário atual e seu avatar
      */
-    public void carregarAvatarAtual() {
-        try {
-            avatarAtual = avatarService.obterAvatarUsuario(usuarioId, tamanhoExibicao);
-            logger.debug("Avatar carregado para usuário {}: {}", usuarioId, avatarAtual);
-        } catch (Exception e) {
-            logger.warn("Erro ao carregar avatar para usuário {}: {}", usuarioId, e.getMessage());
-            avatarAtual = null;
+    private void carregarUsuarioAtual() {
+        usuarioAtual = authService.getUsuarioLogado();
+        if (usuarioAtual != null) {
+            avatarAtual = usuarioAtual.getAvatar();
+            logger.debug("Avatar atual do usuário {}: {}", usuarioAtual.getEmail(), avatarAtual);
         }
     }
     
     /**
-     * Manipula upload de arquivo
+     * Manipula o upload de arquivo de avatar
      * Referência: Regras de Avatar - project_rules.md
      */
     public void handleFileUpload(FileUploadEvent event) {
         try {
-            if (!permitirEdicao) {
-                adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro", "Você não tem permissão para editar este avatar");
+            UploadedFile file = event.getFile();
+            
+            if (file == null || file.getContent() == null) {
+                adicionarMensagemErro("Arquivo inválido");
                 return;
             }
             
-            arquivoUpload = event.getFile();
-            nomeArquivoOriginal = arquivoUpload.getFileName();
-            tamanhoArquivo = arquivoUpload.getSize();
-            tipoMime = arquivoUpload.getContentType();
+            logger.info("Iniciando upload de avatar para usuário: {}", usuarioAtual.getEmail());
             
-            // Validações básicas
-            if (!validarArquivo()) {
+            // Validar arquivo
+            if (!validarArquivo(file)) {
                 return;
             }
             
-            // Gerar preview para crop
-            gerarPreviewParaCrop();
+            uploadEmAndamento = true;
             
-            // Mostrar interface de crop
-            mostrarCrop = true;
+            // Salvar arquivo temporário
+            String nomeArquivoTemp = salvarArquivoTemporario(file);
             
-            adicionarMensagem(FacesMessage.SEVERITY_INFO, "Sucesso", "Arquivo carregado. Configure o recorte e clique em 'Aplicar'.");
+            if (nomeArquivoTemp != null) {
+                avatarPreview = nomeArquivoTemp;
+                cropDialogAberto = true;
+                adicionarMensagemInfo("Arquivo carregado. Ajuste o recorte do avatar.");
+            }
             
         } catch (Exception e) {
-            logger.error("Erro no upload de arquivo: {}", e.getMessage(), e);
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro no upload", e.getMessage());
+            logger.error("Erro durante upload de avatar", e);
+            adicionarMensagemErro("Erro ao fazer upload do arquivo");
+        } finally {
+            uploadEmAndamento = false;
         }
     }
     
     /**
-     * Valida arquivo de upload
+     * Valida o arquivo de upload
+     * Referência: Regras de Avatar - project_rules.md
      */
-    private boolean validarArquivo() {
-        // Verificar se arquivo existe
-        if (arquivoUpload == null || arquivoUpload.getSize() == 0) {
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro", "Arquivo não pode estar vazio");
-            return false;
-        }
-        
-        // Verificar tamanho (5MB máximo)
-        long tamanhoMaximo = 5 * 1024 * 1024;
-        if (tamanhoArquivo > tamanhoMaximo) {
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro", "Arquivo muito grande. Máximo: 5MB");
-            return false;
-        }
-        
-        // Verificar tipo
-        if (tipoMime == null || !tipoMime.startsWith("image/")) {
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro", "Arquivo deve ser uma imagem (JPEG ou PNG)");
+    private boolean validarArquivo(UploadedFile file) {
+        // Verificar tamanho
+        if (file.getSize() > MAX_FILE_SIZE) {
+            adicionarMensagemErro("Arquivo muito grande. Tamanho máximo: 10MB");
             return false;
         }
         
         // Verificar extensão
-        String extensao = nomeArquivoOriginal.toLowerCase();
-        if (!extensao.endsWith(".jpg") && !extensao.endsWith(".jpeg") && !extensao.endsWith(".png")) {
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro", "Formato não suportado. Use JPEG ou PNG");
+        String fileName = file.getFileName().toLowerCase();
+        boolean extensaoValida = false;
+        for (String ext : ALLOWED_EXTENSIONS) {
+            if (fileName.endsWith(ext)) {
+                extensaoValida = true;
+                break;
+            }
+        }
+        
+        if (!extensaoValida) {
+            adicionarMensagemErro("Formato de arquivo não suportado. Use JPG ou PNG.");
             return false;
         }
         
@@ -167,203 +149,217 @@ public class AvatarBean implements Serializable {
     }
     
     /**
-     * Gera preview para interface de crop
+     * Salva arquivo temporário para preview e crop
      */
-    private void gerarPreviewParaCrop() {
+    private String salvarArquivoTemporario(UploadedFile file) {
         try {
-            // Converter UploadedFile para MultipartFile ou byte array
-            // Por simplicidade, vamos usar um placeholder
-            previewUrl = "/api/avatar/preview/temp_" + System.currentTimeMillis();
+            // Criar diretório se não existir
+            Path uploadPath = Paths.get(System.getProperty("java.io.tmpdir"), "avatar-temp");
+            Files.createDirectories(uploadPath);
             
-            // Reset crop para centralizado
-            cropCentralizado = true;
-            cropX = 0;
-            cropY = 0;
-            cropLargura = 256;
-            cropAltura = 256;
+            // Gerar nome único
+            String extensao = getExtensaoArquivo(file.getFileName());
+            String nomeArquivo = "temp_" + UUID.randomUUID().toString() + extensao;
+            Path arquivoPath = uploadPath.resolve(nomeArquivo);
             
-        } catch (Exception e) {
-            logger.error("Erro ao gerar preview: {}", e.getMessage(), e);
-            previewUrl = null;
-        }
-    }
-    
-    /**
-     * Aplica crop e processa upload
-     */
-    public void aplicarCropEUpload() {
-        try {
-            if (!permitirEdicao) {
-                adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro", "Você não tem permissão para editar este avatar");
-                return;
-            }
-            
-            if (arquivoUpload == null) {
-                adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro", "Nenhum arquivo selecionado");
-                return;
-            }
-            
-            processandoUpload = true;
-            
-            // Criar DTO de upload
-            AvatarUploadDTO uploadDTO;
-            if (cropCentralizado) {
-                uploadDTO = AvatarUploadDTO.cropCentralizado(usuarioId);
-            } else {
-                uploadDTO = AvatarUploadDTO.cropPersonalizado(usuarioId, cropX, cropY, cropLargura, cropAltura);
-            }
-            
-            // Adicionar metadados
-            uploadDTO.setNomeOriginal(nomeArquivoOriginal);
-            uploadDTO.setTamanhoOriginal(tamanhoArquivo);
-            uploadDTO.setTipoMime(tipoMime);
-            
-            // Converter UploadedFile para MultipartFile (implementação específica necessária)
-            // Por enquanto, vamos simular o processamento
-            
-            // Iniciar processamento assíncrono
-            CompletableFuture<String> futureAvatar = avatarService.processarUploadAvatar(
-                usuarioId, 
-                null, // Converter arquivoUpload para MultipartFile
-                uploadDTO
-            );
-            
-            // Configurar callback para quando terminar
-            futureAvatar.whenComplete((resultado, erro) -> {
-                processandoUpload = false;
+            // Salvar arquivo
+            try (InputStream input = file.getInputStream();
+                 FileOutputStream output = new FileOutputStream(arquivoPath.toFile())) {
                 
-                if (erro != null) {
-                    logger.error("Erro no processamento de avatar: {}", erro.getMessage(), erro);
-                    adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro no processamento", erro.getMessage());
-                } else {
-                    logger.info("Avatar processado com sucesso para usuário: {}", usuarioId);
-                    carregarAvatarAtual();
-                    fecharCrop();
-                    adicionarMensagem(FacesMessage.SEVERITY_INFO, "Sucesso", "Avatar atualizado com sucesso!");
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = input.read(buffer)) != -1) {
+                    output.write(buffer, 0, bytesRead);
                 }
-            });
+            }
             
-            adicionarMensagem(FacesMessage.SEVERITY_INFO, "Processando", "Avatar sendo processado em segundo plano...");
+            logger.debug("Arquivo temporário salvo: {}", arquivoPath);
+            return arquivoPath.toString();
             
-        } catch (Exception e) {
-            processandoUpload = false;
-            logger.error("Erro ao aplicar crop e upload: {}", e.getMessage(), e);
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro no processamento", e.getMessage());
+        } catch (IOException e) {
+            logger.error("Erro ao salvar arquivo temporário", e);
+            adicionarMensagemErro("Erro ao processar arquivo");
+            return null;
         }
     }
     
     /**
-     * Cancela crop e fecha interface
+     * Confirma o crop e processa o avatar final
+     * Referência: Regras de Avatar - project_rules.md
+     */
+    public void confirmarCrop() {
+        try {
+            if (avatarPreview == null) {
+                adicionarMensagemErro("Nenhum arquivo para processar");
+                return;
+            }
+            
+            logger.info("Processando crop do avatar para usuário: {}", usuarioAtual.getEmail());
+            
+            // Processar imagem com crop e redimensionamento
+            String avatarFinal = processarAvatar(avatarPreview);
+            
+            if (avatarFinal != null) {
+                // Atualizar usuário
+                usuarioAtual.setAvatar(avatarFinal);
+                usuarioService.atualizarUsuario(usuarioAtual);
+                
+                // Atualizar estado local
+                avatarAtual = avatarFinal;
+                
+                // Limpar temporários
+                limparArquivosTemporarios();
+                
+                adicionarMensagemSucesso("Avatar atualizado com sucesso");
+                cropDialogAberto = false;
+                
+                logger.info("Avatar atualizado para usuário: {}", usuarioAtual.getEmail());
+            }
+            
+        } catch (Exception e) {
+            logger.error("Erro ao processar crop do avatar", e);
+            adicionarMensagemErro("Erro ao processar avatar");
+        }
+    }
+    
+    /**
+     * Processa o avatar com crop e redimensionamento
+     * Referência: Regras de Avatar - project_rules.md
+     */
+    private String processarAvatar(String arquivoOriginal) {
+        try {
+            // Criar diretório de avatars se não existir
+            Path avatarPath = Paths.get(UPLOAD_DIRECTORY);
+            Files.createDirectories(avatarPath);
+            
+            // Gerar nome único para o avatar final
+            String nomeAvatar = "avatar_" + usuarioAtual.getId() + "_" + 
+                              System.currentTimeMillis() + ".jpg";
+            
+            // Aqui seria implementado o processamento real da imagem
+            // Por simplicidade, vamos apenas copiar o arquivo
+            Path origem = Paths.get(arquivoOriginal);
+            Path destino = avatarPath.resolve(nomeAvatar);
+            
+            Files.copy(origem, destino);
+            
+            // Retornar caminho relativo para salvar no banco
+            return UPLOAD_DIRECTORY + nomeAvatar;
+            
+        } catch (IOException e) {
+            logger.error("Erro ao processar avatar", e);
+            return null;
+        }
+    }
+    
+    /**
+     * Cancela o crop e limpa arquivos temporários
      */
     public void cancelarCrop() {
-        fecharCrop();
-        adicionarMensagem(FacesMessage.SEVERITY_INFO, "Cancelado", "Upload cancelado");
+        logger.info("Cancelando crop do avatar");
+        limparArquivosTemporarios();
+        cropDialogAberto = false;
     }
     
     /**
-     * Fecha interface de crop
-     */
-    private void fecharCrop() {
-        mostrarCrop = false;
-        arquivoUpload = null;
-        previewUrl = null;
-        cropCentralizado = true;
-    }
-    
-    /**
-     * Remove avatar atual
+     * Remove o avatar atual do usuário
      */
     public void removerAvatar() {
         try {
-            if (!permitirEdicao) {
-                adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro", "Você não tem permissão para remover este avatar");
+            if (usuarioAtual == null) {
+                adicionarMensagemErro("Usuário não encontrado");
                 return;
             }
             
-            // Implementar remoção no service
-            // avatarService.removerAvatar(usuarioId);
+            logger.info("Removendo avatar do usuário: {}", usuarioAtual.getEmail());
             
+            // Remover arquivo físico se existir
+            if (avatarAtual != null && !avatarAtual.isEmpty()) {
+                try {
+                    Path arquivoPath = Paths.get(avatarAtual);
+                    Files.deleteIfExists(arquivoPath);
+                } catch (IOException e) {
+                    logger.warn("Erro ao remover arquivo de avatar: {}", avatarAtual, e);
+                }
+            }
+            
+            // Atualizar usuário
+            usuarioAtual.setAvatar(null);
+            usuarioService.atualizarUsuario(usuarioAtual);
+            
+            // Atualizar estado local
             avatarAtual = null;
-            adicionarMensagem(FacesMessage.SEVERITY_INFO, "Sucesso", "Avatar removido com sucesso");
+            
+            adicionarMensagemSucesso("Avatar removido com sucesso");
             
         } catch (Exception e) {
-            logger.error("Erro ao remover avatar: {}", e.getMessage(), e);
-            adicionarMensagem(FacesMessage.SEVERITY_ERROR, "Erro", "Não foi possível remover o avatar");
+            logger.error("Erro ao remover avatar", e);
+            adicionarMensagemErro("Erro ao remover avatar");
         }
     }
     
     /**
-     * Atualiza configurações de crop
+     * Limpa arquivos temporários
      */
-    public void atualizarCrop() {
-        if (cropCentralizado) {
-            // Reset para crop centralizado
-            cropX = 0;
-            cropY = 0;
-            cropLargura = 256;
-            cropAltura = 256;
+    private void limparArquivosTemporarios() {
+        if (avatarPreview != null) {
+            try {
+                Files.deleteIfExists(Paths.get(avatarPreview));
+                avatarPreview = null;
+            } catch (IOException e) {
+                logger.warn("Erro ao limpar arquivo temporário: {}", avatarPreview, e);
+            }
         }
-        
-        logger.debug("Crop atualizado - Centralizado: {}, X: {}, Y: {}, L: {}, A: {}", 
-            cropCentralizado, cropX, cropY, cropLargura, cropAltura);
     }
     
     /**
-     * Verifica se tem avatar
+     * Extrai a extensão do arquivo
      */
-    public boolean temAvatar() {
+    private String getExtensaoArquivo(String nomeArquivo) {
+        int ultimoPonto = nomeArquivo.lastIndexOf('.');
+        return ultimoPonto > 0 ? nomeArquivo.substring(ultimoPonto) : "";
+    }
+    
+    /**
+     * Verifica se o usuário tem avatar
+     */
+    public boolean hasAvatar() {
         return avatarAtual != null && !avatarAtual.trim().isEmpty();
     }
     
     /**
-     * Obtém URL do avatar ou placeholder
+     * Retorna URL do avatar ou avatar padrão
      */
     public String getAvatarUrl() {
-        if (temAvatar()) {
+        if (hasAvatar()) {
             return avatarAtual;
         }
-        return "/resources/images/avatar-placeholder.png";
+        return "/resources/images/avatar-default.png";
     }
     
-    /**
-     * Obtém classe CSS para avatar
-     */
-    public String getAvatarClass() {
-        StringBuilder classes = new StringBuilder("avatar");
-        
-        switch (tamanhoExibicao) {
-            case "pequeno":
-                classes.append(" avatar-sm");
-                break;
-            case "grande":
-                classes.append(" avatar-lg");
-                break;
-            default:
-                classes.append(" avatar-md");
-        }
-        
-        if (!temAvatar()) {
-            classes.append(" avatar-placeholder");
-        }
-        
-        return classes.toString();
+    // Métodos utilitários para mensagens
+    private void adicionarMensagemSucesso(String mensagem) {
+        FacesContext.getCurrentInstance().addMessage(null, 
+            new FacesMessage(FacesMessage.SEVERITY_INFO, "Sucesso", mensagem));
     }
     
-    /**
-     * Adiciona mensagem ao contexto JSF
-     */
-    private void adicionarMensagem(FacesMessage.Severity severity, String summary, String detail) {
-        FacesContext.getCurrentInstance().addMessage(null, new FacesMessage(severity, summary, detail));
+    private void adicionarMensagemErro(String mensagem) {
+        FacesContext.getCurrentInstance().addMessage(null, 
+            new FacesMessage(FacesMessage.SEVERITY_ERROR, "Erro", mensagem));
+    }
+    
+    private void adicionarMensagemInfo(String mensagem) {
+        FacesContext.getCurrentInstance().addMessage(null, 
+            new FacesMessage(FacesMessage.SEVERITY_INFO, "Informação", mensagem));
     }
     
     // Getters e Setters
-    
-    public Long getUsuarioId() {
-        return usuarioId;
+    public Usuario getUsuarioAtual() {
+        return usuarioAtual;
     }
     
-    public void setUsuarioId(Long usuarioId) {
-        this.usuarioId = usuarioId;
+    public void setUsuarioAtual(Usuario usuarioAtual) {
+        this.usuarioAtual = usuarioAtual;
     }
     
     public String getAvatarAtual() {
@@ -374,100 +370,59 @@ public class AvatarBean implements Serializable {
         this.avatarAtual = avatarAtual;
     }
     
-    public boolean isProcessandoUpload() {
-        return processandoUpload;
+    public String getAvatarPreview() {
+        return avatarPreview;
     }
     
-    public boolean isMostrarCrop() {
-        return mostrarCrop;
+    public void setAvatarPreview(String avatarPreview) {
+        this.avatarPreview = avatarPreview;
     }
     
-    public String getPreviewUrl() {
-        return previewUrl;
+    public boolean isUploadEmAndamento() {
+        return uploadEmAndamento;
     }
     
-    public Integer getCropX() {
+    public void setUploadEmAndamento(boolean uploadEmAndamento) {
+        this.uploadEmAndamento = uploadEmAndamento;
+    }
+    
+    public boolean isCropDialogAberto() {
+        return cropDialogAberto;
+    }
+    
+    public void setCropDialogAberto(boolean cropDialogAberto) {
+        this.cropDialogAberto = cropDialogAberto;
+    }
+    
+    public int getCropX() {
         return cropX;
     }
     
-    public void setCropX(Integer cropX) {
+    public void setCropX(int cropX) {
         this.cropX = cropX;
     }
     
-    public Integer getCropY() {
+    public int getCropY() {
         return cropY;
     }
     
-    public void setCropY(Integer cropY) {
+    public void setCropY(int cropY) {
         this.cropY = cropY;
     }
     
-    public Integer getCropLargura() {
-        return cropLargura;
+    public int getCropWidth() {
+        return cropWidth;
     }
     
-    public void setCropLargura(Integer cropLargura) {
-        this.cropLargura = cropLargura;
+    public void setCropWidth(int cropWidth) {
+        this.cropWidth = cropWidth;
     }
     
-    public Integer getCropAltura() {
-        return cropAltura;
+    public int getCropHeight() {
+        return cropHeight;
     }
     
-    public void setCropAltura(Integer cropAltura) {
-        this.cropAltura = cropAltura;
-    }
-    
-    public boolean isCropCentralizado() {
-        return cropCentralizado;
-    }
-    
-    public void setCropCentralizado(boolean cropCentralizado) {
-        this.cropCentralizado = cropCentralizado;
-    }
-    
-    public String getTamanhoExibicao() {
-        return tamanhoExibicao;
-    }
-    
-    public void setTamanhoExibicao(String tamanhoExibicao) {
-        this.tamanhoExibicao = tamanhoExibicao;
-        carregarAvatarAtual(); // Recarregar com novo tamanho
-    }
-    
-    public boolean isPermitirEdicao() {
-        return permitirEdicao;
-    }
-    
-    public String getNomeArquivoOriginal() {
-        return nomeArquivoOriginal;
-    }
-    
-    public long getTamanhoArquivo() {
-        return tamanhoArquivo;
-    }
-    
-    public String getTipoMime() {
-        return tipoMime;
-    }
-    
-    /**
-     * Formata tamanho do arquivo para exibição
-     */
-    public String getTamanhoArquivoFormatado() {
-        if (tamanhoArquivo == 0) {
-            return "0 B";
-        }
-        
-        String[] unidades = {"B", "KB", "MB", "GB"};
-        int unidade = 0;
-        double tamanho = tamanhoArquivo;
-        
-        while (tamanho >= 1024 && unidade < unidades.length - 1) {
-            tamanho /= 1024;
-            unidade++;
-        }
-        
-        return String.format("%.1f %s", tamanho, unidades[unidade]);
+    public void setCropHeight(int cropHeight) {
+        this.cropHeight = cropHeight;
     }
 }

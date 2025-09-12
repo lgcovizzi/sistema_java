@@ -84,11 +84,11 @@ public class JwtUtil {
      * @return Claims do token
      */
     private Claims getAllClaimsFromToken(String token) {
-        return Jwts.parser()
-            .verifyWith(getSigningKey())
+        return Jwts.parserBuilder()
+            .setSigningKey(getSigningKey())
             .build()
-            .parseSignedClaims(token)
-            .getPayload();
+            .parseClaimsJws(token)
+            .getBody();
     }
     
     /**
@@ -153,11 +153,11 @@ public class JwtUtil {
         logger.debug("Criando token JWT para usuário: {} com validade até: {}", subject, expiryDate);
         
         return Jwts.builder()
-            .claims(claims)
-            .subject(subject)
-            .issuer(issuer)
-            .issuedAt(now)
-            .expiration(expiryDate)
+            .setClaims(claims)
+            .setSubject(subject)
+            .setIssuer(issuer)
+            .setIssuedAt(now)
+            .setExpiration(expiryDate)
             .signWith(getSigningKey())
             .compact();
     }
@@ -225,7 +225,7 @@ public class JwtUtil {
             info.put("issuedAt", claims.getIssuedAt());
             info.put("expiration", claims.getExpiration());
             info.put("expired", isTokenExpired(token));
-            info.put("type", claims.get("type", "access"));
+            info.put("type", claims.get("type", String.class) != null ? claims.get("type", String.class) : "access");
             
         } catch (Exception e) {
             info.put("error", e.getMessage());
@@ -279,5 +279,21 @@ public class JwtUtil {
         String normalizedRole = role.startsWith("ROLE_") ? role : "ROLE_" + role;
         
         return normalizedTokenRole.equals(normalizedRole);
+    }
+    
+    /**
+     * Gera token para verificação de email
+     * Referência: Sistema de Email com MailHog - project_rules.md
+     * 
+     * @param usuario Usuário para gerar o token
+     * @return Token de verificação de email
+     */
+    public String generateEmailVerificationToken(com.sistema.java.model.entity.Usuario usuario) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("email", usuario.getEmail());
+        claims.put("type", "email_verification");
+        claims.put("userId", usuario.getId());
+        
+        return createToken(claims, usuario.getEmail(), JWT_TOKEN_VALIDITY);
     }
 }

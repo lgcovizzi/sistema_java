@@ -33,12 +33,28 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByEmail(String email);
 
     /**
+     * Busca usuário por email ignorando case
+     * 
+     * @param email Email do usuário
+     * @return Optional com o usuário encontrado
+     */
+    Optional<Usuario> findByEmailIgnoreCase(String email);
+
+    /**
      * Busca usuário por CPF
      * 
      * @param cpf CPF do usuário
      * @return Optional com o usuário encontrado
      */
     Optional<Usuario> findByCpf(String cpf);
+
+    /**
+     * Busca usuários por status ativo ordenados por nome
+     * 
+     * @param ativo Status ativo
+     * @return Lista de usuários ordenados por nome
+     */
+    List<Usuario> findByAtivoOrderByNome(boolean ativo);
 
     /**
      * Busca usuário por token de verificação
@@ -257,8 +273,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
      */
     @Modifying
     @Transactional
-    @Query("UPDATE Usuario u SET u.ultimoAcesso = :ultimoAcesso WHERE u.id = :id")
-    int updateUltimoAcessoById(@Param("id") Long id, @Param("ultimoAcesso") LocalDateTime ultimoAcesso);
+    @Query("UPDATE Usuario u SET u.ultimoLogin = :ultimoLogin WHERE u.id = :id")
+    int updateUltimoLoginById(@Param("id") Long id, @Param("ultimoLogin") LocalDateTime ultimoLogin);
 
     /**
      * Limpa tokens expirados
@@ -271,4 +287,12 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     @Query("UPDATE Usuario u SET u.tokenVerificacao = null, u.tokenResetSenha = null, " +
            "u.dataExpiracaoToken = null WHERE u.dataExpiracaoToken < :agora")
     int limparTokensExpirados(@Param("agora") LocalDateTime agora);
+
+    /**
+     * Busca todos os avatars em uso pelos usuários
+     * 
+     * @return Lista com os caminhos dos avatars em uso
+     */
+    @Query("SELECT u.avatar FROM Usuario u WHERE u.avatar IS NOT NULL")
+    List<String> findAllAvatarsEmUso();
 }

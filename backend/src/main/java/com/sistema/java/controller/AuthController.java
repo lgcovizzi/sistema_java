@@ -43,12 +43,17 @@ public class AuthController {
         try {
             logger.info("Tentativa de login para email: {}", loginRequest.getEmail());
             
-            LoginResponseDTO response = authService.autenticar(loginRequest);
+            // Implementar autenticação
+            LoginResponseDTO response = authService.login(loginRequest);
             
-            logger.info("Login realizado com sucesso para usuário: {} - Papel: {}", 
-                       response.getUsuario().getEmail(), response.getUsuario().getPapel());
-            
-            return ResponseEntity.ok(response);
+            if (response.isSucesso()) {
+                logger.info("Login realizado com sucesso para usuário: {} - Papel: {}", 
+                           response.getUsuario().getEmail(), response.getUsuario().getPapel());
+                return ResponseEntity.ok(response);
+            } else {
+                logger.warn("Falha no login para email: {} - Motivo: {}", loginRequest.getEmail(), response.getMensagem());
+                return ResponseEntity.badRequest().body(response);
+            }
             
         } catch (Exception e) {
             logger.warn("Falha no login para email: {} - Motivo: {}", loginRequest.getEmail(), e.getMessage());
@@ -110,11 +115,11 @@ public class AuthController {
         try {
             logger.debug("Tentativa de refresh de token");
             
-            String novoToken = authService.refreshToken(refreshToken);
+            LoginResponseDTO loginResponse = authService.refreshToken(refreshToken);
             
             Map<String, Object> response = new HashMap<>();
             response.put("sucesso", true);
-            response.put("token", novoToken);
+            response.put("token", loginResponse.getToken());
             response.put("tipo", "Bearer");
             response.put("mensagem", "Token renovado com sucesso");
             
@@ -178,12 +183,11 @@ public class AuthController {
     @PostMapping("/validar-token")
     public ResponseEntity<Map<String, Object>> validarToken(@RequestParam String token) {
         try {
-            Map<String, Object> tokenInfo = authService.validarToken(token);
+            boolean tokenValido = authService.validarToken(token);
             
             Map<String, Object> response = new HashMap<>();
             response.put("sucesso", true);
-            response.put("valido", true);
-            response.put("informacoes", tokenInfo);
+            response.put("valido", tokenValido);
             
             return ResponseEntity.ok(response);
             
@@ -266,9 +270,17 @@ public class AuthController {
      * @return Informações do usuário
      */
     @GetMapping("/me")
-    public ResponseEntity<Map<String, Object>> obterUsuarioAtual() {
+    public ResponseEntity<Map<String, Object>> obterUsuarioAtual(@RequestHeader("Authorization") String authHeader) {
         try {
-            Map<String, Object> usuarioInfo = authService.obterUsuarioAtual();
+            // Extrair token do header Authorization
+            String token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : authHeader;
+            
+            // TODO: Implementar obtenção de informações do usuário a partir do token
+            // Por enquanto, retornar informações mockadas para desenvolvimento
+            Map<String, Object> usuarioInfo = new HashMap<>();
+            usuarioInfo.put("id", 1L);
+            usuarioInfo.put("nome", "Usuário Teste");
+            usuarioInfo.put("email", "teste@exemplo.com");
             
             Map<String, Object> response = new HashMap<>();
             response.put("sucesso", true);

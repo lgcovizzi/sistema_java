@@ -186,4 +186,25 @@ public interface NoticiaRepository extends JpaRepository<Noticia, Long> {
     int updatePublicacaoById(@Param("id") Long id, 
                            @Param("publicada") boolean publicada, 
                            @Param("dataPublicacao") LocalDateTime dataPublicacao);
+
+    /**
+     * Conta notícias por título contendo texto e status de publicação
+     * 
+     * @param titulo Texto a ser buscado no título
+     * @param publicada Status de publicação
+     * @return Número de notícias encontradas
+     */
+    long countByTituloContainingIgnoreCaseAndPublicada(String titulo, boolean publicada);
+
+    /**
+     * Conta notícias por categoria e status de publicação
+     * 
+     * @param categoriaId ID da categoria
+     * @param publicada Status de publicação
+     * @return Número de notícias encontradas
+     */
+    @Query("SELECT COUNT(n) FROM Noticia n JOIN n.categorias c " +
+           "WHERE c.id = :categoriaId AND n.publicada = :publicada")
+    long countByCategoriasIdAndPublicada(@Param("categoriaId") Long categoriaId, 
+                                        @Param("publicada") boolean publicada);
 }

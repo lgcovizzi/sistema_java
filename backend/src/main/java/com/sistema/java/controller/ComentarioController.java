@@ -12,9 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -309,12 +309,12 @@ public class ComentarioController {
      * @param diasAntigos Número de dias
      * @return Número de comentários removidos
      */
-    @DeleteMapping("/limpar-antigos")
-    public ResponseEntity<Integer> removerAntigosNaoAprovados(
-            @RequestParam(defaultValue = "30") int diasAntigos) {
-        int count = comentarioService.removerAntigosNaoAprovados(diasAntigos);
-        return ResponseEntity.ok(count);
-    }
+    // @DeleteMapping("/limpar-antigos")
+    // public ResponseEntity<Integer> removerAntigosNaoAprovados(
+    //         @RequestParam(defaultValue = "30") int diasAntigos) {
+    //     int count = comentarioService.removerAntigosNaoAprovados(diasAntigos);
+    //     return ResponseEntity.ok(count);
+    // }
 
     /**
      * Conta comentários aprovados
@@ -447,9 +447,9 @@ public class ComentarioController {
      * @param ex Exceção de validação
      * @return Resposta de erro
      */
-    @ExceptionHandler(javax.validation.ConstraintViolationException.class)
+    @ExceptionHandler(jakarta.validation.ConstraintViolationException.class)
     public ResponseEntity<String> handleValidationException(
-            javax.validation.ConstraintViolationException ex) {
+            jakarta.validation.ConstraintViolationException ex) {
         return ResponseEntity.badRequest().body("Erro de validação: " + ex.getMessage());
     }
 

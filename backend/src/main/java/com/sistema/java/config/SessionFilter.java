@@ -5,10 +5,10 @@ import com.sistema.java.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -25,7 +25,6 @@ public class SessionFilter implements Filter {
     @Autowired
     private UsuarioService usuarioService;
 
-    @Override
     public void init(FilterConfig filterConfig) throws ServletException {
         // Inicialização do filtro
     }
@@ -45,15 +44,15 @@ public class SessionFilter implements Filter {
             if (usuarioLogado != null) {
                 try {
                     // Verifica se o usuário ainda existe e está ativo
-                    Optional<Usuario> usuarioAtual = usuarioService.findById(usuarioLogado.getId());
+                    Optional<Usuario> usuarioAtual = usuarioService.findEntityById(usuarioLogado.getId());
                     
                     if (usuarioAtual.isPresent() && usuarioAtual.get().isAtivo()) {
                         // Atualiza o usuário na sessão com dados mais recentes
                         Usuario usuarioAtualizado = usuarioAtual.get();
                         session.setAttribute("usuarioLogado", usuarioAtualizado);
                         
-                        // Atualiza último acesso
-                        usuarioService.atualizarUltimoAcesso(usuarioAtualizado.getId());
+                        // Atualiza último login
+                        usuarioService.atualizarUltimoLogin(usuarioAtualizado.getId());
                         
                         // Define atributos úteis para as páginas
                         httpRequest.setAttribute("usuarioLogado", usuarioAtualizado);

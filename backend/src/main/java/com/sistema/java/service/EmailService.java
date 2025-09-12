@@ -14,6 +14,7 @@ import org.thymeleaf.context.Context;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -94,7 +95,7 @@ public class EmailService {
             helper.setSubject(assunto);
             
             // Processar template
-            Context context = new Context();
+            org.thymeleaf.context.Context context = new org.thymeleaf.context.Context();
             if (variaveis != null) {
                 variaveis.forEach(context::setVariable);
             }
@@ -113,7 +114,7 @@ public class EmailService {
                 destinatario, template, mailHost, mailPort);
             return CompletableFuture.completedFuture(true);
             
-        } catch (MessagingException e) {
+        } catch (MessagingException | UnsupportedEncodingException e) {
             logger.error("Erro ao enviar email HTML para {}: {}", destinatario, e.getMessage(), e);
             return CompletableFuture.completedFuture(false);
         }

@@ -36,6 +36,7 @@
 /home/lg/sistema_java/backend/src/main/java/com/sistema/java/model/dto/UsuarioDTO.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/java/bean/DashboardBean.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/java/config/WebConfig.java
+/home/lg/sistema_java/backend/src/main/java/com/sistema/java/model/enums/StatusComentario.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/java/controller/NoticiaController.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/java/model/dto/CategoriaDTO.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/java/model/dto/LogoutResponseDTO.java

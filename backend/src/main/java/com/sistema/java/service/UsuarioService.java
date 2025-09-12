@@ -700,4 +700,27 @@ public class UsuarioService {
     public Optional<Usuario> findEntityById(Long id) {
         return usuarioRepository.findById(id);
     }
+    
+    /**
+     * Atualiza usuário com entidade
+     * Referência: Padrões para Entidades JPA - project_rules.md
+     * 
+     * @param usuario Entidade Usuario a ser atualizada
+     * @return Usuario atualizado
+     */
+    @Transactional
+    public Usuario atualizarUsuario(Usuario usuario) {
+        if (usuario == null || usuario.getId() == null) {
+            throw new IllegalArgumentException("Usuário ou ID não pode ser nulo");
+        }
+        
+        if (!usuarioRepository.existsById(usuario.getId())) {
+            throw new RuntimeException("Usuário não encontrado com ID: " + usuario.getId());
+        }
+        
+        // Atualiza timestamp de modificação
+        usuario.setDataAtualizacao(LocalDateTime.now());
+        
+        return usuarioRepository.save(usuario);
+    }
 }

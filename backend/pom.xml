@@ -54,8 +54,7 @@
 		
 
 
-		<!-- JSF Implementation - TEMPORARIAMENTE DESABILITADO -->
-		<!--
+		<!-- JSF Implementation -->
 		<dependency>
 			<groupId>org.apache.myfaces.core</groupId>
 			<artifactId>myfaces-impl</artifactId>
@@ -86,7 +85,6 @@
 			<artifactId>omnifaces</artifactId>
 			<version>${omnifaces.version}</version>
 		</dependency>
-		-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
@@ -114,7 +112,11 @@
 			<version>2.0.1</version>
 		</dependency>
 		
-
+		<!-- CDI Implementation for Spring Boot -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-context</artifactId>
+		</dependency>
 		
 		<!-- Spring Security -->
 		<dependency>

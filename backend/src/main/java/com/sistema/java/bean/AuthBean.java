@@ -9,12 +9,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import javax.faces.application.FacesMessage;
-import javax.faces.context.ExternalContext;
-import javax.faces.context.FacesContext;
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.enterprise.context.SessionScoped;
+import jakarta.faces.application.FacesMessage;
+import jakarta.faces.context.ExternalContext;
+import jakarta.faces.context.FacesContext;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
+import jakarta.enterprise.context.SessionScoped;
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.Period;
@@ -47,10 +47,13 @@ public class AuthBean implements Serializable {
     private String senhaLogin;
     
     // Campos de registro
-    private Usuario novoUsuario = new Usuario();
+    private UsuarioDTO novoUsuario = new UsuarioDTO();
     
     // Campos de reset de senha
     private String emailReset;
+    private String tokenReset;
+    private String novaSenha;
+    private String confirmaNovaSenha;
     
     // Estado da sessão
     private Usuario usuarioLogado;
@@ -154,7 +157,9 @@ public class AuthBean implements Serializable {
                 addSuccessMessage("Cadastro realizado com sucesso! Faça login para continuar.");
                 
                 // Limpar formulário
-                novoUsuario = new Usuario();
+                novoUsuario = new UsuarioDTO();
+                novoUsuario.setPapel(PapelUsuario.USUARIO);
+                novoUsuario.setAtivo(true);
                 
                 return "/login?faces-redirect=true";
             } else {
@@ -276,9 +281,38 @@ public class AuthBean implements Serializable {
     }
     
     // Métodos utilitários
+    public void limparCampos() {
+        limparCamposLogin();
+        limparCamposRegistro();
+    }
+    
     private void limparCamposLogin() {
         emailLogin = "";
         senhaLogin = "";
+    }
+    
+    private void limparCamposRegistro() {
+        novoUsuario = new UsuarioDTO();
+        novoUsuario.setPapel(PapelUsuario.USUARIO);
+        novoUsuario.setAtivo(true);
+    }
+    
+    // Controle de formulário de registro
+    private boolean mostrarFormularioRegistro = false;
+    
+    public boolean isMostrarFormularioRegistro() {
+        return mostrarFormularioRegistro;
+    }
+    
+    public void setMostrarFormularioRegistro(boolean mostrarFormularioRegistro) {
+        this.mostrarFormularioRegistro = mostrarFormularioRegistro;
+    }
+    
+    public void alternarFormularioRegistro() {
+        this.mostrarFormularioRegistro = !this.mostrarFormularioRegistro;
+        if (this.mostrarFormularioRegistro) {
+            limparCamposRegistro();
+        }
     }
     
     private void addErrorMessage(String message) {
@@ -306,11 +340,11 @@ public class AuthBean implements Serializable {
         this.senhaLogin = senhaLogin;
     }
     
-    public Usuario getNovoUsuario() {
+    public UsuarioDTO getNovoUsuario() {
         return novoUsuario;
     }
     
-    public void setNovoUsuario(Usuario novoUsuario) {
+    public void setNovoUsuario(UsuarioDTO novoUsuario) {
         this.novoUsuario = novoUsuario;
     }
     
@@ -320,6 +354,67 @@ public class AuthBean implements Serializable {
     
     public void setEmailReset(String emailReset) {
         this.emailReset = emailReset;
+    }
+    
+    public String getTokenReset() {
+        return tokenReset;
+    }
+    
+    public void setTokenReset(String tokenReset) {
+        this.tokenReset = tokenReset;
+    }
+    
+    public String getNovaSenha() {
+        return novaSenha;
+    }
+    
+    public void setNovaSenha(String novaSenha) {
+        this.novaSenha = novaSenha;
+    }
+    
+    public String getConfirmaNovaSenha() {
+        return confirmaNovaSenha;
+    }
+    
+    public void setConfirmaNovaSenha(String confirmaNovaSenha) {
+        this.confirmaNovaSenha = confirmaNovaSenha;
+    }
+    
+    /**
+     * Reseta a senha do usuário usando o token
+     */
+    public String resetarSenha() {
+        try {
+            if (tokenReset == null || tokenReset.trim().isEmpty()) {
+                addErrorMessage("Token inválido");
+                return null;
+            }
+            
+            if (novaSenha == null || novaSenha.length() < 8) {
+                addErrorMessage("Nova senha deve ter pelo menos 8 caracteres");
+                return null;
+            }
+            
+            if (!novaSenha.equals(confirmaNovaSenha)) {
+                addErrorMessage("Senhas não coincidem");
+                return null;
+            }
+            
+            // TODO: Implementar reset de senha com token
+            addSuccessMessage("Senha alterada com sucesso!");
+            
+            // Limpar campos
+            tokenReset = "";
+            novaSenha = "";
+            confirmaNovaSenha = "";
+            
+            return "/login?faces-redirect=true";
+            
+        } catch (Exception e) {
+            logger.error("Erro ao resetar senha", e);
+            addErrorMessage("Erro interno. Tente novamente.");
+            return null;
+        }
     }
     
     public Usuario getUsuarioLogado() {

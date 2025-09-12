@@ -83,4 +83,32 @@ public class ComentarioDTO {
     public void setNoticia(NoticiaDTO noticia) {
         this.noticia = noticia;
     }
+    
+    // Métodos auxiliares para o Bean
+    public String getAutorNome() {
+        return autor != null ? autor.getNome() + " " + autor.getSobrenome() : "";
+    }
+    
+    public void setAutorNome(String autorNome) {
+        // Método auxiliar - não faz nada pois o nome é derivado do autor
+    }
+    
+    public Long getNoticiaId() {
+        return noticia != null ? noticia.getId() : null;
+    }
+    
+    public void setNoticiaId(Long noticiaId) {
+        if (noticia == null) {
+            noticia = new NoticiaDTO();
+        }
+        noticia.setId(noticiaId);
+    }
+    
+    public String getNoticiaTitulo() {
+        return noticia != null ? noticia.getTitulo() : "";
+    }
+    
+    public void setNoticiaTitulo(String noticiaTitulo) {
+        // Método auxiliar - não faz nada pois o título é derivado da notícia
+    }
 }

@@ -1,11 +1,13 @@
 package com.sistema.java.bean;
 
 import com.sistema.java.model.entity.Usuario;
+import com.sistema.java.model.dto.UsuarioDTO;
 import com.sistema.java.model.enums.PapelUsuario;
 import com.sistema.java.service.AuthService;
 import com.sistema.java.service.UsuarioService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Pageable;
 
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,11 +37,11 @@ public class UsuarioAdminBean implements Serializable {
     @Autowired
     private AuthService authService;
     
-    // Estado do componente
-    private List<Usuario> usuarios;
-    private List<Usuario> usuariosFiltrados;
-    private Usuario usuarioSelecionado;
-    private Usuario novoUsuario;
+    // Estado do componente// Atributos
+    private List<UsuarioDTO> usuarios;
+    private List<UsuarioDTO> usuariosFiltrados;
+    private UsuarioDTO usuarioSelecionado;
+    private UsuarioDTO novoUsuario;
     private boolean dialogoEdicaoAberto = false;
     private boolean dialogoNovoUsuarioAberto = false;
     
@@ -86,7 +88,7 @@ public class UsuarioAdminBean implements Serializable {
     public void carregarUsuarios() {
         try {
             logger.debug("Carregando lista de usuários");
-            usuarios = usuarioService.listarTodosUsuarios();
+            usuarios = usuarioService.findAll(Pageable.unpaged()).getContent();
             usuariosFiltrados = new ArrayList<>(usuarios);
             logger.info("Carregados {} usuários", usuarios.size());
         } catch (Exception e) {
@@ -137,7 +139,7 @@ public class UsuarioAdminBean implements Serializable {
     /**
      * Prepara para editar um usuário
      */
-    public void editarUsuario(Usuario usuario) {
+    public void editarUsuario(UsuarioDTO usuario) {
         try {
             logger.info("Preparando edição do usuário: {}", usuario.getEmail());
             
@@ -147,7 +149,7 @@ public class UsuarioAdminBean implements Serializable {
                 return;
             }
             
-            usuarioSelecionado = new Usuario();
+            usuarioSelecionado = new UsuarioDTO();
             // Copiar dados (evitar referência direta)
             usuarioSelecionado.setId(usuario.getId());
             usuarioSelecionado.setNome(usuario.getNome());
@@ -171,17 +173,17 @@ public class UsuarioAdminBean implements Serializable {
      * Verifica se o usuário atual pode editar o usuário especificado
      * Referência: Controle de Acesso - project_rules.md
      */
-    private boolean podeEditarUsuario(Usuario usuario) {
+    private boolean podeEditarUsuario(UsuarioDTO usuario) {
         Usuario usuarioAtual = authService.getUsuarioLogado();
         
-        // ADMINISTRADOR pode editar todos exceto FUNDADOR
-        if (usuarioAtual.getPapel().equals(PapelUsuario.ADMINISTRADOR)) {
-            return !usuario.getPapel().equals(PapelUsuario.FUNDADOR);
+        // Admin pode editar qualquer usuário
+        if (authService.hasRole(PapelUsuario.ADMINISTRADOR)) {
+            return true;
         }
         
-        // FUNDADOR pode editar todos
-        if (usuarioAtual.getPapel().equals(PapelUsuario.FUNDADOR)) {
-            return true;
+        // Fundador pode editar colaboradores, associados e usuários
+        if (authService.hasRole(PapelUsuario.FUNDADOR)) {
+            return usuario.getPapel() != PapelUsuario.ADMINISTRADOR;
         }
         
         return false;
@@ -205,7 +207,7 @@ public class UsuarioAdminBean implements Serializable {
             }
             
             // Atualizar usuário
-            usuarioService.atualizarUsuario(usuarioSelecionado);
+            usuarioService.update(usuarioSelecionado.getId(), usuarioSelecionado);
             
             // Recarregar lista
             carregarUsuarios();
@@ -235,7 +237,7 @@ public class UsuarioAdminBean implements Serializable {
      * Inicializa objeto para novo usuário
      */
     private void inicializarNovoUsuario() {
-        novoUsuario = new Usuario();
+        novoUsuario = new UsuarioDTO();
         novoUsuario.setPapel(PapelUsuario.USUARIO); // Papel padrão
         novoUsuario.setAtivo(true); // Ativo por padrão
     }
@@ -264,7 +266,7 @@ public class UsuarioAdminBean implements Serializable {
             }
             
             // Criar usuário
-            usuarioService.criarUsuario(novoUsuario);
+            usuarioService.create(novoUsuario);
             
             // Recarregar lista
             carregarUsuarios();
@@ -304,7 +306,7 @@ public class UsuarioAdminBean implements Serializable {
     /**
      * Valida os dados do usuário
      */
-    private boolean validarUsuario(Usuario usuario) {
+    private boolean validarUsuario(UsuarioDTO usuario) {
         if (usuario.getNome() == null || usuario.getNome().trim().isEmpty()) {
             adicionarMensagemErro("Nome é obrigatório");
             return false;
@@ -336,7 +338,7 @@ public class UsuarioAdminBean implements Serializable {
     /**
      * Alterna o status ativo/inativo do usuário
      */
-    public void alternarStatusUsuario(Usuario usuario) {
+    public void alternarStatusUsuario(UsuarioDTO usuario) {
         try {
             if (!podeEditarUsuario(usuario)) {
                 adicionarMensagemErro("Você não tem permissão para alterar este usuário");
@@ -348,7 +350,7 @@ public class UsuarioAdminBean implements Serializable {
                        usuario.getEmail(), novoStatus ? "ativo" : "inativo");
             
             usuario.setAtivo(novoStatus);
-            usuarioService.atualizarUsuario(usuario);
+            usuarioService.update(usuario.getId(), usuario);
             
             String mensagem = novoStatus ? "Usuário ativado" : "Usuário desativado";
             adicionarMensagemSucesso(mensagem + " com sucesso");
@@ -412,7 +414,7 @@ public class UsuarioAdminBean implements Serializable {
      */
     public int getTotalUsuariosAtivos() {
         if (usuarios == null) return 0;
-        return (int) usuarios.stream().filter(Usuario::getAtivo).count();
+        return (int) usuarios.stream().filter(UsuarioDTO::getAtivo).count();
     }
     
     /**
@@ -434,35 +436,35 @@ public class UsuarioAdminBean implements Serializable {
     }
     
     // Getters e Setters
-    public List<Usuario> getUsuarios() {
+    public List<UsuarioDTO> getUsuarios() {
         return usuarios;
     }
     
-    public void setUsuarios(List<Usuario> usuarios) {
+    public void setUsuarios(List<UsuarioDTO> usuarios) {
         this.usuarios = usuarios;
     }
     
-    public List<Usuario> getUsuariosFiltrados() {
+    public List<UsuarioDTO> getUsuariosFiltrados() {
         return usuariosFiltrados;
     }
     
-    public void setUsuariosFiltrados(List<Usuario> usuariosFiltrados) {
+    public void setUsuariosFiltrados(List<UsuarioDTO> usuariosFiltrados) {
         this.usuariosFiltrados = usuariosFiltrados;
     }
     
-    public Usuario getUsuarioSelecionado() {
+    public UsuarioDTO getUsuarioSelecionado() {
         return usuarioSelecionado;
     }
     
-    public void setUsuarioSelecionado(Usuario usuarioSelecionado) {
+    public void setUsuarioSelecionado(UsuarioDTO usuarioSelecionado) {
         this.usuarioSelecionado = usuarioSelecionado;
     }
     
-    public Usuario getNovoUsuario() {
+    public UsuarioDTO getNovoUsuario() {
         return novoUsuario;
     }
     
-    public void setNovoUsuario(Usuario novoUsuario) {
+    public void setNovoUsuario(UsuarioDTO novoUsuario) {
         this.novoUsuario = novoUsuario;
     }
     
@@ -513,4 +515,6 @@ public class UsuarioAdminBean implements Serializable {
     public void setFiltroAtivo(Boolean filtroAtivo) {
         this.filtroAtivo = filtroAtivo;
     }
+    
+
 }

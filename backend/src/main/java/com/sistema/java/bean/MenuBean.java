@@ -189,6 +189,13 @@ public class MenuBean implements Serializable {
     }
     
     /**
+     * Método alternativo para atualizar menu (usado em testes)
+     */
+    public void atualizarMenu() {
+        atualizarMenus();
+    }
+    
+    /**
      * Alterna estado do menu mobile
      */
     public void alternarMenuMobile() {
@@ -244,6 +251,23 @@ public class MenuBean implements Serializable {
     
     public Usuario getUsuarioLogado() {
         return authService.getUsuarioLogado();
+    }
+    
+    /**
+     * Retorna todos os itens de menu disponíveis para o usuário atual
+     */
+    public List<MenuItem> getMenuItems() {
+        List<MenuItem> allItems = new ArrayList<>();
+        if (menuPrincipal != null) {
+            allItems.addAll(menuPrincipal);
+        }
+        if (podeAcessarAdmin() && menuAdmin != null) {
+            allItems.addAll(menuAdmin);
+        }
+        if (isUsuarioLogado() && menuUsuario != null) {
+            allItems.addAll(menuUsuario);
+        }
+        return allItems;
     }
     
     // Getters e Setters

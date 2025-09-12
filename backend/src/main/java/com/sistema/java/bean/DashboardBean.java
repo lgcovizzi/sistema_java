@@ -14,10 +14,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 
-import javax.annotation.PostConstruct;
-import javax.enterprise.context.ViewScoped;
-import javax.inject.Inject;
-import javax.inject.Named;
+import jakarta.annotation.PostConstruct;
+import jakarta.faces.view.ViewScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
@@ -276,6 +276,26 @@ public class DashboardBean implements Serializable {
         return usuarioLogado != null && 
                (usuarioLogado.getPapel() == PapelUsuario.ADMINISTRADOR || 
                 usuarioLogado.getPapel() == PapelUsuario.FUNDADOR);
+    }
+    
+    /**
+     * Verifica se o usuário pode acessar área administrativa
+     */
+    public boolean podeAcessarAdmin() {
+        return usuarioLogado != null &&
+               (usuarioLogado.getPapel() == PapelUsuario.ADMINISTRADOR || 
+                usuarioLogado.getPapel() == PapelUsuario.FUNDADOR ||
+                usuarioLogado.getPapel() == PapelUsuario.COLABORADOR);
+    }
+    
+    /**
+     * Retorna o nome completo do usuário logado
+     */
+    public String getNomeCompleto() {
+        if (usuarioLogado != null) {
+            return usuarioLogado.getNome() + " " + usuarioLogado.getSobrenome();
+        }
+        return "";
     }
     
     // Getters e Setters

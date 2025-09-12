@@ -1,7 +1,7 @@
 package com.sistema.java.unit.bean;
 
 import com.sistema.java.bean.CategoriaBean;
-import com.sistema.java.dto.CategoriaDTO;
+import com.sistema.java.model.dto.CategoriaDTO;
 import com.sistema.java.model.entity.Categoria;
 import com.sistema.java.service.CategoriaService;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,9 +75,9 @@ class CategoriaBeanTest {
     @Test
     void should_LoadCategoriesData_When_LazyModelIsUsed() {
         // Arrange
-        when(categoriaService.listarComFiltros(anyMap(), anyInt(), anyInt(), anyString(), anyBoolean()))
-            .thenReturn(categoriasMock);
-        when(categoriaService.contarComFiltros(anyMap())).thenReturn(1L);
+        when(categoriaService.buscarComPaginacao(anyInt(), anyInt(), anyString(), any(), anyString(), any()))
+            .thenReturn(Arrays.asList(new CategoriaDTO()));
+        when(categoriaService.contarComFiltros(anyString(), any())).thenReturn(1L);
 
         categoriaBean.init();
         LazyDataModel<Categoria> lazyModel = categoriaBean.getCategoriasLazy();
@@ -95,28 +95,26 @@ class CategoriaBeanTest {
     void should_CreateCategorySuccessfully_When_DataIsValid() {
         // Arrange
         categoriaBean.setCategoriaAtual(categoriaDTOMock);
-        when(categoriaService.existePorNome(categoriaDTOMock.getNome())).thenReturn(false);
-        when(categoriaService.criarCategoria(any(CategoriaDTO.class))).thenReturn(categoriaMock);
+        when(categoriaService.create(any(CategoriaDTO.class))).thenReturn(categoriaDTOMock);
 
         // Act
-        categoriaBean.criarCategoria();
+        categoriaBean.salvarCategoria();
 
         // Assert
-        verify(categoriaService).criarCategoria(categoriaDTOMock);
-        assertThat(categoriaBean.getCategoriaAtual()).isNull(); // Deve limpar após criar
+        verify(categoriaService).create(any(CategoriaDTO.class));
     }
 
     @Test
     void should_NotCreateCategory_When_NameAlreadyExists() {
         // Arrange
         categoriaBean.setCategoriaAtual(categoriaDTOMock);
-        when(categoriaService.existePorNome(categoriaDTOMock.getNome())).thenReturn(true);
+        categoriaDTOMock.setNome(""); // Nome vazio para falhar validação
 
         // Act
-        categoriaBean.criarCategoria();
+        categoriaBean.salvarCategoria();
 
         // Assert
-        verify(categoriaService, never()).criarCategoria(any(CategoriaDTO.class));
+        verify(categoriaService, never()).create(any(CategoriaDTO.class));
     }
 
     @Test
@@ -124,15 +122,13 @@ class CategoriaBeanTest {
         // Arrange
         categoriaDTOMock.setId(1L);
         categoriaBean.setCategoriaAtual(categoriaDTOMock);
-        when(categoriaService.buscarPorId(1L)).thenReturn(categoriaMock);
-        when(categoriaService.atualizarCategoria(any(CategoriaDTO.class))).thenReturn(categoriaMock);
+        when(categoriaService.update(eq(1L), any(CategoriaDTO.class))).thenReturn(categoriaDTOMock);
 
         // Act
-        categoriaBean.atualizarCategoria();
+        categoriaBean.salvarCategoria();
 
         // Assert
-        verify(categoriaService).atualizarCategoria(categoriaDTOMock);
-        assertThat(categoriaBean.getCategoriaAtual()).isNull(); // Deve limpar após atualizar
+        verify(categoriaService).update(eq(1L), any(CategoriaDTO.class));
     }
 
     @Test

@@ -11,12 +11,14 @@ import com.sistema.java.repository.NoticiaRepository;
 import com.sistema.java.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -322,6 +324,19 @@ public class ComentarioService {
     }
 
     /**
+     * Conta comentários aprovados por notícia
+     * 
+     * @param noticiaId ID da notícia
+     * @return Número de comentários aprovados da notícia
+     */
+    @Transactional(readOnly = true)
+    public long countAprovadosPorNoticia(Long noticiaId) {
+        Noticia noticia = noticiaRepository.findById(noticiaId)
+                .orElseThrow(() -> new IllegalArgumentException("Notícia não encontrada: " + noticiaId));
+        return comentarioRepository.countByNoticiaAndAprovado(noticia, true);
+    }
+
+    /**
      * Conta total de comentários
      * 
      * @return Número total de comentários
@@ -339,6 +354,108 @@ public class ComentarioService {
     @Transactional(readOnly = true)
     public List<Object[]> getEstatisticas() {
         return comentarioRepository.getEstatisticasComentarios();
+    }
+
+    /**
+     * Lista comentários com filtros aplicados
+     * 
+     * @param filtros Mapa de filtros
+     * @param first Primeiro registro
+     * @param pageSize Tamanho da página
+     * @param sortField Campo de ordenação
+     * @param sortOrder Ordem de classificação
+     * @return Lista de comentários filtrados
+     */
+    @Transactional(readOnly = true)
+    public List<Comentario> listarComFiltros(Map<String, Object> filtros, int first, int pageSize, String sortField, boolean sortOrder) {
+        // Implementação simplificada - retorna todos os comentários por enquanto
+        Pageable pageable = PageRequest.of(first / pageSize, pageSize);
+        return comentarioRepository.findAll(pageable).getContent();
+    }
+
+    /**
+     * Conta comentários com filtros aplicados
+     * 
+     * @param filtros Mapa de filtros
+     * @return Número de comentários que atendem aos filtros
+     */
+    @Transactional(readOnly = true)
+    public long contarComFiltros(Map<String, Object> filtros) {
+        // Implementação simplificada - retorna contagem total por enquanto
+        return comentarioRepository.count();
+    }
+
+    /**
+     * Cria um novo comentário
+     * 
+     * @param comentarioDTO Dados do comentário
+     * @param autor Autor do comentário
+     * @return Comentário criado
+     */
+    public ComentarioDTO criarComentario(ComentarioDTO comentarioDTO, Usuario autor) {
+        Noticia noticia = noticiaRepository.findById(comentarioDTO.getNoticiaId())
+                .orElseThrow(() -> new IllegalArgumentException("Notícia não encontrada: " + comentarioDTO.getNoticiaId()));
+        
+        Comentario comentario = new Comentario();
+        comentario.setConteudo(comentarioDTO.getConteudo());
+        comentario.setAutor(autor);
+        comentario.setNoticia(noticia);
+        comentario.setAprovado(false); // Comentários precisam ser aprovados
+        
+        Comentario salvo = comentarioRepository.save(comentario);
+        return convertToDTO(salvo);
+    }
+
+    /**
+     * Aprova um comentário
+     * 
+     * @param id ID do comentário
+     * @return Comentário aprovado
+     */
+    public Comentario aprovarComentario(Long id) {
+        Comentario comentario = comentarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Comentário não encontrado: " + id));
+        
+        comentario.setAprovado(true);
+        return comentarioRepository.save(comentario);
+    }
+
+    /**
+     * Rejeita um comentário
+     * 
+     * @param id ID do comentário
+     * @return Comentário rejeitado
+     */
+    public Comentario rejeitarComentario(Long id) {
+        Comentario comentario = comentarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Comentário não encontrado: " + id));
+        
+        comentario.setAprovado(false);
+        return comentarioRepository.save(comentario);
+    }
+
+    /**
+     * Deleta um comentário
+     * 
+     * @param id ID do comentário
+     */
+    public void deletarComentario(Long id) {
+        if (!comentarioRepository.existsById(id)) {
+            throw new IllegalArgumentException("Comentário não encontrado: " + id);
+        }
+        comentarioRepository.deleteById(id);
+    }
+
+    /**
+     * Busca comentário por ID (retorna entidade)
+     * 
+     * @param id ID do comentário
+     * @return Comentário encontrado
+     */
+    @Transactional(readOnly = true)
+    public Comentario buscarPorId(Long id) {
+        return comentarioRepository.findById(id)
+                .orElse(null);
     }
 
     /**

@@ -3,6 +3,7 @@ package com.sistema.controller;
 import com.sistema.entity.User;
 import com.sistema.service.AuthService;
 import com.sistema.service.JwtService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -46,14 +47,16 @@ public class AuthController {
      * Endpoint para autenticação de usuários.
      * 
      * @param loginRequest dados de login
+     * @param httpRequest requisição HTTP
      * @return tokens JWT e informações do usuário
      */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest httpRequest) {
         try {
             Map<String, Object> authResponse = authService.authenticate(
                     loginRequest.getUsernameOrEmail(),
-                    loginRequest.getPassword()
+                    loginRequest.getPassword(),
+                    httpRequest
             );
             
             logger.info("Login realizado com sucesso para: {}", loginRequest.getUsernameOrEmail());
@@ -70,17 +73,19 @@ public class AuthController {
      * Endpoint para registro de novos usuários.
      * 
      * @param registerRequest dados de registro
+     * @param httpRequest requisição HTTP
      * @return tokens JWT e informações do usuário criado
      */
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest, HttpServletRequest httpRequest) {
         try {
             Map<String, Object> authResponse = authService.registerAndAuthenticate(
                     registerRequest.getUsername(),
                     registerRequest.getEmail(),
                     registerRequest.getPassword(),
                     registerRequest.getFirstName(),
-                    registerRequest.getLastName()
+                    registerRequest.getLastName(),
+                    httpRequest
             );
             
             logger.info("Usuário registrado com sucesso: {}", registerRequest.getUsername());
@@ -101,13 +106,15 @@ public class AuthController {
      * Endpoint para renovação de token de acesso.
      * 
      * @param refreshRequest dados do refresh token
+     * @param httpRequest requisição HTTP
      * @return novo token de acesso
      */
     @PostMapping("/refresh")
-    public ResponseEntity<?> refreshToken(@Valid @RequestBody RefreshTokenRequest refreshRequest) {
+    public ResponseEntity<?> refreshToken(@Valid @RequestBody RefreshTokenRequest refreshRequest, HttpServletRequest httpRequest) {
         try {
             Map<String, Object> refreshResponse = authService.refreshAccessToken(
-                    refreshRequest.getRefreshToken()
+                    refreshRequest.getRefreshToken(),
+                    httpRequest
             );
             
             return ResponseEntity.ok(refreshResponse);
@@ -125,23 +132,31 @@ public class AuthController {
 
     /**
      * Endpoint para logout (invalidação de token).
-     * Nota: Com JWT stateless, o logout é feito no cliente removendo o token.
      * 
+     * @param logoutRequest dados do logout
      * @return confirmação de logout
      */
     @PostMapping("/logout")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> logout() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String username = auth.getName();
-        
-        logger.info("Logout realizado para usuário: {}", username);
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Logout realizado com sucesso");
-        response.put("timestamp", System.currentTimeMillis());
-        
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> logout(@RequestBody(required = false) LogoutRequest logoutRequest) {
+        try {
+            String refreshToken = logoutRequest != null ? logoutRequest.getRefreshToken() : null;
+            boolean revokeAll = logoutRequest != null ? logoutRequest.isRevokeAll() : false;
+            
+            authService.logout(refreshToken, revokeAll);
+            
+            logger.info("Logout realizado com sucesso");
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Logout realizado com sucesso");
+            response.put("timestamp", System.currentTimeMillis());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("Erro durante logout", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
+        }
     }
 
     /**
@@ -415,6 +430,17 @@ public class AuthController {
         // Getters e Setters
         public String getToken() { return token; }
         public void setToken(String token) { this.token = token; }
+    }
+    
+    public static class LogoutRequest {
+        private String refreshToken;
+        private boolean revokeAll = false;
+        
+        // Getters e Setters
+        public String getRefreshToken() { return refreshToken; }
+        public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }
+        public boolean isRevokeAll() { return revokeAll; }
+        public void setRevokeAll(boolean revokeAll) { this.revokeAll = revokeAll; }
     }
     
     public static class EnableUserRequest {

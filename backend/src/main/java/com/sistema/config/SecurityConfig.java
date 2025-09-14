@@ -4,6 +4,7 @@ import com.sistema.security.JwtAuthenticationFilter;
 import com.sistema.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -39,6 +40,7 @@ public class SecurityConfig {
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Autowired
+    @Lazy
     private AuthService authService;
 
     /**
@@ -234,7 +236,7 @@ public class SecurityConfig {
                 .contentTypeOptions().and() // Habilita proteção de tipo de conteúdo
                 .httpStrictTransportSecurity(hsts -> hsts
                     .maxAgeInSeconds(31536000) // HSTS por 1 ano
-                    .includeSubdomains(true)
+                    .includeSubDomains(true)
                 )
             );
         }

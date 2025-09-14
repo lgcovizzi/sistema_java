@@ -7,12 +7,13 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
+
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -36,7 +37,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private JwtService jwtService;
 
     @Autowired
-    private UserDetailsService userDetailsService;
+    @Lazy
+    private AuthService authService;
 
     @Override
     protected void doFilterInternal(
@@ -84,7 +86,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private void authenticateUser(String jwt, HttpServletRequest request) {
         try {
             // Valida o token e extrai o username
-            if (!jwtService.isTokenValid(jwt)) {
+            if (!jwtService.isValidAccessToken(jwt)) {
                 logger.debug("Token JWT inválido ou expirado");
                 return;
             }
@@ -96,7 +98,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
             // Carrega os detalhes do usuário
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            UserDetails userDetails = authService.loadUserByUsername(username);
             
             // Cria o objeto de autenticação
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(

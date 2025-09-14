@@ -113,29 +113,28 @@ public class AuthService implements UserDetailsService {
     }
 
     /**
-     * Registra um novo usuário.
+     * Registra um novo usuário no sistema.
      * 
      * @param username nome de usuário
-     * @param email email
-     * @param password senha
-     * @param firstName nome (opcional)
-     * @param lastName sobrenome (opcional)
+     * @param email email do usuário
+     * @param password senha do usuário
+     * @param firstName primeiro nome
+     * @param lastName último nome
      * @return usuário criado
-     * @throws IllegalArgumentException se dados inválidos
+     * @throws RuntimeException se username ou email já existirem
      */
-    public User register(String username, String email, String password, 
-                        String firstName, String lastName) {
-        
-        // Validações
+    public User register(String username, String email, String password, String firstName, String lastName) {
+        // Verificar se username já existe
         if (userRepository.existsByUsername(username)) {
-            throw new IllegalArgumentException("Nome de usuário já existe: " + username);
+            throw new RuntimeException("Username já está em uso");
         }
         
+        // Verificar se email já existe
         if (userRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException("Email já está em uso: " + email);
+            throw new RuntimeException("Email já está em uso");
         }
         
-        // Cria novo usuário
+        // Criar novo usuário
         User user = new User();
         user.setUsername(username);
         user.setEmail(email);
@@ -144,34 +143,37 @@ public class AuthService implements UserDetailsService {
         user.setLastName(lastName);
         user.setRoles(List.of(Role.USER));
         user.setEnabled(true);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
         
         User savedUser = userRepository.save(user);
-        logger.info("Novo usuário registrado: {}", savedUser.getUsername());
+        logger.info("Usuário registrado com sucesso: {}", username);
         
         return savedUser;
     }
-
+    
     /**
-     * Registra um novo usuário e retorna tokens de autenticação.
+     * Registra um novo usuário e o autentica automaticamente.
      * 
      * @param username nome de usuário
-     * @param email email
-     * @param password senha
-     * @param firstName nome (opcional)
-     * @param lastName sobrenome (opcional)
+     * @param email email do usuário
+     * @param password senha do usuário
+     * @param firstName primeiro nome
+     * @param lastName último nome
      * @param request requisição HTTP
-     * @return mapa com tokens e informações do usuário
+     * @return tokens de autenticação
+     * @throws RuntimeException se username ou email já existirem
      */
-    public Map<String, Object> registerAndAuthenticate(String username, String email, String password,
+    public Map<String, Object> registerAndAuthenticate(String username, String email, String password, 
                                                        String firstName, String lastName, HttpServletRequest request) {
+        // Registrar o usuário
         User user = register(username, email, password, firstName, lastName);
         
-        // Gera tokens para o usuário recém-criado
-        String accessToken = jwtService.generateAccessToken(user);
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, request);
-        
-        return createAuthResponse(user, accessToken, refreshToken.getToken());
+        // Autenticar automaticamente
+        return authenticate(username, password, request);
     }
+
+
 
     /**
      * Renova o token de acesso usando um refresh token válido.

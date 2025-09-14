@@ -324,13 +324,13 @@ O projeto possui uma estrutura completa de documentação na pasta `docs/`:
 - Manter separação clara entre backend e outros componentes
 - Consultar documentação na pasta `docs/` para referências
 - Atualizar documentação ao implementar novas features
-- **JSF/PrimeFaces**:
-  - Páginas XHTML em `/src/main/webapp/`
-  - Beans gerenciados em `/src/main/java/com/sistema/bean/`
-  - Recursos CSS/JS em `/src/main/webapp/resources/`
-  - Template base em `/WEB-INF/template.xhtml`
-  - Configuração JSF em `JsfConfig.java` e `web.xml`
-  - Tema responsivo em `/resources/css/responsive-theme.css`
+- **Thymeleaf**:
+  - Templates HTML em `/src/main/resources/templates/`
+  - Controladores Spring MVC em `/src/main/java/com/sistema/controller/`
+  - Recursos estáticos (CSS/JS) em `/src/main/resources/static/`
+  - Configuração automática via Spring Boot
+  - CSS responsivo integrado nos templates
+  - Expressões Thymeleaf para dados dinâmicos
 
 ### Segurança
 - Não expor portas desnecessárias

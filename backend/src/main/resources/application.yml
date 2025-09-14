@@ -48,6 +48,12 @@ spring:
     redis:
       time-to-live: 600000
 
+# Configurações da aplicação
+app:
+  rsa:
+    keys:
+      directory: ./keys
+
 server:
   port: 8080
 

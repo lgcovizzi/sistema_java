@@ -14,13 +14,9 @@ Sistema Java completo implementado com Spring Boot 3.2.0, utilizando PostgreSQL 
   - Spring Data JPA
   - Spring Data Redis
   - Spring Boot Actuator
+  - Spring Boot Starter Thymeleaf
   - PostgreSQL Driver
   - Lettuce (Redis client)
-  - **JSF/PrimeFaces**:
-    - Apache MyFaces Core (4.0.2)
-    - PrimeFaces (13.0.0)
-    - Tomcat Embed Jasper
-    - JSTL
 
 ### Controladores REST Implementados
 
@@ -48,6 +44,15 @@ Sistema Java completo implementado com Spring Boot 3.2.0, utilizando PostgreSQL 
 - Templates localizados em `/src/main/resources/templates/`
 - Suporte a expressões Thymeleaf para dados dinâmicos
 - Integração com Model do Spring MVC
+
+#### RSAKeyManager
+- Gerenciamento automático de chaves RSA na inicialização da aplicação
+- Geração de par de chaves RSA de 2048 bits se não existirem
+- Validação de chaves existentes através de teste de criptografia/descriptografia
+- Armazenamento seguro em formato PEM
+- Configuração do diretório de chaves via `app.rsa.keys.directory`
+- Logs detalhados para monitoramento do processo
+- Regeneração automática de chaves inválidas ou corrompidas
 
 ### Interface Thymeleaf Implementada
 
@@ -327,7 +332,6 @@ O projeto possui uma estrutura completa de documentação na pasta `docs/`:
 - **Thymeleaf**:
   - Templates HTML em `/src/main/resources/templates/`
   - Controladores Spring MVC em `/src/main/java/com/sistema/controller/`
-  - Recursos estáticos (CSS/JS) em `/src/main/resources/static/`
   - Configuração automática via Spring Boot
   - CSS responsivo integrado nos templates
   - Expressões Thymeleaf para dados dinâmicos
@@ -336,6 +340,19 @@ O projeto possui uma estrutura completa de documentação na pasta `docs/`:
 - Não expor portas desnecessárias
 - Usar secrets para senhas em produção
 - Configurar redes isoladas quando necessário
+
+#### Gerenciamento de Chaves RSA
+- **Inicialização Automática**: Par de chaves RSA gerado automaticamente na primeira execução
+- **Validação**: Chaves existentes são validadas a cada inicialização da aplicação
+- **Regeneração**: Chaves inválidas ou corrompidas são automaticamente regeneradas
+- **Armazenamento**: Chaves armazenadas em formato PEM no diretório configurado
+- **Configuração**: Diretório padrão `./keys`, configurável via `app.rsa.keys.directory`
+- **Algoritmo**: RSA 2048 bits para garantir segurança adequada
+- **Logs**: Monitoramento completo do processo de geração e validação
+- **Estrutura de Arquivos**:
+  - `private_key.pem`: Chave privada RSA
+  - `public_key.pem`: Chave pública RSA
+- **Classe Responsável**: `com.sistema.config.RSAKeyManager`
 
 ## Regras de Documentação
 

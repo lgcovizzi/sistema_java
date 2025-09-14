@@ -1,67 +1,21 @@
-version: '3.8'
-
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: sistema_java_postgres
-    environment:
-      POSTGRES_DB: sistema_java
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - sistema_java_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  redis:
-    image: redis:7-alpine
-    container_name: sistema_java_redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - sistema_java_network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: sistema_java_mailhog
-    ports:
-      - "1025:1025"  # SMTP
-      - "8025:8025"  # Web UI
-    networks:
-      - sistema_java_network
-
-  backend:
+  # Spring Boot Application
+  app:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: sistema_java_backend
+    container_name: sistema-app
     ports:
       - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=development
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=sistema_java
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres123
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - MAIL_HOST=mailhog
-      - MAIL_PORT=1025
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/sistema_db
+      - SPRING_DATASOURCE_USERNAME=sistema_user
+      - SPRING_DATASOURCE_PASSWORD=sistema_pass
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      - SPRING_MAIL_HOST=mailhog
+      - SPRING_MAIL_PORT=1025
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,17 +24,67 @@ services:
       mailhog:
         condition: service_started
     networks:
-      - sistema_java_network
-    volumes:
-      - ./backend:/app
+      - sistema-network
     restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: sistema-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=sistema_db
+      - POSTGRES_USER=sistema_user
+      - POSTGRES_PASSWORD=sistema_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sistema-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sistema_user -d sistema_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: sistema-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - sistema-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # MailHog for Email Testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: sistema-mailhog
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI port
+    networks:
+      - sistema-network
+    restart: unless-stopped
+
+networks:
+  sistema-network:
+    driver: bridge
 
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
-
-networks:
-  sistema_java_network:
-    driver: bridge

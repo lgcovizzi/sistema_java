@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+      xmlns:p="http://primefaces.org/ui">
+
+<h:head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title><ui:insert name="title">Sistema Java - PrimeFaces</ui:insert></title>
+    
+    <!-- PrimeFaces Theme -->
+    <h:outputStylesheet library="primefaces-saga" name="theme.css"/>
+    
+    <!-- Custom Responsive Theme -->
+    <h:outputStylesheet library="css" name="responsive-theme.css"/>
+    
+    <!-- Enhanced Responsive CSS -->
+    <style>
+        /* Reset e Base */
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background-color: #f5f7fa;
+        }
+        
+        /* Container Responsivo */
+        .responsive-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            width: 100%;
+        }
+        
+        /* Header Moderno */
+        .header-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        
+        .nav-menu {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .nav-item {
+            color: white;
+            text-decoration: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        
+        .nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        /* Main Content */
+        .main-content {
+            min-height: calc(100vh - 200px);
+            padding: 30px 0;
+        }
+        
+        /* Footer */
+        .footer-section {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 25px 0;
+            margin-top: 50px;
+            text-align: center;
+        }
+        
+        /* Grid System Melhorado */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .grid-item {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .grid-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        /* PrimeFaces Enhancements */
+        .ui-panel {
+            border: none !important;
+            border-radius: 12px !important;
+            box-shadow: none !important;
+        }
+        
+        .ui-panel .ui-panel-titlebar {
+            background: linear-gradient(135deg, #667eea, #764ba2) !important;
+            border: none !important;
+            border-radius: 12px 12px 0 0 !important;
+            padding: 18px 24px !important;
+            color: white !important;
+            font-weight: 600 !important;
+            font-size: 16px !important;
+        }
+        
+        .ui-panel .ui-panel-content {
+            padding: 24px !important;
+            border: none !important;
+        }
+        
+        .ui-button {
+            border-radius: 8px !important;
+            padding: 12px 24px !important;
+            font-weight: 500 !important;
+            transition: all 0.3s ease !important;
+            border: none !important;
+            margin: 8px 0 !important;
+        }
+        
+        .ui-button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+        }
+        
+        .ui-datatable {
+            border-radius: 12px !important;
+            overflow: hidden !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+        }
+        
+        .ui-datatable .ui-datatable-thead > tr > th {
+            background: linear-gradient(135deg, #667eea, #764ba2) !important;
+            color: white !important;
+            border: none !important;
+            padding: 16px !important;
+            font-weight: 600 !important;
+        }
+        
+        .ui-datatable .ui-datatable-tbody > tr > td {
+            padding: 14px 16px !important;
+            border-bottom: 1px solid #f1f3f4 !important;
+        }
+        
+        .ui-datatable .ui-datatable-tbody > tr:hover {
+            background-color: #f8f9fa !important;
+        }
+        
+        /* Responsive Breakpoints */
+        @media (max-width: 1200px) {
+            .grid-container {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 20px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .responsive-container {
+                padding: 0 15px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+            
+            .nav-menu {
+                justify-content: center;
+                width: 100%;
+            }
+            
+            .logo {
+                font-size: 24px;
+            }
+            
+            .grid-container {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .main-content {
+                padding: 20px 0;
+            }
+            
+            .ui-button {
+                width: 100% !important;
+                margin: 5px 0 !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .responsive-container {
+                padding: 0 10px;
+            }
+            
+            .nav-menu {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .nav-item {
+                text-align: center;
+                padding: 12px 20px;
+            }
+            
+            .logo {
+                font-size: 22px;
+            }
+            
+            .ui-panel .ui-panel-titlebar {
+                padding: 15px 18px !important;
+                font-size: 15px !important;
+            }
+            
+            .ui-panel .ui-panel-content {
+                padding: 18px !important;
+            }
+        }
+        
+        /* Animações */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .grid-item {
+            animation: fadeInUp 0.6s ease-out;
+        }
+        
+        .grid-item:nth-child(2) { animation-delay: 0.1s; }
+         .grid-item:nth-child(3) { animation-delay: 0.2s; }
+         .grid-item:nth-child(4) { animation-delay: 0.3s; }
+         .grid-item:nth-child(5) { animation-delay: 0.4s; }
+         .grid-item:nth-child(6) { animation-delay: 0.5s; }
+         
+         /* Estilos específicos para componentes da página */
+         .welcome-content {
+             text-align: center;
+             padding: 20px;
+         }
+         
+         .action-buttons {
+             display: flex;
+             flex-direction: column;
+             gap: 12px;
+         }
+         
+         .action-buttons .ui-button {
+             justify-content: flex-start;
+             text-align: left;
+         }
+         
+         .service-info {
+             display: flex;
+             align-items: center;
+         }
+         
+         .timestamp {
+             display: flex;
+             align-items: center;
+             font-size: 13px;
+         }
+         
+         .activity-item {
+             padding: 12px;
+             border-left: 3px solid #667eea;
+             background: #f8f9fa;
+             border-radius: 0 8px 8px 0;
+         }
+         
+         .activity-header {
+             display: flex;
+             align-items: center;
+             font-weight: 600;
+             margin-bottom: 5px;
+         }
+         
+         .activity-details {
+             display: flex;
+             justify-content: space-between;
+             font-size: 12px;
+             color: #666;
+         }
+         
+         .stats-grid {
+             display: grid;
+             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+             gap: 20px;
+         }
+         
+         .stat-card {
+             display: flex;
+             align-items: center;
+             padding: 20px;
+             border-radius: 12px;
+             transition: all 0.3s ease;
+         }
+         
+         .stat-card:hover {
+             transform: translateY(-3px);
+         }
+         
+         .stat-users { background: linear-gradient(135deg, #e3f2fd, #bbdefb); }
+         .stat-sessions { background: linear-gradient(135deg, #e8f5e8, #c8e6c9); }
+         .stat-requests { background: linear-gradient(135deg, #fff3e0, #ffe0b2); }
+         .stat-uptime { background: linear-gradient(135deg, #fce4ec, #f8bbd9); }
+         
+         .stat-icon {
+             font-size: 2.5rem;
+             margin-right: 15px;
+             opacity: 0.8;
+         }
+         
+         .stat-users .stat-icon { color: #1976d2; }
+         .stat-sessions .stat-icon { color: #388e3c; }
+         .stat-requests .stat-icon { color: #f57c00; }
+         .stat-uptime .stat-icon { color: #c2185b; }
+         
+         .stat-content h4 {
+             margin: 0;
+             font-size: 2rem;
+             font-weight: 700;
+         }
+         
+         .stat-content p {
+             margin: 5px 0 0 0;
+             font-size: 14px;
+             color: #666;
+             font-weight: 500;
+         }
+         
+         .endpoint-path {
+             background: #f1f3f4;
+             padding: 4px 8px;
+             border-radius: 4px;
+             font-family: 'Courier New', monospace;
+             font-size: 13px;
+             color: #1976d2;
+         }
+         
+         .custom-timeline .ui-timeline-event-content {
+             padding: 0 !important;
+         }
+         
+         @media (max-width: 768px) {
+             .stats-grid {
+                 grid-template-columns: 1fr;
+             }
+             
+             .stat-card {
+                 padding: 15px;
+             }
+             
+             .stat-icon {
+                 font-size: 2rem;
+                 margin-right: 12px;
+             }
+             
+             .stat-content h4 {
+                 font-size: 1.5rem;
+             }
+             
+             .activity-details {
+                 flex-direction: column;
+                 gap: 3px;
+             }
+         }
+    </style>
+    
+    <ui:insert name="head"/>
+</h:head>
+
+<h:body>
+    <!-- Header -->
+    <div class="header-section">
+        <div class="responsive-container">
+            <div class="header-content">
+                <div class="logo">
+                    <ui:insert name="logo">Sistema Java</ui:insert>
+                </div>
+                <nav class="nav-menu">
+                    <h:link outcome="/index" styleClass="nav-item">Início</h:link>
+                    <h:link outcome="/dashboard" styleClass="nav-item">Dashboard</h:link>
+                    <h:link outcome="/usuarios" styleClass="nav-item">Usuários</h:link>
+                    <h:link outcome="/relatorios" styleClass="nav-item">Relatórios</h:link>
+                </nav>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="responsive-container">
+        <div class="main-content">
+            <ui:insert name="content">
+                <p>Conteúdo padrão</p>
+            </ui:insert>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer-section">
+        <div class="responsive-container">
+            <p>© 2024 Sistema Java - Desenvolvido com Spring Boot e PrimeFaces</p>
+            <p>Versão: <ui:insert name="version">1.0.0</ui:insert></p>
+        </div>
+    </div>
+    
+    <!-- JavaScript for Mobile Menu -->
+    <script>
+        // Add mobile menu toggle functionality if needed
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile responsiveness enhancements
+            function adjustLayout() {
+                const width = window.innerWidth;
+                const containers = document.querySelectorAll('.responsive-container');
+                
+                containers.forEach(container => {
+                    if (width < 768) {
+                        container.style.padding = '10px';
+                    } else {
+                        container.style.padding = '20px';
+                    }
+                });
+            }
+            
+            window.addEventListener('resize', adjustLayout);
+            adjustLayout();
+        });
+    </script>
+</h:body>
+</html>

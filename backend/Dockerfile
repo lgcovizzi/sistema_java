@@ -1,11 +1,7 @@
-# Use OpenJDK 17 as base image
-FROM openjdk:17-jdk-slim
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 
 # Set working directory
 WORKDIR /app
-
-# Install Maven
-RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
 
 # Copy pom.xml first for better caching
 COPY pom.xml .
@@ -14,13 +10,18 @@ COPY pom.xml .
 RUN mvn dependency:go-offline -B
 
 # Copy source code
-COPY src ./src
+COPY src src
 
-# Build the application
+# Build application
 RUN mvn clean package -DskipTests
+
+# Runtime stage
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
 
 # Expose port
 EXPOSE 8080
 
-# Run the application
-CMD ["java", "-jar", "target/sistema-java-0.0.1-SNAPSHOT.jar"]
+# Run application
+CMD ["java", "-jar", "app.jar"]

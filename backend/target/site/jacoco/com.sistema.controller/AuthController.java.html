@@ -123,10 +123,10 @@ public class AuthController {
             
 <span class="fc" id="L124">            return ResponseEntity.ok(refreshResponse);</span>
             
-<span class="nc" id="L126">        } catch (IllegalArgumentException e) {</span>
-<span class="nc" id="L127">            logger.warn(&quot;Refresh token inválido: {}&quot;, e.getMessage());</span>
-<span class="nc" id="L128">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
-<span class="nc" id="L129">                    .body(createErrorResponse(&quot;Refresh token inválido&quot;, &quot;INVALID_REFRESH_TOKEN&quot;));</span>
+<span class="fc" id="L126">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L127">            logger.warn(&quot;Refresh token inválido: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L128">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
+<span class="fc" id="L129">                    .body(createErrorResponse(&quot;Refresh token inválido&quot;, &quot;INVALID_REFRESH_TOKEN&quot;));</span>
 <span class="fc" id="L130">        } catch (Exception e) {</span>
 <span class="fc" id="L131">            logger.error(&quot;Erro no refresh do token&quot;, e);</span>
 <span class="fc" id="L132">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
@@ -215,15 +215,15 @@ public class AuthController {
 <span class="fc" id="L215">            User user = (User) auth.getPrincipal();</span>
             
 <span class="fc" id="L217">            Map&lt;String, Object&gt; userInfo = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L218">            userInfo.put(&quot;id&quot;, user.getId());</span>
-<span class="nc" id="L219">            userInfo.put(&quot;username&quot;, user.getUsername());</span>
-<span class="nc" id="L220">            userInfo.put(&quot;email&quot;, user.getEmail());</span>
-<span class="nc" id="L221">            userInfo.put(&quot;fullName&quot;, user.getFullName());</span>
-<span class="nc" id="L222">            userInfo.put(&quot;roles&quot;, user.getRoles());</span>
-<span class="nc" id="L223">            userInfo.put(&quot;lastLogin&quot;, user.getLastLogin());</span>
-<span class="nc" id="L224">            userInfo.put(&quot;createdAt&quot;, user.getCreatedAt());</span>
+<span class="fc" id="L218">            userInfo.put(&quot;id&quot;, user.getId());</span>
+<span class="fc" id="L219">            userInfo.put(&quot;username&quot;, user.getUsername());</span>
+<span class="fc" id="L220">            userInfo.put(&quot;email&quot;, user.getEmail());</span>
+<span class="fc" id="L221">            userInfo.put(&quot;fullName&quot;, user.getFullName());</span>
+<span class="fc" id="L222">            userInfo.put(&quot;roles&quot;, user.getRoles());</span>
+<span class="fc" id="L223">            userInfo.put(&quot;lastLogin&quot;, user.getLastLogin());</span>
+<span class="fc" id="L224">            userInfo.put(&quot;createdAt&quot;, user.getCreatedAt());</span>
             
-<span class="nc" id="L226">            return ResponseEntity.ok(userInfo);</span>
+<span class="fc" id="L226">            return ResponseEntity.ok(userInfo);</span>
             
 <span class="fc" id="L228">        } catch (Exception e) {</span>
 <span class="fc" id="L229">            logger.error(&quot;Erro ao obter informações do usuário&quot;, e);</span>
@@ -259,9 +259,9 @@ public class AuthController {
             
 <span class="fc" id="L260">            return ResponseEntity.ok(response);</span>
             
-<span class="nc" id="L262">        } catch (IllegalArgumentException e) {</span>
-<span class="nc" id="L263">            return ResponseEntity.status(HttpStatus.BAD_REQUEST)</span>
-<span class="nc" id="L264">                    .body(createErrorResponse(e.getMessage(), &quot;INVALID_PASSWORD&quot;));</span>
+<span class="fc" id="L262">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L263">            return ResponseEntity.status(HttpStatus.BAD_REQUEST)</span>
+<span class="fc" id="L264">                    .body(createErrorResponse(e.getMessage(), &quot;INVALID_PASSWORD&quot;));</span>
 <span class="fc" id="L265">        } catch (Exception e) {</span>
 <span class="fc" id="L266">            logger.error(&quot;Erro ao alterar senha&quot;, e);</span>
 <span class="fc" id="L267">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>

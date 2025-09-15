@@ -5,6 +5,7 @@ com/sistema/entity/Role.class
 com/sistema/controller/AuthController$RegisterRequest.class
 com/sistema/controller/AuthController$LogoutRequest.class
 com/sistema/config/SecurityConfig$DevSecurityConfig.class
+com/sistema/entity/UserRole.class
 com/sistema/controller/AuthController$ValidateTokenRequest.class
 com/sistema/controller/WebController.class
 com/sistema/entity/RefreshToken.class
@@ -12,6 +13,7 @@ com/sistema/service/TokenBlacklistService.class
 com/sistema/controller/AuthController$RefreshTokenRequest.class
 com/sistema/controller/AuthController$EnableUserRequest.class
 com/sistema/config/RedisConfig.class
+com/sistema/service/UserService$UserStatistics.class
 com/sistema/controller/HomeController.class
 com/sistema/controller/HealthController.class
 com/sistema/repository/UserModelRepository.class
@@ -19,6 +21,7 @@ com/sistema/config/SecurityConfig$ProductionSecurityConfig.class
 com/sistema/controller/AuthController$ChangePasswordRequest.class
 com/sistema/config/SecurityConfig.class
 com/sistema/service/AuthService.class
+com/sistema/service/UserService.class
 com/sistema/service/RefreshTokenService.class
 com/sistema/entity/User.class
 com/sistema/repository/UserRepository.class

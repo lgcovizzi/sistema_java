@@ -1,7 +1,7 @@
 package com.sistema.repository;
 
-import com.sistema.model.UserModel;
-import com.sistema.model.UserRole;
+import com.sistema.entity.User;
+import com.sistema.entity.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,7 +17,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
-@ActiveProfiles("repository-test")
+@ActiveProfiles("test")
 @DisplayName("UserRepository Tests")
 class UserRepositoryTest {
 
@@ -25,23 +25,58 @@ class UserRepositoryTest {
     private TestEntityManager entityManager;
 
     @Autowired
-    private UserModelRepository userRepository;
+    private UserRepository userRepository;
 
-    private UserModel user1;
-    private UserModel user2;
-    private UserModel user3;
+    private User user1;
+    private User user2;
+    private User user3;
 
     @BeforeEach
     void setUp() {
-        user1 = new UserModel("João", "Silva", "joao.silva@example.com", "senha123", UserRole.USUARIO);
-        user1.setEmailVerificado(true);
-        user1.setDataVerificacaoEmail(LocalDateTime.now());
+        user1 = new User();
+        user1.setFirstName("João");
+        user1.setLastName("Silva");
+        user1.setEmail("joao.silva@example.com");
+        user1.setUsername("joao.silva");
+        user1.setPassword("senha123");
+        user1.setRole(UserRole.USER);
+        user1.setActive(true);
+        user1.setCreatedAt(LocalDateTime.now().minusDays(2));
         
-        user2 = new UserModel("Maria", "Santos", "maria.santos@example.com", "senha456", UserRole.ASSOCIADO);
-        user2.setEmailVerificado(false);
+        user2 = new User();
+        user2.setFirstName("Maria");
+        user2.setLastName("Santos");
+        user2.setEmail("maria.santos@example.com");
+        user2.setUsername("maria.santos");
+        user2.setPassword("senha456");
+        user2.setRole(UserRole.ADMIN);
+        user2.setActive(false);
+        user2.setCreatedAt(LocalDateTime.now().minusDays(1));
         
-        user3 = new UserModel("Pedro", "Oliveira", "pedro.oliveira@example.com", "senha789", UserRole.COLABORADOR);
-        user3.setEmailVerificado(false);
+        user3 = new User();
+        user3.setFirstName("Pedro");
+        user3.setLastName("Oliveira");
+        user3.setEmail("pedro.oliveira@example.com");
+        user3.setUsername("pedro.oliveira");
+        user3.setPassword("senha789");
+        user3.setRole(UserRole.USER);
+        user3.setActive(true);
+        user3.setCreatedAt(LocalDateTime.now());
+    }
+
+    @Test
+    @DisplayName("Deve encontrar usuário por username")
+    void shouldFindUserByUsername() {
+        // Given
+        entityManager.persistAndFlush(user1);
+        
+        // When
+        Optional<User> found = userRepository.findByUsername("joao.silva");
+        
+        // Then
+        assertThat(found).isPresent();
+        assertThat(found.get().getFirstName()).isEqualTo("João");
+        assertThat(found.get().getUsername()).isEqualTo("joao.silva");
     }
 
     @Test
@@ -51,22 +86,27 @@ class UserRepositoryTest {
         entityManager.persistAndFlush(user1);
         
         // When
-        Optional<UserModel> found = userRepository.findByEmail("joao.silva@example.com");
+        Optional<User> found = userRepository.findByEmail("joao.silva@example.com");
         
         // Then
         assertThat(found).isPresent();
-        assertThat(found.get().getNome()).isEqualTo("João");
+        assertThat(found.get().getFirstName()).isEqualTo("João");
         assertThat(found.get().getEmail()).isEqualTo("joao.silva@example.com");
     }
 
     @Test
-    @DisplayName("Deve retornar vazio quando usuário não existe por email")
-    void shouldReturnEmptyWhenUserNotFoundByEmail() {
+    @DisplayName("Deve verificar se username existe")
+    void shouldCheckIfUsernameExists() {
+        // Given
+        entityManager.persistAndFlush(user1);
+        
         // When
-        Optional<UserModel> found = userRepository.findByEmail("inexistente@example.com");
+        boolean exists = userRepository.existsByUsername("joao.silva");
+        boolean notExists = userRepository.existsByUsername("inexistente");
         
         // Then
-        assertThat(found).isEmpty();
+        assertThat(exists).isTrue();
+        assertThat(notExists).isFalse();
     }
 
     @Test
@@ -88,179 +128,126 @@ class UserRepositoryTest {
     @DisplayName("Deve encontrar usuários por role")
     void shouldFindUsersByRole() {
         // Given
-        entityManager.persistAndFlush(user1); // USUARIO
-        entityManager.persistAndFlush(user2); // ASSOCIADO
-        entityManager.persistAndFlush(user3); // COLABORADOR
+        entityManager.persistAndFlush(user1); // USER
+        entityManager.persistAndFlush(user2); // ADMIN
+        entityManager.persistAndFlush(user3); // USER
         
         // When
-        List<UserModel> usuarios = userRepository.findByRole(UserRole.USUARIO);
-        List<UserModel> associados = userRepository.findByRole(UserRole.ASSOCIADO);
+        List<User> users = userRepository.findByRole(UserRole.USER);
+        List<User> admins = userRepository.findByRole(UserRole.ADMIN);
         
         // Then
-        assertThat(usuarios).hasSize(1);
-        assertThat(usuarios.get(0).getNome()).isEqualTo("João");
-        assertThat(associados).hasSize(1);
-        assertThat(associados.get(0).getNome()).isEqualTo("Maria");
-    }
-
-    @Test
-    @DisplayName("Deve encontrar usuários com email verificado")
-    void shouldFindUsersWithVerifiedEmail() {
-        // Given
-        entityManager.persistAndFlush(user1); // verificado
-        entityManager.persistAndFlush(user2); // não verificado
-        entityManager.persistAndFlush(user3); // não verificado
-        
-        // When
-        List<UserModel> verificados = userRepository.findByEmailVerificado(true);
-        List<UserModel> naoVerificados = userRepository.findByEmailVerificado(false);
-        
-        // Then
-        assertThat(verificados).hasSize(1);
-        assertThat(verificados.get(0).getNome()).isEqualTo("João");
-        assertThat(naoVerificados).hasSize(2);
-    }
-
-    @Test
-    @DisplayName("Deve encontrar usuários não verificados criados antes de uma data")
-    void shouldFindUnverifiedUsersCreatedBefore() {
-        // Given
-        entityManager.persistAndFlush(user1); // verificado
-        entityManager.persistAndFlush(user2); // não verificado, recente
-        
-        // Persistir user3 primeiro e depois atualizar a data diretamente no banco
-        entityManager.persistAndFlush(user3);
-        
-        // Atualizar a data de criação diretamente no banco de dados
-        LocalDateTime dataAntiga = LocalDateTime.now().minusHours(25);
-        entityManager.getEntityManager().createQuery("UPDATE UserModel u SET u.dataCriacao = :dataAntiga WHERE u.id = :id")
-                .setParameter("dataAntiga", dataAntiga)
-                .setParameter("id", user3.getId())
-                .executeUpdate();
-        entityManager.flush();
-        entityManager.clear();
-        
-        LocalDateTime cutoffDate = LocalDateTime.now().minusHours(24);
-        
-        // When
-        List<UserModel> usuariosExpirados = userRepository.findByEmailVerificadoFalseAndDataCriacaoBefore(cutoffDate);
-        
-        // Then
-        assertThat(usuariosExpirados).hasSize(1);
-        assertThat(usuariosExpirados.get(0).getNome()).isEqualTo("Pedro");
+        assertThat(users).hasSize(2);
+        assertThat(admins).hasSize(1);
+        assertThat(users.get(0).getRole()).isEqualTo(UserRole.USER);
+        assertThat(admins.get(0).getRole()).isEqualTo(UserRole.ADMIN);
     }
 
     @Test
     @DisplayName("Deve contar usuários por role")
     void shouldCountUsersByRole() {
         // Given
-        entityManager.persistAndFlush(user1); // USUARIO
-        entityManager.persistAndFlush(user2); // ASSOCIADO
-        entityManager.persistAndFlush(user3); // COLABORADOR
+        entityManager.persistAndFlush(user1); // USER
+        entityManager.persistAndFlush(user2); // ADMIN
+        entityManager.persistAndFlush(user3); // USER
         
         // When
-        long countUsuarios = userRepository.countByRole(UserRole.USUARIO);
-        long countAssociados = userRepository.countByRole(UserRole.ASSOCIADO);
-        long countDiretores = userRepository.countByRole(UserRole.DIRETOR);
+        long userCount = userRepository.countByRole(UserRole.USER);
+        long adminCount = userRepository.countByRole(UserRole.ADMIN);
         
         // Then
-        assertThat(countUsuarios).isEqualTo(1);
-        assertThat(countAssociados).isEqualTo(1);
-        assertThat(countDiretores).isEqualTo(0);
+        assertThat(userCount).isEqualTo(2);
+        assertThat(adminCount).isEqualTo(1);
     }
 
     @Test
-    @DisplayName("Deve encontrar usuários por nome contendo texto")
-    void shouldFindUsersByNomeContaining() {
+    @DisplayName("Deve encontrar usuários ativos")
+    void shouldFindActiveUsers() {
         // Given
-        entityManager.persistAndFlush(user1); // João
-        entityManager.persistAndFlush(user2); // Maria
-        entityManager.persistAndFlush(user3); // Pedro
+        entityManager.persistAndFlush(user1); // ativo
+        entityManager.persistAndFlush(user2); // inativo
+        entityManager.persistAndFlush(user3); // ativo
         
         // When
-        List<UserModel> usuariosComJoao = userRepository.findByNomeContainingIgnoreCase("joão");
-        List<UserModel> usuariosComA = userRepository.findByNomeContainingIgnoreCase("a");
+        List<User> activeUsers = userRepository.findByActiveTrue();
+        List<User> inactiveUsers = userRepository.findByActiveFalse();
         
         // Then
-        assertThat(usuariosComJoao).hasSize(1);
-        assertThat(usuariosComJoao.get(0).getNome()).isEqualTo("João");
-        assertThat(usuariosComA).hasSize(1); // Maria
-        assertThat(usuariosComA.get(0).getNome()).isEqualTo("Maria");
+        assertThat(activeUsers).hasSize(2);
+        assertThat(inactiveUsers).hasSize(1);
     }
 
     @Test
-    @DisplayName("Deve encontrar usuários por email contendo texto")
-    void shouldFindUsersByEmailContaining() {
+    @DisplayName("Deve contar usuários ativos")
+    void shouldCountActiveUsers() {
         // Given
-        entityManager.persistAndFlush(user1); // joao.silva@example.com
-        entityManager.persistAndFlush(user2); // maria.santos@example.com
-        entityManager.persistAndFlush(user3); // pedro.oliveira@example.com
+        entityManager.persistAndFlush(user1); // ativo
+        entityManager.persistAndFlush(user2); // inativo
+        entityManager.persistAndFlush(user3); // ativo
         
         // When
-        List<UserModel> usuariosComSilva = userRepository.findByEmailContainingIgnoreCase("silva");
-        List<UserModel> usuariosComExample = userRepository.findByEmailContainingIgnoreCase("example");
+        long activeCount = userRepository.countByActiveTrue();
         
         // Then
-        assertThat(usuariosComSilva).hasSize(1);
-        assertThat(usuariosComSilva.get(0).getEmail()).isEqualTo("joao.silva@example.com");
-        assertThat(usuariosComExample).hasSize(3); // Todos têm @example.com
+        assertThat(activeCount).isEqualTo(2);
     }
 
     @Test
-    @DisplayName("Deve deletar usuários não verificados criados antes de uma data")
-    void shouldDeleteUnverifiedUsersCreatedBefore() {
-        // Given
-        entityManager.persistAndFlush(user1); // verificado
-        entityManager.persistAndFlush(user2); // não verificado, recente
-        
-        // Persistir user3 primeiro e depois atualizar a data diretamente no banco
-        entityManager.persistAndFlush(user3);
-        
-        // Atualizar a data de criação diretamente no banco de dados
-        LocalDateTime dataAntiga = LocalDateTime.now().minusHours(25);
-        entityManager.getEntityManager().createQuery("UPDATE UserModel u SET u.dataCriacao = :dataAntiga WHERE u.id = :id")
-                .setParameter("dataAntiga", dataAntiga)
-                .setParameter("id", user3.getId())
-                .executeUpdate();
-        entityManager.flush();
-        entityManager.clear();
-        
-        LocalDateTime cutoffDate = LocalDateTime.now().minusHours(24);
-        
-        // When
-        int deletedCount = userRepository.deleteByEmailVerificadoFalseAndDataCriacaoBefore(cutoffDate);
-        entityManager.flush();
+    @DisplayName("Deve verificar se é o primeiro usuário")
+    void shouldCheckIfFirstUser() {
+        // When - sem usuários
+        boolean isFirstWhenEmpty = userRepository.isFirstUser();
         
         // Then
-        assertThat(deletedCount).isEqualTo(1);
+        assertThat(isFirstWhenEmpty).isTrue();
         
-        List<UserModel> remainingUsers = userRepository.findAll();
-        assertThat(remainingUsers).hasSize(2);
-        assertThat(remainingUsers).extracting(UserModel::getNome)
-            .containsExactlyInAnyOrder("João", "Maria");
+        // Given - com usuários
+        entityManager.persistAndFlush(user1);
+        
+        // When - com usuários
+        boolean isFirstWhenNotEmpty = userRepository.isFirstUser();
+        
+        // Then
+        assertThat(isFirstWhenNotEmpty).isFalse();
     }
 
     @Test
-    @DisplayName("Deve salvar e recuperar usuário com todos os campos")
-    void shouldSaveAndRetrieveUserWithAllFields() {
+    @DisplayName("Deve encontrar primeiro usuário criado")
+    void shouldFindFirstUserCreated() {
         // Given
-        UserModel user = new UserModel("Ana", "Costa", "ana.costa@example.com", "senha123", UserRole.FUNDADOR);
-        user.setEmailVerificado(true);
-        user.setDataVerificacaoEmail(LocalDateTime.now());
+        entityManager.persistAndFlush(user3); // mais recente
+        entityManager.persistAndFlush(user2); // meio
+        entityManager.persistAndFlush(user1); // mais antigo
         
         // When
-        UserModel savedUser = userRepository.save(user);
-        Optional<UserModel> retrievedUser = userRepository.findById(savedUser.getId());
+        Optional<User> firstUser = userRepository.findFirstByOrderByCreatedAtAsc();
         
         // Then
-        assertThat(retrievedUser).isPresent();
-        UserModel found = retrievedUser.get();
-        assertThat(found.getNome()).isEqualTo("Ana");
-        assertThat(found.getSobrenome()).isEqualTo("Costa");
-        assertThat(found.getEmail()).isEqualTo("ana.costa@example.com");
-        assertThat(found.getRole()).isEqualTo(UserRole.FUNDADOR);
-        assertThat(found.isEmailVerificado()).isTrue();
-        assertThat(found.getDataCriacao()).isNotNull();
-        assertThat(found.getDataVerificacaoEmail()).isNotNull();
+        assertThat(firstUser).isPresent();
+        assertThat(firstUser.get().getUsername()).isEqualTo("joao.silva");
+    }
+
+    @Test
+    @DisplayName("Deve buscar usuários por texto")
+    void shouldSearchUsers() {
+        // Given
+        entityManager.persistAndFlush(user1); // João Silva
+        entityManager.persistAndFlush(user2); // Maria Santos
+        entityManager.persistAndFlush(user3); // Pedro Oliveira
+        
+        // When
+        List<User> foundByFirstName = userRepository.searchUsers("João");
+        List<User> foundByEmail = userRepository.searchUsers("maria.santos");
+        List<User> foundByUsername = userRepository.searchUsers("pedro");
+        
+        // Then
+        assertThat(foundByFirstName).hasSize(1);
+        assertThat(foundByFirstName.get(0).getFirstName()).isEqualTo("João");
+        
+        assertThat(foundByEmail).hasSize(1);
+        assertThat(foundByEmail.get(0).getEmail()).isEqualTo("maria.santos@example.com");
+        
+        assertThat(foundByUsername).hasSize(1);
+        assertThat(foundByUsername.get(0).getUsername()).isEqualTo("pedro.oliveira");
     }
 }

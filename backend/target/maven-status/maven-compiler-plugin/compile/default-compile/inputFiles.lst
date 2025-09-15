@@ -10,6 +10,7 @@
 /home/lg/sistema_java/backend/src/main/java/com/sistema/service/TokenBlacklistService.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/controller/AuthController.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/entity/RefreshToken.java
+/home/lg/sistema_java/backend/src/main/java/com/sistema/entity/UserRole.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/controller/RSATestController.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/config/RedisConfig.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/security/JwtAuthenticationFilter.java
@@ -17,6 +18,7 @@
 /home/lg/sistema_java/backend/src/main/java/com/sistema/config/SecurityConfig.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/service/AuthService.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/controller/NewsController.java
+/home/lg/sistema_java/backend/src/main/java/com/sistema/service/UserService.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/repository/RefreshTokenRepository.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/repository/UserRepository.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/controller/WebController.java

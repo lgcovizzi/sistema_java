@@ -1,4 +1,5 @@
 /home/lg/sistema_java/backend/src/test/java/com/sistema/service/AuthServiceTest.java
+/home/lg/sistema_java/backend/src/test/java/com/sistema/entity/UserRoleTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/performance/HealthControllerPerformanceTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/controller/HealthControllerTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/config/RedisConfigTest.java
@@ -13,7 +14,9 @@
 /home/lg/sistema_java/backend/src/test/java/com/sistema/service/AuthServiceCookiePersistenceTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/model/UserTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/config/RSAKeyManagerTest.java
+/home/lg/sistema_java/backend/src/test/java/com/sistema/entity/UserTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/model/EmailVerificationTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/service/RefreshTokenServiceTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/controller/AuthControllerTest.java
+/home/lg/sistema_java/backend/src/test/java/com/sistema/service/UserServiceTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/model/UserRoleTest.java

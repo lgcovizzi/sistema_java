@@ -1,7 +1,7 @@
 package com.sistema.repository;
 
-import com.sistema.entity.Role;
 import com.sistema.entity.User;
+import com.sistema.entity.UserRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -69,22 +69,21 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param role o papel do usuário
      * @return lista de usuários com o papel especificado
      */
-    @Query("SELECT u FROM User u JOIN u.roles r WHERE r = :role")
-    List<User> findByRole(@Param("role") Role role);
+    List<User> findByRole(UserRole role);
 
     /**
      * Busca usuários ativos (enabled = true).
      * 
      * @return lista de usuários ativos
      */
-    List<User> findByEnabledTrue();
+    List<User> findByActiveTrue();
 
     /**
      * Busca usuários inativos (enabled = false).
      * 
      * @return lista de usuários inativos
      */
-    List<User> findByEnabledFalse();
+    List<User> findByActiveFalse();
 
     /**
      * Busca usuários criados após uma data específica.
@@ -116,11 +115,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * Ativa ou desativa um usuário.
      * 
      * @param userId o ID do usuário
-     * @param enabled true para ativar, false para desativar
+     * @param active true para ativar, false para desativar
      */
     @Modifying
-    @Query("UPDATE User u SET u.enabled = :enabled WHERE u.id = :userId")
-    void updateUserStatus(@Param("userId") Long userId, @Param("enabled") boolean enabled);
+    @Query("UPDATE User u SET u.active = :active WHERE u.id = :userId")
+    void updateUserStatus(@Param("userId") Long userId, @Param("active") boolean active);
 
     /**
      * Conta usuários por role.
@@ -128,15 +127,30 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param role o papel do usuário
      * @return número de usuários com o papel especificado
      */
-    @Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r = :role")
-    long countByRole(@Param("role") Role role);
+    long countByRole(UserRole role);
 
     /**
      * Conta usuários ativos.
      * 
      * @return número de usuários ativos
      */
-    long countByEnabledTrue();
+    long countByActiveTrue();
+
+    /**
+     * Verifica se é o primeiro usuário (banco vazio).
+     * Usado para determinar se o usuário deve ser automaticamente promovido a administrador.
+     * 
+     * @return true se não há usuários no banco, false caso contrário
+     */
+    @Query("SELECT CASE WHEN COUNT(u) = 0 THEN true ELSE false END FROM User u")
+    boolean isFirstUser();
+
+    /**
+     * Encontra o primeiro usuário criado (ordenado por data de criação).
+     * 
+     * @return Optional contendo o primeiro usuário criado
+     */
+    Optional<User> findFirstByOrderByCreatedAtAsc();
 
     /**
      * Busca usuários por parte do nome ou email (busca flexível).

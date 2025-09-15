@@ -1,8 +1,8 @@
 package com.sistema.service;
 
 import com.sistema.entity.RefreshToken;
-import com.sistema.entity.Role;
 import com.sistema.entity.User;
+import com.sistema.entity.UserRole;
 import com.sistema.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -141,8 +141,8 @@ public class AuthService implements UserDetailsService {
         user.setPassword(passwordEncoder.encode(password));
         user.setFirstName(firstName);
         user.setLastName(lastName);
-        user.setRoles(List.of(Role.USER));
-        user.setEnabled(true);
+        user.setRole(UserRole.USER);
+        user.setActive(true);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
         
@@ -278,7 +278,7 @@ public class AuthService implements UserDetailsService {
      * @return lista de usuários ativos
      */
     public List<User> findActiveUsers() {
-        return userRepository.findByEnabledTrue();
+        return userRepository.findByActiveTrue();
     }
 
     /**
@@ -389,9 +389,9 @@ public class AuthService implements UserDetailsService {
     public Map<String, Object> getUserStatistics() {
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalUsers", userRepository.count());
-        stats.put("activeUsers", userRepository.countByEnabledTrue());
-        stats.put("adminUsers", userRepository.countByRole(Role.ADMIN));
-        stats.put("regularUsers", userRepository.countByRole(Role.USER));
+        stats.put("activeUsers", userRepository.countByActiveTrue());
+        stats.put("adminUsers", userRepository.countByRole(UserRole.ADMIN));
+        stats.put("regularUsers", userRepository.countByRole(UserRole.USER));
         
         return stats;
     }

@@ -163,7 +163,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.user.username").value("testuser"))
                 .andExpect(jsonPath("$.user.email").value("test@example.com"));
         
-        verify(authService).registerAndAuthenticate("newuser", "newuser@example.com", "password123", "New", "User", any(HttpServletRequest.class));
+        verify(authService).registerAndAuthenticate(eq("newuser"), eq("newuser@example.com"), eq("password123"), eq("New"), eq("User"), any(HttpServletRequest.class));
     }
 
     @Test

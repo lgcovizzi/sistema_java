@@ -52,6 +52,11 @@ public class User implements UserDetails {
     @Column(name = "role")
     private List<Role> roles;
 
+    // Campo adicional para compatibilidade com UserRole enum
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_role")
+    private UserRole role = UserRole.USER;
+
     @Column(name = "account_non_expired")
     private boolean accountNonExpired = true;
 
@@ -77,6 +82,13 @@ public class User implements UserDetails {
     public User() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+    }
+
+    @PrePersist
+    protected void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
     }
 
     public User(String username, String password, String email) {
@@ -236,6 +248,27 @@ public class User implements UserDetails {
         }
     }
 
+    // Métodos para compatibilidade com UserRole
+    public UserRole getRole() {
+        return role;
+    }
+
+    public void setRole(UserRole role) {
+        this.role = role;
+    }
+
+    public boolean isAdmin() {
+        return this.role == UserRole.ADMIN || (this.roles != null && this.roles.contains(Role.ADMIN));
+    }
+
+    public boolean isActive() {
+        return this.enabled;
+    }
+
+    public void setActive(boolean active) {
+        this.enabled = active;
+    }
+
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
@@ -245,10 +278,11 @@ public class User implements UserDetails {
     public String toString() {
         return "User{" +
                 "id=" + id +
-                ", username='" + username + '\'' +
-                ", email='" + email + '\'' +
-                ", roles=" + roles +
-                ", enabled=" + enabled +
+                ", username=" + username +
+                ", email=" + email +
+                ", role=" + role +
+                ", active=" + enabled +
+                ", createdAt=" + createdAt +
                 '}';
     }
 }

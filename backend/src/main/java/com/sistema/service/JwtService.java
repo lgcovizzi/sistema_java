@@ -56,6 +56,7 @@ public class JwtService {
     public String generateAccessToken(User user) {
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("type", "access");
+        extraClaims.put("userId", user.getId());
         extraClaims.put("roles", user.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList()));
@@ -210,6 +211,9 @@ public class JwtService {
         } catch (MalformedJwtException e) {
             logger.error("Token JWT malformado: {}", e.getMessage());
             throw e;
+        } catch (io.jsonwebtoken.security.SignatureException e) {
+            logger.error("Falha na validação da assinatura do token JWT: {}", e.getMessage());
+            throw e;
         } catch (SecurityException e) {
             logger.error("Falha na validação da assinatura do token JWT: {}", e.getMessage());
             throw e;
@@ -258,8 +262,22 @@ public class JwtService {
      * 
      * @param token o token JWT
      * @return true se for um token de acesso válido
+     * @throws SignatureException se a assinatura for inválida
+     * @throws MalformedJwtException se o token for malformado
+     * @throws ExpiredJwtException se o token estiver expirado
      */
     public boolean isValidAccessToken(String token) {
+        String tokenType = extractTokenType(token);
+        return "access".equals(tokenType) && !isTokenExpired(token);
+    }
+
+    /**
+     * Valida se o token é um token de acesso válido (versão segura que não lança exceções).
+     * 
+     * @param token o token JWT
+     * @return true se for um token de acesso válido
+     */
+    public boolean isValidAccessTokenSafe(String token) {
         try {
             String tokenType = extractTokenType(token);
             return "access".equals(tokenType) && !isTokenExpired(token);
@@ -295,11 +313,14 @@ public class JwtService {
         try {
             Claims claims = extractAllClaims(token);
             Map<String, Object> info = new HashMap<>();
-            info.put("subject", claims.getSubject());
+            info.put("username", claims.getSubject());
+            info.put("userId", claims.get("userId"));
+            info.put("email", claims.get("email"));
+            info.put("roles", claims.get("roles"));
+            info.put("tokenType", claims.get("type"));
             info.put("issuer", claims.getIssuer());
             info.put("issuedAt", claims.getIssuedAt());
-            info.put("expiration", claims.getExpiration());
-            info.put("type", claims.get("type"));
+            info.put("expiresAt", claims.getExpiration());
             info.put("expired", isTokenExpired(token));
             return info;
         } catch (Exception e) {

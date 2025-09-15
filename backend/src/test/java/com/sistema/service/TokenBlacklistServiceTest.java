@@ -118,7 +118,8 @@ class TokenBlacklistServiceTest {
     @DisplayName("Deve retornar false quando ocorre erro durante revogação")
     void shouldReturnFalseWhenErrorOccursDuringRevocation() {
         // Given
-        when(jwtService.extractJti(testToken)).thenThrow(new RuntimeException("Redis error"));
+        when(jwtService.extractJti(testToken)).thenThrow(new RuntimeException("JTI error"));
+        when(jwtService.extractExpiration(testToken)).thenThrow(new RuntimeException("Expiration error"));
 
         // When
         boolean result = tokenBlacklistService.revokeToken(testToken);

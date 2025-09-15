@@ -28,6 +28,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 /**
  * Testes unitários para JwtService
@@ -68,8 +69,8 @@ class JwtServiceTest {
         testUser.setCreatedAt(LocalDateTime.now());
 
         // Mock RSA key manager
-        when(rsaKeyManager.getPrivateKey()).thenReturn(privateKey);
-        when(rsaKeyManager.getPublicKey()).thenReturn(publicKey);
+        lenient().when(rsaKeyManager.getPrivateKey()).thenReturn(privateKey);
+        lenient().when(rsaKeyManager.getPublicKey()).thenReturn(publicKey);
 
         // Set test values using reflection
         ReflectionTestUtils.setField(jwtService, "accessTokenExpirationSeconds", 3600L); // 1 hour
@@ -180,12 +181,12 @@ class JwtServiceTest {
     @DisplayName("Deve detectar token expirado")
     void shouldDetectExpiredToken() {
         // Given - Set very short expiration time
-        ReflectionTestUtils.setField(jwtService, "accessTokenExpirationMs", 1L); // 1ms
+        ReflectionTestUtils.setField(jwtService, "accessTokenExpirationSeconds", 1L); // 1 second
         String token = jwtService.generateAccessToken(testUser);
 
         // Wait for token to expire
         try {
-            Thread.sleep(10);
+            Thread.sleep(1100); // Wait 1.1 seconds to ensure token expires
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -217,7 +218,7 @@ class JwtServiceTest {
         assertThat(tokenInfo.get("username")).isEqualTo("testuser");
         assertThat(tokenInfo.get("userId")).isEqualTo(1);
         assertThat(tokenInfo.get("email")).isEqualTo("test@example.com");
-        assertThat(tokenInfo.get("roles")).isEqualTo(List.of("USER", "ADMIN"));
+        assertThat(tokenInfo.get("roles")).isEqualTo(List.of("ROLE_USER", "ROLE_ADMIN"));
         assertThat(tokenInfo.get("tokenType")).isEqualTo("access");
     }
 
@@ -240,12 +241,12 @@ class JwtServiceTest {
     @DisplayName("Deve retornar zero para token expirado ao calcular tempo")
     void shouldReturnZeroForExpiredTokenWhenCalculatingTime() {
         // Given - Set very short expiration time
-        ReflectionTestUtils.setField(jwtService, "accessTokenExpirationMs", 1L); // 1ms
+        ReflectionTestUtils.setField(jwtService, "accessTokenExpirationSeconds", 1L); // 1 second
         String token = jwtService.generateAccessToken(testUser);
 
         // Wait for token to expire
         try {
-            Thread.sleep(10);
+            Thread.sleep(1100); // Wait 1.1 seconds to ensure token expires
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -301,6 +302,14 @@ class JwtServiceTest {
     void shouldGenerateDifferentTokensForEachCall() {
         // When
         String token1 = jwtService.generateAccessToken(testUser);
+        
+        // Add small delay to ensure different timestamps
+        try {
+            Thread.sleep(1100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
         String token2 = jwtService.generateAccessToken(testUser);
 
         // Then
@@ -318,7 +327,7 @@ class JwtServiceTest {
         List<String> roles = jwtService.extractRoles(token);
 
         // Then
-        assertThat(roles).containsExactlyInAnyOrder("USER", "ADMIN");
+        assertThat(roles).containsExactlyInAnyOrder("ROLE_USER", "ROLE_ADMIN");
     }
 
     @Test

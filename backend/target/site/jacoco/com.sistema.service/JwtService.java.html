@@ -56,13 +56,14 @@ public class JwtService {
     public String generateAccessToken(User user) {
 <span class="fc" id="L57">        Map&lt;String, Object&gt; extraClaims = new HashMap&lt;&gt;();</span>
 <span class="fc" id="L58">        extraClaims.put(&quot;type&quot;, &quot;access&quot;);</span>
-<span class="fc" id="L59">        extraClaims.put(&quot;roles&quot;, user.getAuthorities().stream()</span>
-<span class="fc" id="L60">                .map(GrantedAuthority::getAuthority)</span>
-<span class="fc" id="L61">                .collect(Collectors.toList()));</span>
-<span class="fc" id="L62">        extraClaims.put(&quot;email&quot;, user.getEmail());</span>
-<span class="fc" id="L63">        extraClaims.put(&quot;fullName&quot;, user.getFullName());</span>
+<span class="fc" id="L59">        extraClaims.put(&quot;userId&quot;, user.getId());</span>
+<span class="fc" id="L60">        extraClaims.put(&quot;roles&quot;, user.getAuthorities().stream()</span>
+<span class="fc" id="L61">                .map(GrantedAuthority::getAuthority)</span>
+<span class="fc" id="L62">                .collect(Collectors.toList()));</span>
+<span class="fc" id="L63">        extraClaims.put(&quot;email&quot;, user.getEmail());</span>
+<span class="fc" id="L64">        extraClaims.put(&quot;fullName&quot;, user.getFullName());</span>
         
-<span class="fc" id="L65">        return generateToken(extraClaims, user.getUsername(), accessTokenExpirationSeconds);</span>
+<span class="fc" id="L66">        return generateToken(extraClaims, user.getUsername(), accessTokenExpirationSeconds);</span>
     }
 
     /**
@@ -72,10 +73,10 @@ public class JwtService {
      * @return token JWT de refresh
      */
     public String generateRefreshToken(User user) {
-<span class="fc" id="L75">        Map&lt;String, Object&gt; extraClaims = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L76">        extraClaims.put(&quot;type&quot;, &quot;refresh&quot;);</span>
+<span class="fc" id="L76">        Map&lt;String, Object&gt; extraClaims = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L77">        extraClaims.put(&quot;type&quot;, &quot;refresh&quot;);</span>
         
-<span class="fc" id="L78">        return generateToken(extraClaims, user.getUsername(), refreshTokenExpirationSeconds);</span>
+<span class="fc" id="L79">        return generateToken(extraClaims, user.getUsername(), refreshTokenExpirationSeconds);</span>
     }
 
     /**
@@ -88,26 +89,26 @@ public class JwtService {
      */
     private String generateToken(Map&lt;String, Object&gt; extraClaims, String username, long expirationSeconds) {
         try {
-<span class="fc" id="L91">            PrivateKey privateKey = rsaKeyManager.getPrivateKey();</span>
+<span class="fc" id="L92">            PrivateKey privateKey = rsaKeyManager.getPrivateKey();</span>
             
-<span class="fc" id="L93">            Instant now = Instant.now();</span>
-<span class="fc" id="L94">            Instant expiration = now.plus(expirationSeconds, ChronoUnit.SECONDS);</span>
+<span class="fc" id="L94">            Instant now = Instant.now();</span>
+<span class="fc" id="L95">            Instant expiration = now.plus(expirationSeconds, ChronoUnit.SECONDS);</span>
             
-<span class="fc" id="L96">            String token = Jwts.builder()</span>
-<span class="fc" id="L97">                    .claims(extraClaims)</span>
-<span class="fc" id="L98">                    .subject(username)</span>
-<span class="fc" id="L99">                    .issuer(issuer)</span>
-<span class="fc" id="L100">                    .issuedAt(Date.from(now))</span>
-<span class="fc" id="L101">                    .expiration(Date.from(expiration))</span>
-<span class="fc" id="L102">                    .signWith(privateKey, Jwts.SIG.RS256)</span>
-<span class="fc" id="L103">                    .compact();</span>
+<span class="fc" id="L97">            String token = Jwts.builder()</span>
+<span class="fc" id="L98">                    .claims(extraClaims)</span>
+<span class="fc" id="L99">                    .subject(username)</span>
+<span class="fc" id="L100">                    .issuer(issuer)</span>
+<span class="fc" id="L101">                    .issuedAt(Date.from(now))</span>
+<span class="fc" id="L102">                    .expiration(Date.from(expiration))</span>
+<span class="fc" id="L103">                    .signWith(privateKey, Jwts.SIG.RS256)</span>
+<span class="fc" id="L104">                    .compact();</span>
             
-<span class="fc" id="L105">            logger.debug(&quot;Token JWT gerado para usuário: {}&quot;, username);</span>
-<span class="fc" id="L106">            return token;</span>
+<span class="fc" id="L106">            logger.debug(&quot;Token JWT gerado para usuário: {}&quot;, username);</span>
+<span class="fc" id="L107">            return token;</span>
             
-<span class="nc" id="L108">        } catch (Exception e) {</span>
-<span class="nc" id="L109">            logger.error(&quot;Erro ao gerar token JWT para usuário: {}&quot;, username, e);</span>
-<span class="nc" id="L110">            throw new RuntimeException(&quot;Erro ao gerar token JWT&quot;, e);</span>
+<span class="nc" id="L109">        } catch (Exception e) {</span>
+<span class="nc" id="L110">            logger.error(&quot;Erro ao gerar token JWT para usuário: {}&quot;, username, e);</span>
+<span class="nc" id="L111">            throw new RuntimeException(&quot;Erro ao gerar token JWT&quot;, e);</span>
         }
     }
 
@@ -118,7 +119,7 @@ public class JwtService {
      * @return username
      */
     public String extractUsername(String token) {
-<span class="fc" id="L121">        return extractClaim(token, Claims::getSubject);</span>
+<span class="fc" id="L122">        return extractClaim(token, Claims::getSubject);</span>
     }
 
     /**
@@ -128,7 +129,7 @@ public class JwtService {
      * @return data de expiração
      */
     public Date extractExpiration(String token) {
-<span class="fc" id="L131">        return extractClaim(token, Claims::getExpiration);</span>
+<span class="fc" id="L132">        return extractClaim(token, Claims::getExpiration);</span>
     }
 
     /**
@@ -138,7 +139,7 @@ public class JwtService {
      * @return tipo do token
      */
     public String extractTokenType(String token) {
-<span class="fc" id="L141">        return extractClaim(token, claims -&gt; claims.get(&quot;type&quot;, String.class));</span>
+<span class="fc" id="L142">        return extractClaim(token, claims -&gt; claims.get(&quot;type&quot;, String.class));</span>
     }
 
     /**
@@ -149,7 +150,7 @@ public class JwtService {
      */
     @SuppressWarnings(&quot;unchecked&quot;)
     public java.util.List&lt;String&gt; extractRoles(String token) {
-<span class="fc" id="L152">        return extractClaim(token, claims -&gt; claims.get(&quot;roles&quot;, java.util.List.class));</span>
+<span class="fc" id="L153">        return extractClaim(token, claims -&gt; claims.get(&quot;roles&quot;, java.util.List.class));</span>
     }
 
     /**
@@ -159,7 +160,7 @@ public class JwtService {
      * @return data de emissão
      */
     public Date extractIssuedAt(String token) {
-<span class="nc" id="L162">        return extractClaim(token, Claims::getIssuedAt);</span>
+<span class="nc" id="L163">        return extractClaim(token, Claims::getIssuedAt);</span>
     }
 
     /**
@@ -169,7 +170,7 @@ public class JwtService {
      * @return JTI do token ou null se não estiver presente
      */
     public String extractJti(String token) {
-<span class="nc" id="L172">        return extractClaim(token, Claims::getId);</span>
+<span class="nc" id="L173">        return extractClaim(token, Claims::getId);</span>
     }
 
     /**
@@ -181,8 +182,8 @@ public class JwtService {
      * @return valor do claim
      */
     public &lt;T&gt; T extractClaim(String token, Function&lt;Claims, T&gt; claimsResolver) {
-<span class="fc" id="L184">        final Claims claims = extractAllClaims(token);</span>
-<span class="fc" id="L185">        return claimsResolver.apply(claims);</span>
+<span class="fc" id="L185">        final Claims claims = extractAllClaims(token);</span>
+<span class="fc" id="L186">        return claimsResolver.apply(claims);</span>
     }
 
     /**
@@ -193,32 +194,35 @@ public class JwtService {
      */
     private Claims extractAllClaims(String token) {
         try {
-<span class="fc" id="L196">            PublicKey publicKey = rsaKeyManager.getPublicKey();</span>
+<span class="fc" id="L197">            PublicKey publicKey = rsaKeyManager.getPublicKey();</span>
             
-<span class="fc" id="L198">            return Jwts.parser()</span>
-<span class="fc" id="L199">                    .verifyWith(publicKey)</span>
-<span class="fc" id="L200">                    .build()</span>
-<span class="fc" id="L201">                    .parseSignedClaims(token)</span>
-<span class="fc" id="L202">                    .getPayload();</span>
+<span class="fc" id="L199">            return Jwts.parser()</span>
+<span class="fc" id="L200">                    .verifyWith(publicKey)</span>
+<span class="fc" id="L201">                    .build()</span>
+<span class="fc" id="L202">                    .parseSignedClaims(token)</span>
+<span class="fc" id="L203">                    .getPayload();</span>
                     
-<span class="nc" id="L204">        } catch (ExpiredJwtException e) {</span>
-<span class="nc" id="L205">            logger.warn(&quot;Token JWT expirado: {}&quot;, e.getMessage());</span>
-<span class="nc" id="L206">            throw e;</span>
-<span class="nc" id="L207">        } catch (UnsupportedJwtException e) {</span>
-<span class="nc" id="L208">            logger.error(&quot;Token JWT não suportado: {}&quot;, e.getMessage());</span>
-<span class="nc" id="L209">            throw e;</span>
-<span class="fc" id="L210">        } catch (MalformedJwtException e) {</span>
-<span class="fc" id="L211">            logger.error(&quot;Token JWT malformado: {}&quot;, e.getMessage());</span>
-<span class="fc" id="L212">            throw e;</span>
-<span class="nc" id="L213">        } catch (SecurityException e) {</span>
-<span class="nc" id="L214">            logger.error(&quot;Falha na validação da assinatura do token JWT: {}&quot;, e.getMessage());</span>
-<span class="nc" id="L215">            throw e;</span>
-<span class="nc" id="L216">        } catch (IllegalArgumentException e) {</span>
-<span class="nc" id="L217">            logger.error(&quot;Token JWT inválido: {}&quot;, e.getMessage());</span>
-<span class="nc" id="L218">            throw e;</span>
-<span class="fc" id="L219">        } catch (Exception e) {</span>
-<span class="fc" id="L220">            logger.error(&quot;Erro ao processar token JWT: {}&quot;, e.getMessage(), e);</span>
-<span class="fc" id="L221">            throw new RuntimeException(&quot;Erro ao processar token JWT&quot;, e);</span>
+<span class="fc" id="L205">        } catch (ExpiredJwtException e) {</span>
+<span class="fc" id="L206">            logger.warn(&quot;Token JWT expirado: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L207">            throw e;</span>
+<span class="nc" id="L208">        } catch (UnsupportedJwtException e) {</span>
+<span class="nc" id="L209">            logger.error(&quot;Token JWT não suportado: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L210">            throw e;</span>
+<span class="fc" id="L211">        } catch (MalformedJwtException e) {</span>
+<span class="fc" id="L212">            logger.error(&quot;Token JWT malformado: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L213">            throw e;</span>
+<span class="fc" id="L214">        } catch (io.jsonwebtoken.security.SignatureException e) {</span>
+<span class="fc" id="L215">            logger.error(&quot;Falha na validação da assinatura do token JWT: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L216">            throw e;</span>
+<span class="nc" id="L217">        } catch (SecurityException e) {</span>
+<span class="nc" id="L218">            logger.error(&quot;Falha na validação da assinatura do token JWT: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L219">            throw e;</span>
+<span class="nc" id="L220">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L221">            logger.error(&quot;Token JWT inválido: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L222">            throw e;</span>
+<span class="nc" id="L223">        } catch (Exception e) {</span>
+<span class="nc" id="L224">            logger.error(&quot;Erro ao processar token JWT: {}&quot;, e.getMessage(), e);</span>
+<span class="nc" id="L225">            throw new RuntimeException(&quot;Erro ao processar token JWT&quot;, e);</span>
         }
     }
 
@@ -230,9 +234,9 @@ public class JwtService {
      */
     public boolean isTokenExpired(String token) {
         try {
-<span class="fc" id="L233">            return extractExpiration(token).before(new Date());</span>
-<span class="nc" id="L234">        } catch (ExpiredJwtException e) {</span>
-<span class="nc" id="L235">            return true;</span>
+<span class="fc" id="L237">            return extractExpiration(token).before(new Date());</span>
+<span class="nc" id="L238">        } catch (ExpiredJwtException e) {</span>
+<span class="nc" id="L239">            return true;</span>
         }
     }
 
@@ -245,11 +249,11 @@ public class JwtService {
      */
     public boolean isTokenValid(String token, User user) {
         try {
-<span class="fc" id="L248">            final String username = extractUsername(token);</span>
-<span class="pc bpc" id="L249" title="2 of 4 branches missed.">            return (username.equals(user.getUsername()) &amp;&amp; !isTokenExpired(token));</span>
-<span class="nc" id="L250">        } catch (Exception e) {</span>
-<span class="nc" id="L251">            logger.warn(&quot;Token inválido para usuário {}: {}&quot;, user.getUsername(), e.getMessage());</span>
-<span class="nc" id="L252">            return false;</span>
+<span class="fc" id="L252">            final String username = extractUsername(token);</span>
+<span class="pc bpc" id="L253" title="2 of 4 branches missed.">            return (username.equals(user.getUsername()) &amp;&amp; !isTokenExpired(token));</span>
+<span class="nc" id="L254">        } catch (Exception e) {</span>
+<span class="nc" id="L255">            logger.warn(&quot;Token inválido para usuário {}: {}&quot;, user.getUsername(), e.getMessage());</span>
+<span class="nc" id="L256">            return false;</span>
         }
     }
 
@@ -258,14 +262,28 @@ public class JwtService {
      * 
      * @param token o token JWT
      * @return true se for um token de acesso válido
+     * @throws SignatureException se a assinatura for inválida
+     * @throws MalformedJwtException se o token for malformado
+     * @throws ExpiredJwtException se o token estiver expirado
      */
     public boolean isValidAccessToken(String token) {
+<span class="fc" id="L270">        String tokenType = extractTokenType(token);</span>
+<span class="pc bpc" id="L271" title="1 of 4 branches missed.">        return &quot;access&quot;.equals(tokenType) &amp;&amp; !isTokenExpired(token);</span>
+    }
+
+    /**
+     * Valida se o token é um token de acesso válido (versão segura que não lança exceções).
+     * 
+     * @param token o token JWT
+     * @return true se for um token de acesso válido
+     */
+    public boolean isValidAccessTokenSafe(String token) {
         try {
-<span class="fc" id="L264">            String tokenType = extractTokenType(token);</span>
-<span class="pc bpc" id="L265" title="1 of 4 branches missed.">            return &quot;access&quot;.equals(tokenType) &amp;&amp; !isTokenExpired(token);</span>
-<span class="fc" id="L266">        } catch (Exception e) {</span>
-<span class="fc" id="L267">            logger.warn(&quot;Token de acesso inválido: {}&quot;, e.getMessage());</span>
-<span class="fc" id="L268">            return false;</span>
+<span class="nc" id="L282">            String tokenType = extractTokenType(token);</span>
+<span class="nc bnc" id="L283" title="All 4 branches missed.">            return &quot;access&quot;.equals(tokenType) &amp;&amp; !isTokenExpired(token);</span>
+<span class="nc" id="L284">        } catch (Exception e) {</span>
+<span class="nc" id="L285">            logger.warn(&quot;Token de acesso inválido: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L286">            return false;</span>
         }
     }
 
@@ -277,11 +295,11 @@ public class JwtService {
      */
     public boolean isValidRefreshToken(String token) {
         try {
-<span class="fc" id="L280">            String tokenType = extractTokenType(token);</span>
-<span class="pc bpc" id="L281" title="1 of 4 branches missed.">            return &quot;refresh&quot;.equals(tokenType) &amp;&amp; !isTokenExpired(token);</span>
-<span class="nc" id="L282">        } catch (Exception e) {</span>
-<span class="nc" id="L283">            logger.warn(&quot;Token de refresh inválido: {}&quot;, e.getMessage());</span>
-<span class="nc" id="L284">            return false;</span>
+<span class="fc" id="L298">            String tokenType = extractTokenType(token);</span>
+<span class="pc bpc" id="L299" title="1 of 4 branches missed.">            return &quot;refresh&quot;.equals(tokenType) &amp;&amp; !isTokenExpired(token);</span>
+<span class="nc" id="L300">        } catch (Exception e) {</span>
+<span class="nc" id="L301">            logger.warn(&quot;Token de refresh inválido: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L302">            return false;</span>
         }
     }
 
@@ -293,18 +311,21 @@ public class JwtService {
      */
     public Map&lt;String, Object&gt; getTokenInfo(String token) {
         try {
-<span class="fc" id="L296">            Claims claims = extractAllClaims(token);</span>
-<span class="fc" id="L297">            Map&lt;String, Object&gt; info = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L298">            info.put(&quot;subject&quot;, claims.getSubject());</span>
-<span class="fc" id="L299">            info.put(&quot;issuer&quot;, claims.getIssuer());</span>
-<span class="fc" id="L300">            info.put(&quot;issuedAt&quot;, claims.getIssuedAt());</span>
-<span class="fc" id="L301">            info.put(&quot;expiration&quot;, claims.getExpiration());</span>
-<span class="fc" id="L302">            info.put(&quot;type&quot;, claims.get(&quot;type&quot;));</span>
-<span class="fc" id="L303">            info.put(&quot;expired&quot;, isTokenExpired(token));</span>
-<span class="fc" id="L304">            return info;</span>
-<span class="nc" id="L305">        } catch (Exception e) {</span>
-<span class="nc" id="L306">            logger.error(&quot;Erro ao obter informações do token: {}&quot;, e.getMessage());</span>
-<span class="nc" id="L307">            return Map.of(&quot;error&quot;, e.getMessage());</span>
+<span class="fc" id="L314">            Claims claims = extractAllClaims(token);</span>
+<span class="fc" id="L315">            Map&lt;String, Object&gt; info = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L316">            info.put(&quot;username&quot;, claims.getSubject());</span>
+<span class="fc" id="L317">            info.put(&quot;userId&quot;, claims.get(&quot;userId&quot;));</span>
+<span class="fc" id="L318">            info.put(&quot;email&quot;, claims.get(&quot;email&quot;));</span>
+<span class="fc" id="L319">            info.put(&quot;roles&quot;, claims.get(&quot;roles&quot;));</span>
+<span class="fc" id="L320">            info.put(&quot;tokenType&quot;, claims.get(&quot;type&quot;));</span>
+<span class="fc" id="L321">            info.put(&quot;issuer&quot;, claims.getIssuer());</span>
+<span class="fc" id="L322">            info.put(&quot;issuedAt&quot;, claims.getIssuedAt());</span>
+<span class="fc" id="L323">            info.put(&quot;expiresAt&quot;, claims.getExpiration());</span>
+<span class="fc" id="L324">            info.put(&quot;expired&quot;, isTokenExpired(token));</span>
+<span class="fc" id="L325">            return info;</span>
+<span class="nc" id="L326">        } catch (Exception e) {</span>
+<span class="nc" id="L327">            logger.error(&quot;Erro ao obter informações do token: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L328">            return Map.of(&quot;error&quot;, e.getMessage());</span>
         }
     }
 
@@ -316,11 +337,11 @@ public class JwtService {
      */
     public long getTimeToExpiration(String token) {
         try {
-<span class="fc" id="L319">            Date expiration = extractExpiration(token);</span>
-<span class="fc" id="L320">            long timeToExpiration = (expiration.getTime() - System.currentTimeMillis()) / 1000;</span>
-<span class="fc" id="L321">            return Math.max(0, timeToExpiration);</span>
-<span class="nc" id="L322">        } catch (Exception e) {</span>
-<span class="nc" id="L323">            return 0;</span>
+<span class="fc" id="L340">            Date expiration = extractExpiration(token);</span>
+<span class="fc" id="L341">            long timeToExpiration = (expiration.getTime() - System.currentTimeMillis()) / 1000;</span>
+<span class="fc" id="L342">            return Math.max(0, timeToExpiration);</span>
+<span class="fc" id="L343">        } catch (Exception e) {</span>
+<span class="fc" id="L344">            return 0;</span>
         }
     }
 }

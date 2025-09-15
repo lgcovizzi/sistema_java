@@ -3,10 +3,14 @@ spring:
     name: sistema-java
   
   profiles:
-    active: default
+    active: local
   
-  server:
-    port: 8082
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+    encoding: UTF-8
+    mode: HTML
   
   datasource:
     url: jdbc:postgresql://localhost:5432/sistema_db
@@ -58,16 +62,18 @@ app:
       directory: ./keys
 
 server:
-  port: 8080
+  port: 8082
+  servlet:
+    context-path: /
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
-      show-details: when-authorized
+      show-details: always
 
 logging:
   level:

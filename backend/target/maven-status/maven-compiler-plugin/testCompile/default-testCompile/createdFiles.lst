@@ -1,0 +1,6 @@
+com/sistema/config/RedisConfigTest.class
+com/sistema/integration/HealthControllerIntegrationTest.class
+com/sistema/controller/HealthControllerTest.class
+com/sistema/performance/HealthControllerPerformanceTest.class
+com/sistema/config/RSAKeyManagerTest.class
+com/sistema/controller/HomeControllerTest.class

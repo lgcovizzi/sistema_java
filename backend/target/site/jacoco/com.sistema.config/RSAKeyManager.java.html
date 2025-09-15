@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RSAKeyManager.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sistema-java</a> &gt; <a href="index.source.html" class="el_package">com.sistema.config</a> &gt; <span class="el_source">RSAKeyManager.java</span></div><h1>RSAKeyManager.java</h1><pre class="source lang-java linenums">package com.sistema.config;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import jakarta.annotation.PostConstruct;
+import javax.crypto.Cipher;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
+
+/**
+ * Gerenciador de chaves RSA para o sistema.
+ * Responsável por gerar, validar e carregar chaves RSA na inicialização da aplicação.
+ */
+@Component
+<span class="fc" id="L28">public class RSAKeyManager {</span>
+
+<span class="fc" id="L30">    private static final Logger logger = LoggerFactory.getLogger(RSAKeyManager.class);</span>
+    private static final int KEY_SIZE = 2048;
+    private static final String ALGORITHM = &quot;RSA&quot;;
+    private static final String PRIVATE_KEY_FILE = &quot;private_key.pem&quot;;
+    private static final String PUBLIC_KEY_FILE = &quot;public_key.pem&quot;;
+
+    @Value(&quot;${app.rsa.keys.directory:./keys}&quot;)
+    private String keysDirectory;
+
+    private PrivateKey privateKey;
+    private PublicKey publicKey;
+
+    /**
+     * Inicializa o gerenciador de chaves RSA.
+     * Verifica se as chaves existem e são válidas, caso contrário gera novas chaves.
+     */
+    @PostConstruct
+    public void initializeKeys() {
+        try {
+<span class="fc" id="L49">            createKeysDirectoryIfNotExists();</span>
+            
+<span class="fc bfc" id="L51" title="All 2 branches covered.">            if (keysExist()) {</span>
+<span class="fc" id="L52">                logger.info(&quot;Chaves RSA encontradas. Verificando validade...&quot;);</span>
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">                if (loadAndValidateKeys()) {</span>
+<span class="fc" id="L54">                    logger.info(&quot;Chaves RSA válidas carregadas com sucesso.&quot;);</span>
+                } else {
+<span class="nc" id="L56">                    logger.warn(&quot;Chaves RSA inválidas. Gerando novas chaves...&quot;);</span>
+<span class="nc" id="L57">                    generateNewKeys();</span>
+                }
+            } else {
+<span class="fc" id="L60">                logger.info(&quot;Chaves RSA não encontradas. Gerando novas chaves...&quot;);</span>
+<span class="fc" id="L61">                generateNewKeys();</span>
+            }
+<span class="nc" id="L63">        } catch (Exception e) {</span>
+<span class="nc" id="L64">            logger.error(&quot;Erro ao inicializar chaves RSA: {}&quot;, e.getMessage(), e);</span>
+<span class="nc" id="L65">            throw new RuntimeException(&quot;Falha na inicialização das chaves RSA&quot;, e);</span>
+<span class="fc" id="L66">        }</span>
+<span class="fc" id="L67">    }</span>
+
+    /**
+     * Verifica se os arquivos de chaves existem.
+     */
+    private boolean keysExist() {
+<span class="fc" id="L73">        Path privateKeyPath = Paths.get(keysDirectory, PRIVATE_KEY_FILE);</span>
+<span class="fc" id="L74">        Path publicKeyPath = Paths.get(keysDirectory, PUBLIC_KEY_FILE);</span>
+<span class="pc bpc" id="L75" title="1 of 4 branches missed.">        return Files.exists(privateKeyPath) &amp;&amp; Files.exists(publicKeyPath);</span>
+    }
+
+    /**
+     * Carrega e valida as chaves existentes.
+     */
+    private boolean loadAndValidateKeys() {
+        try {
+            // Carrega as chaves
+<span class="fc" id="L84">            privateKey = loadPrivateKey();</span>
+<span class="fc" id="L85">            publicKey = loadPublicKey();</span>
+
+            // Valida as chaves testando criptografia/descriptografia
+<span class="fc" id="L88">            return validateKeyPair(privateKey, publicKey);</span>
+<span class="nc" id="L89">        } catch (Exception e) {</span>
+<span class="nc" id="L90">            logger.error(&quot;Erro ao carregar chaves: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L91">            return false;</span>
+        }
+    }
+
+    /**
+     * Gera um novo par de chaves RSA.
+     */
+    private void generateNewKeys() throws NoSuchAlgorithmException, IOException {
+<span class="fc" id="L99">        logger.info(&quot;Gerando novo par de chaves RSA de {} bits...&quot;, KEY_SIZE);</span>
+        
+<span class="fc" id="L101">        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(ALGORITHM);</span>
+<span class="fc" id="L102">        keyPairGenerator.initialize(KEY_SIZE);</span>
+<span class="fc" id="L103">        KeyPair keyPair = keyPairGenerator.generateKeyPair();</span>
+
+<span class="fc" id="L105">        privateKey = keyPair.getPrivate();</span>
+<span class="fc" id="L106">        publicKey = keyPair.getPublic();</span>
+
+        // Salva as chaves em arquivos
+<span class="fc" id="L109">        savePrivateKey(privateKey);</span>
+<span class="fc" id="L110">        savePublicKey(publicKey);</span>
+
+<span class="fc" id="L112">        logger.info(&quot;Novo par de chaves RSA gerado e salvo com sucesso.&quot;);</span>
+<span class="fc" id="L113">    }</span>
+
+    /**
+     * Valida se o par de chaves funciona corretamente.
+     */
+    public boolean validateKeyPair(PrivateKey privateKey, PublicKey publicKey) {
+        try {
+            // Teste de criptografia/descriptografia
+<span class="fc" id="L121">            String testMessage = &quot;teste-validacao-chaves-rsa&quot;;</span>
+            
+<span class="fc" id="L123">            Cipher cipher = Cipher.getInstance(ALGORITHM);</span>
+            
+            // Criptografa com a chave pública
+<span class="fc" id="L126">            cipher.init(Cipher.ENCRYPT_MODE, publicKey);</span>
+<span class="fc" id="L127">            byte[] encryptedData = cipher.doFinal(testMessage.getBytes());</span>
+            
+            // Descriptografa com a chave privada
+<span class="fc" id="L130">            cipher.init(Cipher.DECRYPT_MODE, privateKey);</span>
+<span class="fc" id="L131">            byte[] decryptedData = cipher.doFinal(encryptedData);</span>
+            
+<span class="fc" id="L133">            String decryptedMessage = new String(decryptedData);</span>
+<span class="fc" id="L134">            boolean isValid = testMessage.equals(decryptedMessage);</span>
+            
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">            if (isValid) {</span>
+<span class="fc" id="L137">                logger.debug(&quot;Validação das chaves RSA bem-sucedida.&quot;);</span>
+            } else {
+<span class="nc" id="L139">                logger.warn(&quot;Falha na validação das chaves RSA: mensagens não coincidem.&quot;);</span>
+            }
+            
+<span class="fc" id="L142">            return isValid;</span>
+<span class="nc" id="L143">        } catch (Exception e) {</span>
+<span class="nc" id="L144">            logger.error(&quot;Erro durante validação das chaves RSA: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L145">            return false;</span>
+        }
+    }
+
+    /**
+     * Carrega a chave privada do arquivo.
+     */
+    private PrivateKey loadPrivateKey() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+<span class="fc" id="L153">        Path keyPath = Paths.get(keysDirectory, PRIVATE_KEY_FILE);</span>
+<span class="fc" id="L154">        String keyContent = Files.readString(keyPath)</span>
+<span class="fc" id="L155">                .replace(&quot;-----BEGIN PRIVATE KEY-----&quot;, &quot;&quot;)</span>
+<span class="fc" id="L156">                .replace(&quot;-----END PRIVATE KEY-----&quot;, &quot;&quot;)</span>
+<span class="fc" id="L157">                .replaceAll(&quot;\\s&quot;, &quot;&quot;);</span>
+        
+<span class="fc" id="L159">        byte[] keyBytes = Base64.getDecoder().decode(keyContent);</span>
+<span class="fc" id="L160">        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);</span>
+<span class="fc" id="L161">        KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM);</span>
+<span class="fc" id="L162">        return keyFactory.generatePrivate(keySpec);</span>
+    }
+
+    /**
+     * Carrega a chave pública do arquivo.
+     */
+    private PublicKey loadPublicKey() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+<span class="fc" id="L169">        Path keyPath = Paths.get(keysDirectory, PUBLIC_KEY_FILE);</span>
+<span class="fc" id="L170">        String keyContent = Files.readString(keyPath)</span>
+<span class="fc" id="L171">                .replace(&quot;-----BEGIN PUBLIC KEY-----&quot;, &quot;&quot;)</span>
+<span class="fc" id="L172">                .replace(&quot;-----END PUBLIC KEY-----&quot;, &quot;&quot;)</span>
+<span class="fc" id="L173">                .replaceAll(&quot;\\s&quot;, &quot;&quot;);</span>
+        
+<span class="fc" id="L175">        byte[] keyBytes = Base64.getDecoder().decode(keyContent);</span>
+<span class="fc" id="L176">        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);</span>
+<span class="fc" id="L177">        KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM);</span>
+<span class="fc" id="L178">        return keyFactory.generatePublic(keySpec);</span>
+    }
+
+    /**
+     * Salva a chave privada em arquivo.
+     */
+    private void savePrivateKey(PrivateKey privateKey) throws IOException {
+<span class="fc" id="L185">        Path keyPath = Paths.get(keysDirectory, PRIVATE_KEY_FILE);</span>
+<span class="fc" id="L186">        String encodedKey = Base64.getEncoder().encodeToString(privateKey.getEncoded());</span>
+<span class="fc" id="L187">        String pemKey = &quot;-----BEGIN PRIVATE KEY-----\n&quot; +</span>
+<span class="fc" id="L188">                formatKeyString(encodedKey) +</span>
+                &quot;\n-----END PRIVATE KEY-----&quot;;
+<span class="fc" id="L190">        Files.writeString(keyPath, pemKey);</span>
+<span class="fc" id="L191">        logger.debug(&quot;Chave privada salva em: {}&quot;, keyPath.toAbsolutePath());</span>
+<span class="fc" id="L192">    }</span>
+
+    /**
+     * Salva a chave pública em arquivo.
+     */
+    private void savePublicKey(PublicKey publicKey) throws IOException {
+<span class="fc" id="L198">        Path keyPath = Paths.get(keysDirectory, PUBLIC_KEY_FILE);</span>
+<span class="fc" id="L199">        String encodedKey = Base64.getEncoder().encodeToString(publicKey.getEncoded());</span>
+<span class="fc" id="L200">        String pemKey = &quot;-----BEGIN PUBLIC KEY-----\n&quot; +</span>
+<span class="fc" id="L201">                formatKeyString(encodedKey) +</span>
+                &quot;\n-----END PUBLIC KEY-----&quot;;
+<span class="fc" id="L203">        Files.writeString(keyPath, pemKey);</span>
+<span class="fc" id="L204">        logger.debug(&quot;Chave pública salva em: {}&quot;, keyPath.toAbsolutePath());</span>
+<span class="fc" id="L205">    }</span>
+
+    /**
+     * Formata a string da chave em linhas de 64 caracteres.
+     */
+    private String formatKeyString(String key) {
+<span class="fc" id="L211">        StringBuilder formatted = new StringBuilder();</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">        for (int i = 0; i &lt; key.length(); i += 64) {</span>
+<span class="fc" id="L213">            formatted.append(key, i, Math.min(i + 64, key.length())).append(&quot;\n&quot;);</span>
+        }
+<span class="fc" id="L215">        return formatted.toString().trim();</span>
+    }
+
+    /**
+     * Cria o diretório de chaves se não existir.
+     */
+    private void createKeysDirectoryIfNotExists() throws IOException {
+<span class="fc" id="L222">        Path keysPath = Paths.get(keysDirectory);</span>
+<span class="fc bfc" id="L223" title="All 2 branches covered.">        if (!Files.exists(keysPath)) {</span>
+<span class="fc" id="L224">            Files.createDirectories(keysPath);</span>
+<span class="fc" id="L225">            logger.info(&quot;Diretório de chaves criado: {}&quot;, keysPath.toAbsolutePath());</span>
+        }
+<span class="fc" id="L227">    }</span>
+
+    // Getters para acesso às chaves
+    public PrivateKey getPrivateKey() {
+<span class="fc" id="L231">        return privateKey;</span>
+    }
+
+    public PublicKey getPublicKey() {
+<span class="fc" id="L235">        return publicKey;</span>
+    }
+
+    public String getKeysDirectory() {
+<span class="nc" id="L239">        return keysDirectory;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

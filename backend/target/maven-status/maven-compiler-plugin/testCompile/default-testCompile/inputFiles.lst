@@ -1,0 +1,6 @@
+/home/lg/sistema_java/backend/src/test/java/com/sistema/config/RSAKeyManagerTest.java
+/home/lg/sistema_java/backend/src/test/java/com/sistema/performance/HealthControllerPerformanceTest.java
+/home/lg/sistema_java/backend/src/test/java/com/sistema/controller/HealthControllerTest.java
+/home/lg/sistema_java/backend/src/test/java/com/sistema/config/RedisConfigTest.java
+/home/lg/sistema_java/backend/src/test/java/com/sistema/integration/HealthControllerIntegrationTest.java
+/home/lg/sistema_java/backend/src/test/java/com/sistema/controller/HomeControllerTest.java

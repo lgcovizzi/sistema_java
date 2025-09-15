@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwtService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sistema-java</a> &gt; <a href="index.source.html" class="el_package">com.sistema.service</a> &gt; <span class="el_source">JwtService.java</span></div><h1>JwtService.java</h1><pre class="source lang-java linenums">package com.sistema.service;
+
+import com.sistema.config.RSAKeyManager;
+import com.sistema.entity.User;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.stereotype.Service;
+
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+/**
+ * Serviço para geração e validação de tokens JWT usando chaves RSA.
+ * Utiliza o RSAKeyManager para obter as chaves criptográficas.
+ */
+@Service
+public class JwtService {
+
+<span class="fc" id="L31">    private static final Logger logger = LoggerFactory.getLogger(JwtService.class);</span>
+
+    private final RSAKeyManager rsaKeyManager;
+
+    // Configurações de tempo de vida dos tokens
+    @Value(&quot;${app.jwt.access-token.expiration:3600}&quot;)
+    private long accessTokenExpirationSeconds;
+
+    @Value(&quot;${app.jwt.refresh-token.expiration:15552000}&quot;) // 6 meses em segundos
+    private long refreshTokenExpirationSeconds;
+
+    @Value(&quot;${app.jwt.issuer:sistema-java}&quot;)
+    private String issuer;
+
+    @Autowired
+<span class="fc" id="L46">    public JwtService(RSAKeyManager rsaKeyManager) {</span>
+<span class="fc" id="L47">        this.rsaKeyManager = rsaKeyManager;</span>
+<span class="fc" id="L48">    }</span>
+
+    /**
+     * Gera um token de acesso JWT para o usuário.
+     * 
+     * @param user o usuário para o qual gerar o token
+     * @return token JWT de acesso
+     */
+    public String generateAccessToken(User user) {
+<span class="nc" id="L57">        Map&lt;String, Object&gt; extraClaims = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L58">        extraClaims.put(&quot;type&quot;, &quot;access&quot;);</span>
+<span class="nc" id="L59">        extraClaims.put(&quot;roles&quot;, user.getAuthorities().stream()</span>
+<span class="nc" id="L60">                .map(GrantedAuthority::getAuthority)</span>
+<span class="nc" id="L61">                .collect(Collectors.toList()));</span>
+<span class="nc" id="L62">        extraClaims.put(&quot;email&quot;, user.getEmail());</span>
+<span class="nc" id="L63">        extraClaims.put(&quot;fullName&quot;, user.getFullName());</span>
+        
+<span class="nc" id="L65">        return generateToken(extraClaims, user.getUsername(), accessTokenExpirationSeconds);</span>
+    }
+
+    /**
+     * Gera um token de refresh JWT para o usuário.
+     * 
+     * @param user o usuário para o qual gerar o token
+     * @return token JWT de refresh
+     */
+    public String generateRefreshToken(User user) {
+<span class="nc" id="L75">        Map&lt;String, Object&gt; extraClaims = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L76">        extraClaims.put(&quot;type&quot;, &quot;refresh&quot;);</span>
+        
+<span class="nc" id="L78">        return generateToken(extraClaims, user.getUsername(), refreshTokenExpirationSeconds);</span>
+    }
+
+    /**
+     * Gera um token JWT com claims personalizados.
+     * 
+     * @param extraClaims claims adicionais
+     * @param username nome do usuário
+     * @param expirationSeconds tempo de expiração em segundos
+     * @return token JWT
+     */
+    private String generateToken(Map&lt;String, Object&gt; extraClaims, String username, long expirationSeconds) {
+        try {
+<span class="nc" id="L91">            PrivateKey privateKey = rsaKeyManager.getPrivateKey();</span>
+            
+<span class="nc" id="L93">            Instant now = Instant.now();</span>
+<span class="nc" id="L94">            Instant expiration = now.plus(expirationSeconds, ChronoUnit.SECONDS);</span>
+            
+<span class="nc" id="L96">            String token = Jwts.builder()</span>
+<span class="nc" id="L97">                    .claims(extraClaims)</span>
+<span class="nc" id="L98">                    .subject(username)</span>
+<span class="nc" id="L99">                    .issuer(issuer)</span>
+<span class="nc" id="L100">                    .issuedAt(Date.from(now))</span>
+<span class="nc" id="L101">                    .expiration(Date.from(expiration))</span>
+<span class="nc" id="L102">                    .signWith(privateKey, Jwts.SIG.RS256)</span>
+<span class="nc" id="L103">                    .compact();</span>
+            
+<span class="nc" id="L105">            logger.debug(&quot;Token JWT gerado para usuário: {}&quot;, username);</span>
+<span class="nc" id="L106">            return token;</span>
+            
+<span class="nc" id="L108">        } catch (Exception e) {</span>
+<span class="nc" id="L109">            logger.error(&quot;Erro ao gerar token JWT para usuário: {}&quot;, username, e);</span>
+<span class="nc" id="L110">            throw new RuntimeException(&quot;Erro ao gerar token JWT&quot;, e);</span>
+        }
+    }
+
+    /**
+     * Extrai o username do token JWT.
+     * 
+     * @param token o token JWT
+     * @return username
+     */
+    public String extractUsername(String token) {
+<span class="nc" id="L121">        return extractClaim(token, Claims::getSubject);</span>
+    }
+
+    /**
+     * Extrai a data de expiração do token JWT.
+     * 
+     * @param token o token JWT
+     * @return data de expiração
+     */
+    public Date extractExpiration(String token) {
+<span class="nc" id="L131">        return extractClaim(token, Claims::getExpiration);</span>
+    }
+
+    /**
+     * Extrai o tipo do token (access ou refresh).
+     * 
+     * @param token o token JWT
+     * @return tipo do token
+     */
+    public String extractTokenType(String token) {
+<span class="nc" id="L141">        return extractClaim(token, claims -&gt; claims.get(&quot;type&quot;, String.class));</span>
+    }
+
+    /**
+     * Extrai as roles do token JWT.
+     * 
+     * @param token o token JWT
+     * @return lista de roles
+     */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    public java.util.List&lt;String&gt; extractRoles(String token) {
+<span class="nc" id="L152">        return extractClaim(token, claims -&gt; claims.get(&quot;roles&quot;, java.util.List.class));</span>
+    }
+
+    /**
+     * Extrai um claim específico do token JWT.
+     * 
+     * @param token o token JWT
+     * @param claimsResolver função para extrair o claim
+     * @param &lt;T&gt; tipo do claim
+     * @return valor do claim
+     */
+    public &lt;T&gt; T extractClaim(String token, Function&lt;Claims, T&gt; claimsResolver) {
+<span class="nc" id="L164">        final Claims claims = extractAllClaims(token);</span>
+<span class="nc" id="L165">        return claimsResolver.apply(claims);</span>
+    }
+
+    /**
+     * Extrai todos os claims do token JWT.
+     * 
+     * @param token o token JWT
+     * @return claims do token
+     */
+    private Claims extractAllClaims(String token) {
+        try {
+<span class="nc" id="L176">            PublicKey publicKey = rsaKeyManager.getPublicKey();</span>
+            
+<span class="nc" id="L178">            return Jwts.parser()</span>
+<span class="nc" id="L179">                    .verifyWith(publicKey)</span>
+<span class="nc" id="L180">                    .build()</span>
+<span class="nc" id="L181">                    .parseSignedClaims(token)</span>
+<span class="nc" id="L182">                    .getPayload();</span>
+                    
+<span class="nc" id="L184">        } catch (ExpiredJwtException e) {</span>
+<span class="nc" id="L185">            logger.warn(&quot;Token JWT expirado: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L186">            throw e;</span>
+<span class="nc" id="L187">        } catch (UnsupportedJwtException e) {</span>
+<span class="nc" id="L188">            logger.error(&quot;Token JWT não suportado: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L189">            throw e;</span>
+<span class="nc" id="L190">        } catch (MalformedJwtException e) {</span>
+<span class="nc" id="L191">            logger.error(&quot;Token JWT malformado: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L192">            throw e;</span>
+<span class="nc" id="L193">        } catch (SecurityException e) {</span>
+<span class="nc" id="L194">            logger.error(&quot;Falha na validação da assinatura do token JWT: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L195">            throw e;</span>
+<span class="nc" id="L196">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L197">            logger.error(&quot;Token JWT inválido: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L198">            throw e;</span>
+<span class="nc" id="L199">        } catch (Exception e) {</span>
+<span class="nc" id="L200">            logger.error(&quot;Erro ao processar token JWT: {}&quot;, e.getMessage(), e);</span>
+<span class="nc" id="L201">            throw new RuntimeException(&quot;Erro ao processar token JWT&quot;, e);</span>
+        }
+    }
+
+    /**
+     * Verifica se o token JWT está expirado.
+     * 
+     * @param token o token JWT
+     * @return true se expirado
+     */
+    public boolean isTokenExpired(String token) {
+        try {
+<span class="nc" id="L213">            return extractExpiration(token).before(new Date());</span>
+<span class="nc" id="L214">        } catch (ExpiredJwtException e) {</span>
+<span class="nc" id="L215">            return true;</span>
+        }
+    }
+
+    /**
+     * Valida se o token JWT é válido para o usuário.
+     * 
+     * @param token o token JWT
+     * @param user o usuário
+     * @return true se válido
+     */
+    public boolean isTokenValid(String token, User user) {
+        try {
+<span class="nc" id="L228">            final String username = extractUsername(token);</span>
+<span class="nc bnc" id="L229" title="All 4 branches missed.">            return (username.equals(user.getUsername()) &amp;&amp; !isTokenExpired(token));</span>
+<span class="nc" id="L230">        } catch (Exception e) {</span>
+<span class="nc" id="L231">            logger.warn(&quot;Token inválido para usuário {}: {}&quot;, user.getUsername(), e.getMessage());</span>
+<span class="nc" id="L232">            return false;</span>
+        }
+    }
+
+    /**
+     * Valida se o token é um token de acesso válido.
+     * 
+     * @param token o token JWT
+     * @return true se for um token de acesso válido
+     */
+    public boolean isValidAccessToken(String token) {
+        try {
+<span class="nc" id="L244">            String tokenType = extractTokenType(token);</span>
+<span class="nc bnc" id="L245" title="All 4 branches missed.">            return &quot;access&quot;.equals(tokenType) &amp;&amp; !isTokenExpired(token);</span>
+<span class="nc" id="L246">        } catch (Exception e) {</span>
+<span class="nc" id="L247">            logger.warn(&quot;Token de acesso inválido: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L248">            return false;</span>
+        }
+    }
+
+    /**
+     * Valida se o token é um token de refresh válido.
+     * 
+     * @param token o token JWT
+     * @return true se for um token de refresh válido
+     */
+    public boolean isValidRefreshToken(String token) {
+        try {
+<span class="nc" id="L260">            String tokenType = extractTokenType(token);</span>
+<span class="nc bnc" id="L261" title="All 4 branches missed.">            return &quot;refresh&quot;.equals(tokenType) &amp;&amp; !isTokenExpired(token);</span>
+<span class="nc" id="L262">        } catch (Exception e) {</span>
+<span class="nc" id="L263">            logger.warn(&quot;Token de refresh inválido: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L264">            return false;</span>
+        }
+    }
+
+    /**
+     * Obtém informações sobre o token (para debugging/logging).
+     * 
+     * @param token o token JWT
+     * @return mapa com informações do token
+     */
+    public Map&lt;String, Object&gt; getTokenInfo(String token) {
+        try {
+<span class="nc" id="L276">            Claims claims = extractAllClaims(token);</span>
+<span class="nc" id="L277">            Map&lt;String, Object&gt; info = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L278">            info.put(&quot;subject&quot;, claims.getSubject());</span>
+<span class="nc" id="L279">            info.put(&quot;issuer&quot;, claims.getIssuer());</span>
+<span class="nc" id="L280">            info.put(&quot;issuedAt&quot;, claims.getIssuedAt());</span>
+<span class="nc" id="L281">            info.put(&quot;expiration&quot;, claims.getExpiration());</span>
+<span class="nc" id="L282">            info.put(&quot;type&quot;, claims.get(&quot;type&quot;));</span>
+<span class="nc" id="L283">            info.put(&quot;expired&quot;, isTokenExpired(token));</span>
+<span class="nc" id="L284">            return info;</span>
+<span class="nc" id="L285">        } catch (Exception e) {</span>
+<span class="nc" id="L286">            logger.error(&quot;Erro ao obter informações do token: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L287">            return Map.of(&quot;error&quot;, e.getMessage());</span>
+        }
+    }
+
+    /**
+     * Obtém o tempo restante até a expiração do token em segundos.
+     * 
+     * @param token o token JWT
+     * @return segundos até expiração, ou 0 se já expirado
+     */
+    public long getTimeToExpiration(String token) {
+        try {
+<span class="nc" id="L299">            Date expiration = extractExpiration(token);</span>
+<span class="nc" id="L300">            long timeToExpiration = (expiration.getTime() - System.currentTimeMillis()) / 1000;</span>
+<span class="nc" id="L301">            return Math.max(0, timeToExpiration);</span>
+<span class="nc" id="L302">        } catch (Exception e) {</span>
+<span class="nc" id="L303">            return 0;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

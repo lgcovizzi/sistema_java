@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sistema-java</a> &gt; <a href="index.source.html" class="el_package">com.sistema.service</a> &gt; <span class="el_source">AuthService.java</span></div><h1>AuthService.java</h1><pre class="source lang-java linenums">package com.sistema.service;
+
+import com.sistema.entity.RefreshToken;
+import com.sistema.entity.Role;
+import com.sistema.entity.User;
+import com.sistema.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * Serviço de autenticação e gerenciamento de usuários.
+ * Implementa UserDetailsService para integração com Spring Security.
+ */
+@Service
+@Transactional
+public class AuthService implements UserDetailsService {
+
+<span class="fc" id="L37">    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);</span>
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    public AuthService(UserRepository userRepository, 
+                      PasswordEncoder passwordEncoder, 
+                      JwtService jwtService,
+<span class="fc" id="L49">                      RefreshTokenService refreshTokenService) {</span>
+<span class="fc" id="L50">        this.userRepository = userRepository;</span>
+<span class="fc" id="L51">        this.passwordEncoder = passwordEncoder;</span>
+<span class="fc" id="L52">        this.jwtService = jwtService;</span>
+<span class="fc" id="L53">        this.refreshTokenService = refreshTokenService;</span>
+<span class="fc" id="L54">    }</span>
+
+    @Autowired
+    public void setAuthenticationManager(AuthenticationManager authenticationManager) {
+<span class="fc" id="L58">        this.authenticationManager = authenticationManager;</span>
+<span class="fc" id="L59">    }</span>
+
+    /**
+     * Implementação do UserDetailsService para Spring Security.
+     * 
+     * @param username nome de usuário ou email
+     * @return UserDetails do usuário
+     * @throws UsernameNotFoundException se usuário não encontrado
+     */
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+<span class="nc" id="L70">        User user = userRepository.findByUsernameOrEmail(username, username)</span>
+<span class="nc" id="L71">                .orElseThrow(() -&gt; {</span>
+<span class="nc" id="L72">                    logger.warn(&quot;Usuário não encontrado: {}&quot;, username);</span>
+<span class="nc" id="L73">                    return new UsernameNotFoundException(&quot;Usuário não encontrado: &quot; + username);</span>
+                });
+        
+<span class="nc" id="L76">        logger.debug(&quot;Usuário carregado: {}&quot;, user.getUsername());</span>
+<span class="nc" id="L77">        return user;</span>
+    }
+
+    /**
+     * Autentica um usuário e gera tokens JWT.
+     * 
+     * @param usernameOrEmail nome de usuário ou email
+     * @param password senha
+     * @param request requisição HTTP para extrair informações do dispositivo
+     * @return mapa com tokens e informações do usuário
+     * @throws AuthenticationException se credenciais inválidas
+     */
+    public Map&lt;String, Object&gt; authenticate(String usernameOrEmail, String password, HttpServletRequest request) {
+        try {
+            // Autentica usando Spring Security
+<span class="nc" id="L92">            Authentication authentication = authenticationManager.authenticate(</span>
+                    new UsernamePasswordAuthenticationToken(usernameOrEmail, password)
+            );
+
+<span class="nc" id="L96">            User user = (User) authentication.getPrincipal();</span>
+            
+            // Atualiza último login
+<span class="nc" id="L99">            updateLastLogin(user.getId());</span>
+            
+            // Gera tokens
+<span class="nc" id="L102">            String accessToken = jwtService.generateAccessToken(user);</span>
+<span class="nc" id="L103">            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, request);</span>
+            
+<span class="nc" id="L105">            logger.info(&quot;Usuário autenticado com sucesso: {}&quot;, user.getUsername());</span>
+            
+<span class="nc" id="L107">            return createAuthResponse(user, accessToken, refreshToken.getToken());</span>
+            
+<span class="nc" id="L109">        } catch (AuthenticationException e) {</span>
+<span class="nc" id="L110">            logger.warn(&quot;Falha na autenticação para usuário: {}&quot;, usernameOrEmail);</span>
+<span class="nc" id="L111">            throw new BadCredentialsException(&quot;Credenciais inválidas&quot;);</span>
+        }
+    }
+
+    /**
+     * Registra um novo usuário no sistema.
+     * 
+     * @param username nome de usuário
+     * @param email email do usuário
+     * @param password senha do usuário
+     * @param firstName primeiro nome
+     * @param lastName último nome
+     * @return usuário criado
+     * @throws RuntimeException se username ou email já existirem
+     */
+    public User register(String username, String email, String password, String firstName, String lastName) {
+        // Verificar se username já existe
+<span class="nc bnc" id="L128" title="All 2 branches missed.">        if (userRepository.existsByUsername(username)) {</span>
+<span class="nc" id="L129">            throw new RuntimeException(&quot;Username já está em uso&quot;);</span>
+        }
+        
+        // Verificar se email já existe
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        if (userRepository.existsByEmail(email)) {</span>
+<span class="nc" id="L134">            throw new RuntimeException(&quot;Email já está em uso&quot;);</span>
+        }
+        
+        // Criar novo usuário
+<span class="nc" id="L138">        User user = new User();</span>
+<span class="nc" id="L139">        user.setUsername(username);</span>
+<span class="nc" id="L140">        user.setEmail(email);</span>
+<span class="nc" id="L141">        user.setPassword(passwordEncoder.encode(password));</span>
+<span class="nc" id="L142">        user.setFirstName(firstName);</span>
+<span class="nc" id="L143">        user.setLastName(lastName);</span>
+<span class="nc" id="L144">        user.setRoles(List.of(Role.USER));</span>
+<span class="nc" id="L145">        user.setEnabled(true);</span>
+<span class="nc" id="L146">        user.setCreatedAt(LocalDateTime.now());</span>
+<span class="nc" id="L147">        user.setUpdatedAt(LocalDateTime.now());</span>
+        
+<span class="nc" id="L149">        User savedUser = userRepository.save(user);</span>
+<span class="nc" id="L150">        logger.info(&quot;Usuário registrado com sucesso: {}&quot;, username);</span>
+        
+<span class="nc" id="L152">        return savedUser;</span>
+    }
+    
+    /**
+     * Registra um novo usuário e o autentica automaticamente.
+     * 
+     * @param username nome de usuário
+     * @param email email do usuário
+     * @param password senha do usuário
+     * @param firstName primeiro nome
+     * @param lastName último nome
+     * @param request requisição HTTP
+     * @return tokens de autenticação
+     * @throws RuntimeException se username ou email já existirem
+     */
+    public Map&lt;String, Object&gt; registerAndAuthenticate(String username, String email, String password, 
+                                                       String firstName, String lastName, HttpServletRequest request) {
+        // Registrar o usuário
+<span class="nc" id="L170">        User user = register(username, email, password, firstName, lastName);</span>
+        
+        // Autenticar automaticamente
+<span class="nc" id="L173">        return authenticate(username, password, request);</span>
+    }
+
+
+
+    /**
+     * Renova o token de acesso usando um refresh token válido.
+     * 
+     * @param refreshTokenValue token de refresh
+     * @param request requisição HTTP
+     * @return mapa com novo token de acesso
+     * @throws IllegalArgumentException se refresh token inválido
+     */
+    public Map&lt;String, Object&gt; refreshAccessToken(String refreshTokenValue, HttpServletRequest request) {
+<span class="nc" id="L187">        logger.debug(&quot;Tentativa de renovação de token&quot;);</span>
+        
+<span class="nc" id="L189">        RefreshToken refreshToken = refreshTokenService.findValidRefreshToken(refreshTokenValue)</span>
+<span class="nc" id="L190">                .orElseThrow(() -&gt; {</span>
+<span class="nc" id="L191">                    logger.warn(&quot;Refresh token inválido ou expirado&quot;);</span>
+<span class="nc" id="L192">                    return new IllegalArgumentException(&quot;Refresh token inválido ou expirado&quot;);</span>
+                });
+        
+<span class="nc" id="L195">        User user = refreshToken.getUser();</span>
+        
+<span class="nc bnc" id="L197" title="All 2 branches missed.">        if (!user.isEnabled()) {</span>
+<span class="nc" id="L198">            throw new IllegalArgumentException(&quot;Usuário desabilitado&quot;);</span>
+        }
+        
+        // Gera novo access token
+<span class="nc" id="L202">        String newAccessToken = jwtService.generateAccessToken(user);</span>
+        
+        // Opcionalmente, gera novo refresh token (rotação de tokens)
+<span class="nc" id="L205">        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user, request);</span>
+        
+        // Revoga o refresh token antigo
+<span class="nc" id="L208">        refreshTokenService.revokeRefreshToken(refreshTokenValue);</span>
+        
+<span class="nc" id="L210">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L211">        response.put(&quot;accessToken&quot;, newAccessToken);</span>
+<span class="nc" id="L212">        response.put(&quot;refreshToken&quot;, newRefreshToken.getToken());</span>
+<span class="nc" id="L213">        response.put(&quot;tokenType&quot;, &quot;Bearer&quot;);</span>
+<span class="nc" id="L214">        response.put(&quot;expiresIn&quot;, 3600); // 1 hora em segundos</span>
+<span class="nc" id="L215">        response.put(&quot;refreshExpiresIn&quot;, newRefreshToken.getDaysUntilExpiration() * 24 * 60 * 60); // em segundos</span>
+        
+<span class="nc" id="L217">        logger.info(&quot;Token renovado com sucesso para usuário: {}&quot;, user.getUsername());</span>
+        
+<span class="nc" id="L219">        return response;</span>
+    }
+
+    /**
+     * Altera a senha do usuário.
+     * 
+     * @param username nome do usuário
+     * @param currentPassword senha atual
+     * @param newPassword nova senha
+     * @throws IllegalArgumentException se senha atual incorreta
+     */
+    public void changePassword(String username, String currentPassword, String newPassword) {
+<span class="nc" id="L231">        User user = userRepository.findByUsername(username)</span>
+<span class="nc" id="L232">                .orElseThrow(() -&gt; new UsernameNotFoundException(&quot;Usuário não encontrado: &quot; + username));</span>
+        
+<span class="nc bnc" id="L234" title="All 2 branches missed.">        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {</span>
+<span class="nc" id="L235">            throw new IllegalArgumentException(&quot;Senha atual incorreta&quot;);</span>
+        }
+        
+<span class="nc" id="L238">        user.setPassword(passwordEncoder.encode(newPassword));</span>
+<span class="nc" id="L239">        userRepository.save(user);</span>
+        
+<span class="nc" id="L241">        logger.info(&quot;Senha alterada para usuário: {}&quot;, username);</span>
+<span class="nc" id="L242">    }</span>
+
+    /**
+     * Ativa ou desativa um usuário.
+     * 
+     * @param userId ID do usuário
+     * @param enabled true para ativar, false para desativar
+     */
+    public void setUserEnabled(Long userId, boolean enabled) {
+<span class="nc" id="L251">        userRepository.updateUserStatus(userId, enabled);</span>
+<span class="nc bnc" id="L252" title="All 2 branches missed.">        logger.info(&quot;Status do usuário {} alterado para: {}&quot;, userId, enabled ? &quot;ativo&quot; : &quot;inativo&quot;);</span>
+<span class="nc" id="L253">    }</span>
+
+    /**
+     * Busca usuário por ID.
+     * 
+     * @param userId ID do usuário
+     * @return usuário encontrado
+     */
+    public Optional&lt;User&gt; findById(Long userId) {
+<span class="nc" id="L262">        return userRepository.findById(userId);</span>
+    }
+
+    /**
+     * Busca usuário por username.
+     * 
+     * @param username nome do usuário
+     * @return usuário encontrado
+     */
+    public Optional&lt;User&gt; findByUsername(String username) {
+<span class="nc" id="L272">        return userRepository.findByUsername(username);</span>
+    }
+
+    /**
+     * Lista todos os usuários ativos.
+     * 
+     * @return lista de usuários ativos
+     */
+    public List&lt;User&gt; findActiveUsers() {
+<span class="nc" id="L281">        return userRepository.findByEnabledTrue();</span>
+    }
+
+    /**
+     * Busca usuários por termo de pesquisa.
+     * 
+     * @param searchTerm termo de busca
+     * @return lista de usuários encontrados
+     */
+    public List&lt;User&gt; searchUsers(String searchTerm) {
+<span class="nc" id="L291">        return userRepository.searchUsers(searchTerm);</span>
+    }
+
+    /**
+     * Atualiza o último login do usuário.
+     * 
+     * @param userId ID do usuário
+     */
+    private void updateLastLogin(Long userId) {
+<span class="nc" id="L300">        userRepository.updateLastLogin(userId, LocalDateTime.now());</span>
+<span class="nc" id="L301">    }</span>
+
+    /**
+     * Cria a resposta de autenticação com tokens e informações do usuário.
+     * 
+     * @param user usuário autenticado
+     * @param accessToken token de acesso
+     * @param refreshToken token de refresh
+     * @return mapa com dados da resposta
+     */
+    private Map&lt;String, Object&gt; createAuthResponse(User user, String accessToken, String refreshToken) {
+<span class="nc" id="L312">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L313">        response.put(&quot;accessToken&quot;, accessToken);</span>
+<span class="nc" id="L314">        response.put(&quot;refreshToken&quot;, refreshToken);</span>
+<span class="nc" id="L315">        response.put(&quot;tokenType&quot;, &quot;Bearer&quot;);</span>
+<span class="nc" id="L316">        response.put(&quot;expiresIn&quot;, 3600); // 1 hora em segundos</span>
+<span class="nc" id="L317">        response.put(&quot;refreshExpiresIn&quot;, 15552000); // 6 meses em segundos</span>
+        
+        // Informações do usuário
+<span class="nc" id="L320">        Map&lt;String, Object&gt; userInfo = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L321">        userInfo.put(&quot;id&quot;, user.getId());</span>
+<span class="nc" id="L322">        userInfo.put(&quot;username&quot;, user.getUsername());</span>
+<span class="nc" id="L323">        userInfo.put(&quot;email&quot;, user.getEmail());</span>
+<span class="nc" id="L324">        userInfo.put(&quot;fullName&quot;, user.getFullName());</span>
+<span class="nc" id="L325">        userInfo.put(&quot;roles&quot;, user.getRoles());</span>
+<span class="nc" id="L326">        userInfo.put(&quot;lastLogin&quot;, user.getLastLogin());</span>
+        
+<span class="nc" id="L328">        response.put(&quot;user&quot;, userInfo);</span>
+        
+<span class="nc" id="L330">        return response;</span>
+    }
+
+    /**
+     * Valida se um token JWT é válido para um usuário específico.
+     * 
+     * @param token token JWT
+     * @param username nome do usuário
+     * @return true se válido
+     */
+    public boolean isTokenValidForUser(String token, String username) {
+        try {
+<span class="nc" id="L342">            User user = userRepository.findByUsername(username)</span>
+<span class="nc" id="L343">                    .orElse(null);</span>
+            
+<span class="nc bnc" id="L345" title="All 4 branches missed.">            if (user == null || !user.isEnabled()) {</span>
+<span class="nc" id="L346">                return false;</span>
+            }
+            
+<span class="nc" id="L349">            return jwtService.isTokenValid(token, user);</span>
+<span class="nc" id="L350">        } catch (Exception e) {</span>
+<span class="nc" id="L351">            logger.warn(&quot;Erro ao validar token para usuário {}: {}&quot;, username, e.getMessage());</span>
+<span class="nc" id="L352">            return false;</span>
+        }
+    }
+
+    /**
+     * Realiza logout do usuário.
+     *
+     * @param refreshTokenValue Token de refresh para revogar
+     * @param revokeAll Se deve revogar todos os tokens do usuário
+     */
+    public void logout(String refreshTokenValue, boolean revokeAll) {
+<span class="nc" id="L363">        logger.debug(&quot;Realizando logout&quot;);</span>
+        
+<span class="nc bnc" id="L365" title="All 2 branches missed.">        if (refreshTokenValue != null) {</span>
+<span class="nc" id="L366">            Optional&lt;RefreshToken&gt; refreshToken = refreshTokenService.findValidRefreshToken(refreshTokenValue);</span>
+            
+<span class="nc bnc" id="L368" title="All 2 branches missed.">            if (refreshToken.isPresent()) {</span>
+<span class="nc" id="L369">                User user = refreshToken.get().getUser();</span>
+                
+<span class="nc bnc" id="L371" title="All 2 branches missed.">                if (revokeAll) {</span>
+                    // Revoga todos os tokens do usuário
+<span class="nc" id="L373">                    int revokedCount = refreshTokenService.revokeAllUserTokens(user);</span>
+<span class="nc" id="L374">                    logger.info(&quot;Logout completo: {} tokens revogados para usuário: {}&quot;, revokedCount, user.getUsername());</span>
+<span class="nc" id="L375">                } else {</span>
+                    // Revoga apenas o token atual
+<span class="nc" id="L377">                    refreshTokenService.revokeRefreshToken(refreshTokenValue);</span>
+<span class="nc" id="L378">                    logger.info(&quot;Logout realizado para usuário: {}&quot;, user.getUsername());</span>
+                }
+            }
+        }
+<span class="nc" id="L382">    }</span>
+
+    /**
+     * Obtém estatísticas dos usuários.
+     * 
+     * @return mapa com estatísticas
+     */
+    public Map&lt;String, Object&gt; getUserStatistics() {
+<span class="nc" id="L390">        Map&lt;String, Object&gt; stats = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L391">        stats.put(&quot;totalUsers&quot;, userRepository.count());</span>
+<span class="nc" id="L392">        stats.put(&quot;activeUsers&quot;, userRepository.countByEnabledTrue());</span>
+<span class="nc" id="L393">        stats.put(&quot;adminUsers&quot;, userRepository.countByRole(Role.ADMIN));</span>
+<span class="nc" id="L394">        stats.put(&quot;regularUsers&quot;, userRepository.countByRole(Role.USER));</span>
+        
+<span class="nc" id="L396">        return stats;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

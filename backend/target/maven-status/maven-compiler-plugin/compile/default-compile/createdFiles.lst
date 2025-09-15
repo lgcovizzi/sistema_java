@@ -20,6 +20,7 @@ com/sistema/service/RefreshTokenService.class
 com/sistema/entity/User.class
 com/sistema/repository/UserRepository.class
 com/sistema/SistemaJavaApplication.class
+com/sistema/controller/LoginController.class
 com/sistema/config/RSAKeyManager.class
 com/sistema/repository/RefreshTokenRepository.class
 com/sistema/controller/AuthController.class

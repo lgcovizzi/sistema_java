@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwtAuthenticationFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sistema-java</a> &gt; <a href="index.source.html" class="el_package">com.sistema.security</a> &gt; <span class="el_source">JwtAuthenticationFilter.java</span></div><h1>JwtAuthenticationFilter.java</h1><pre class="source lang-java linenums">package com.sistema.security;
+
+import com.sistema.service.JwtService;
+import com.sistema.service.AuthService;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+
+/**
+ * Filtro de autenticação JWT que intercepta todas as requisições HTTP
+ * para validar tokens JWT e configurar o contexto de segurança.
+ */
+@Component
+<span class="fc" id="L30">public class JwtAuthenticationFilter extends OncePerRequestFilter {</span>
+
+<span class="fc" id="L32">    private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);</span>
+    private static final String BEARER_PREFIX = &quot;Bearer &quot;;
+    private static final String AUTHORIZATION_HEADER = &quot;Authorization&quot;;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    @Lazy
+    private AuthService authService;
+
+    @Override
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
+
+        try {
+<span class="fc" id="L51">            String jwt = extractJwtFromRequest(request);</span>
+            
+<span class="pc bpc" id="L53" title="3 of 4 branches missed.">            if (jwt != null &amp;&amp; SecurityContextHolder.getContext().getAuthentication() == null) {</span>
+<span class="nc" id="L54">                authenticateUser(jwt, request);</span>
+            }
+<span class="nc" id="L56">        } catch (Exception e) {</span>
+<span class="nc" id="L57">            logger.error(&quot;Erro durante autenticação JWT: {}&quot;, e.getMessage());</span>
+            // Não interrompe a cadeia de filtros, apenas loga o erro
+<span class="fc" id="L59">        }</span>
+
+<span class="fc" id="L61">        filterChain.doFilter(request, response);</span>
+<span class="fc" id="L62">    }</span>
+
+    /**
+     * Extrai o token JWT do cabeçalho Authorization da requisição.
+     *
+     * @param request A requisição HTTP
+     * @return O token JWT ou null se não encontrado
+     */
+    private String extractJwtFromRequest(HttpServletRequest request) {
+<span class="fc" id="L71">        String bearerToken = request.getHeader(AUTHORIZATION_HEADER);</span>
+        
+<span class="pc bpc" id="L73" title="3 of 4 branches missed.">        if (bearerToken != null &amp;&amp; bearerToken.startsWith(BEARER_PREFIX)) {</span>
+<span class="nc" id="L74">            return bearerToken.substring(BEARER_PREFIX.length());</span>
+        }
+        
+<span class="fc" id="L77">        return null;</span>
+    }
+
+    /**
+     * Autentica o usuário baseado no token JWT válido.
+     *
+     * @param jwt O token JWT
+     * @param request A requisição HTTP
+     */
+    private void authenticateUser(String jwt, HttpServletRequest request) {
+        try {
+            // Valida o token e extrai o username
+<span class="nc bnc" id="L89" title="All 2 branches missed.">            if (!jwtService.isValidAccessToken(jwt)) {</span>
+<span class="nc" id="L90">                logger.debug(&quot;Token JWT inválido ou expirado&quot;);</span>
+<span class="nc" id="L91">                return;</span>
+            }
+
+<span class="nc" id="L94">            String username = jwtService.extractUsername(jwt);</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">            if (username == null) {</span>
+<span class="nc" id="L96">                logger.debug(&quot;Username não encontrado no token JWT&quot;);</span>
+<span class="nc" id="L97">                return;</span>
+            }
+
+            // Carrega os detalhes do usuário
+<span class="nc" id="L101">            UserDetails userDetails = authService.loadUserByUsername(username);</span>
+            
+            // Cria o objeto de autenticação
+<span class="nc" id="L104">            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(</span>
+                    userDetails,
+                    null,
+<span class="nc" id="L107">                    userDetails.getAuthorities()</span>
+            );
+            
+            // Adiciona detalhes da requisição
+<span class="nc" id="L111">            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));</span>
+            
+            // Define a autenticação no contexto de segurança
+<span class="nc" id="L114">            SecurityContextHolder.getContext().setAuthentication(authToken);</span>
+            
+<span class="nc" id="L116">            logger.debug(&quot;Usuário autenticado com sucesso: {}&quot;, username);</span>
+            
+<span class="nc" id="L118">        } catch (Exception e) {</span>
+<span class="nc" id="L119">            logger.error(&quot;Erro ao autenticar usuário: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L120">        }</span>
+<span class="nc" id="L121">    }</span>
+
+    /**
+     * Determina se este filtro deve ser aplicado à requisição.
+     * Por padrão, aplica a todas as requisições exceto algumas específicas.
+     *
+     * @param request A requisição HTTP
+     * @return true se o filtro deve ser aplicado
+     */
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+<span class="fc" id="L132">        String path = request.getRequestURI();</span>
+        
+        // Não aplica o filtro para endpoints públicos
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">        return path.startsWith(&quot;/api/auth/login&quot;) ||</span>
+<span class="pc bpc" id="L136" title="1 of 2 branches missed.">               path.startsWith(&quot;/api/auth/register&quot;) ||</span>
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">               path.startsWith(&quot;/api/login&quot;) ||</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">               path.startsWith(&quot;/login&quot;) ||</span>
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">               path.startsWith(&quot;/logout&quot;) ||</span>
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">               path.startsWith(&quot;/dashboard&quot;) ||</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">               path.startsWith(&quot;/api/health&quot;) ||</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">               path.startsWith(&quot;/api/info&quot;) ||</span>
+<span class="pc bpc" id="L143" title="1 of 2 branches missed.">               path.startsWith(&quot;/actuator&quot;) ||</span>
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">               path.startsWith(&quot;/error&quot;) ||</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">               path.equals(&quot;/&quot;) ||</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">               path.equals(&quot;/api-simple&quot;);</span>
+    }
+
+    /**
+     * Limpa o contexto de segurança em caso de erro.
+     */
+    private void clearSecurityContext() {
+<span class="nc" id="L153">        SecurityContextHolder.clearContext();</span>
+<span class="nc" id="L154">    }</span>
+
+    /**
+     * Verifica se a requisição contém um token JWT válido.
+     *
+     * @param request A requisição HTTP
+     * @return true se contém token JWT
+     */
+    public boolean hasJwtToken(HttpServletRequest request) {
+<span class="nc" id="L163">        String bearerToken = request.getHeader(AUTHORIZATION_HEADER);</span>
+<span class="nc bnc" id="L164" title="All 4 branches missed.">        return bearerToken != null &amp;&amp; bearerToken.startsWith(BEARER_PREFIX);</span>
+    }
+
+    /**
+     * Extrai informações do usuário autenticado do contexto de segurança.
+     *
+     * @return O usuário autenticado ou null
+     */
+    public static UserDetails getCurrentUser() {
+<span class="nc" id="L173">        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();</span>
+        
+<span class="nc bnc" id="L175" title="All 4 branches missed.">        if (authentication != null &amp;&amp; authentication.getPrincipal() instanceof UserDetails) {</span>
+<span class="nc" id="L176">            return (UserDetails) authentication.getPrincipal();</span>
+        }
+        
+<span class="nc" id="L179">        return null;</span>
+    }
+
+    /**
+     * Verifica se há um usuário autenticado no contexto atual.
+     *
+     * @return true se há usuário autenticado
+     */
+    public static boolean isAuthenticated() {
+<span class="nc" id="L188">        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">        return authentication != null &amp;&amp; </span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">               authentication.isAuthenticated() &amp;&amp; </span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">               !(authentication.getPrincipal() instanceof String);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

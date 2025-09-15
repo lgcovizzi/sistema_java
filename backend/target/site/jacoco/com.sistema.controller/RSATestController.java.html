@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RSATestController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sistema-java</a> &gt; <a href="index.source.html" class="el_package">com.sistema.controller</a> &gt; <span class="el_source">RSATestController.java</span></div><h1>RSATestController.java</h1><pre class="source lang-java linenums">package com.sistema.controller;
+
+import com.sistema.config.RSAKeyManager;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Controlador para testar o sistema de chaves RSA.
+ */
+@RestController
+@RequestMapping(&quot;/api&quot;)
+<span class="fc" id="L18">public class RSATestController {</span>
+
+    @Autowired
+    private RSAKeyManager rsaKeyManager;
+
+    /**
+     * Endpoint para testar o sistema de chaves RSA.
+     */
+    @GetMapping(&quot;/rsa-test&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; testRSAKeys() {
+<span class="nc" id="L28">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+        
+        try {
+            // Verifica se as chaves estão disponíveis
+<span class="nc bnc" id="L32" title="All 2 branches missed.">            boolean privateKeyExists = rsaKeyManager.getPrivateKey() != null;</span>
+<span class="nc bnc" id="L33" title="All 2 branches missed.">            boolean publicKeyExists = rsaKeyManager.getPublicKey() != null;</span>
+            
+<span class="nc" id="L35">            response.put(&quot;status&quot;, &quot;success&quot;);</span>
+<span class="nc" id="L36">            response.put(&quot;privateKeyExists&quot;, privateKeyExists);</span>
+<span class="nc" id="L37">            response.put(&quot;publicKeyExists&quot;, publicKeyExists);</span>
+<span class="nc" id="L38">            response.put(&quot;keysDirectory&quot;, rsaKeyManager.getKeysDirectory());</span>
+<span class="nc bnc" id="L39" title="All 2 branches missed.">            response.put(&quot;privateKeyAlgorithm&quot;, privateKeyExists ? rsaKeyManager.getPrivateKey().getAlgorithm() : &quot;N/A&quot;);</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">            response.put(&quot;publicKeyAlgorithm&quot;, publicKeyExists ? rsaKeyManager.getPublicKey().getAlgorithm() : &quot;N/A&quot;);</span>
+<span class="nc" id="L41">            response.put(&quot;message&quot;, &quot;Sistema de chaves RSA funcionando corretamente&quot;);</span>
+            
+<span class="nc" id="L43">        } catch (Exception e) {</span>
+<span class="nc" id="L44">            response.put(&quot;status&quot;, &quot;error&quot;);</span>
+<span class="nc" id="L45">            response.put(&quot;message&quot;, &quot;Erro ao acessar sistema de chaves RSA: &quot; + e.getMessage());</span>
+<span class="nc" id="L46">        }</span>
+        
+<span class="nc" id="L48">        return ResponseEntity.ok(response);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

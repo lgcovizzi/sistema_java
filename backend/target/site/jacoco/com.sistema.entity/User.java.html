@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>User.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sistema-java</a> &gt; <a href="index.source.html" class="el_package">com.sistema.entity</a> &gt; <span class="el_source">User.java</span></div><h1>User.java</h1><pre class="source lang-java linenums">package com.sistema.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Entidade User para autenticação e autorização.
+ * Implementa UserDetails para integração com Spring Security.
+ */
+@Entity
+@Table(name = &quot;users&quot;)
+public class User implements UserDetails {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @NotBlank(message = &quot;Username é obrigatório&quot;)
+    @Size(min = 3, max = 50, message = &quot;Username deve ter entre 3 e 50 caracteres&quot;)
+    @Column(unique = true, nullable = false)
+    private String username;
+
+    @NotBlank(message = &quot;Password é obrigatório&quot;)
+    @Size(min = 6, message = &quot;Password deve ter pelo menos 6 caracteres&quot;)
+    @Column(nullable = false)
+    private String password;
+
+    @Email(message = &quot;Email deve ser válido&quot;)
+    @NotBlank(message = &quot;Email é obrigatório&quot;)
+    @Column(unique = true, nullable = false)
+    private String email;
+
+    @Column(name = &quot;first_name&quot;)
+    private String firstName;
+
+    @Column(name = &quot;last_name&quot;)
+    private String lastName;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @Enumerated(EnumType.STRING)
+    @CollectionTable(name = &quot;user_roles&quot;, joinColumns = @JoinColumn(name = &quot;user_id&quot;))
+    @Column(name = &quot;role&quot;)
+    private List&lt;Role&gt; roles;
+
+<span class="fc" id="L55">    @Column(name = &quot;account_non_expired&quot;)</span>
+    private boolean accountNonExpired = true;
+
+<span class="fc" id="L58">    @Column(name = &quot;account_non_locked&quot;)</span>
+    private boolean accountNonLocked = true;
+
+<span class="fc" id="L61">    @Column(name = &quot;credentials_non_expired&quot;)</span>
+    private boolean credentialsNonExpired = true;
+
+<span class="fc" id="L64">    @Column(name = &quot;enabled&quot;)</span>
+    private boolean enabled = true;
+
+    @Column(name = &quot;created_at&quot;)
+    private LocalDateTime createdAt;
+
+    @Column(name = &quot;updated_at&quot;)
+    private LocalDateTime updatedAt;
+
+    @Column(name = &quot;last_login&quot;)
+    private LocalDateTime lastLogin;
+
+    // Construtores
+<span class="fc" id="L77">    public User() {</span>
+<span class="fc" id="L78">        this.createdAt = LocalDateTime.now();</span>
+<span class="fc" id="L79">        this.updatedAt = LocalDateTime.now();</span>
+<span class="fc" id="L80">    }</span>
+
+    public User(String username, String password, String email) {
+<span class="nc" id="L83">        this();</span>
+<span class="nc" id="L84">        this.username = username;</span>
+<span class="nc" id="L85">        this.password = password;</span>
+<span class="nc" id="L86">        this.email = email;</span>
+<span class="nc" id="L87">        this.roles = List.of(Role.USER);</span>
+<span class="nc" id="L88">    }</span>
+
+    // Métodos do UserDetails
+    @Override
+    public Collection&lt;? extends GrantedAuthority&gt; getAuthorities() {
+<span class="nc" id="L93">        return roles.stream()</span>
+<span class="nc" id="L94">                .map(role -&gt; new SimpleGrantedAuthority(&quot;ROLE_&quot; + role.name()))</span>
+<span class="nc" id="L95">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    public String getPassword() {
+<span class="nc" id="L100">        return password;</span>
+    }
+
+    @Override
+    public String getUsername() {
+<span class="nc" id="L105">        return username;</span>
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+<span class="nc" id="L110">        return accountNonExpired;</span>
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+<span class="nc" id="L115">        return accountNonLocked;</span>
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+<span class="nc" id="L120">        return credentialsNonExpired;</span>
+    }
+
+    @Override
+    public boolean isEnabled() {
+<span class="nc" id="L125">        return enabled;</span>
+    }
+
+    // Getters e Setters
+    public Long getId() {
+<span class="nc" id="L130">        return id;</span>
+    }
+
+    public void setId(Long id) {
+<span class="nc" id="L134">        this.id = id;</span>
+<span class="nc" id="L135">    }</span>
+
+    public void setUsername(String username) {
+<span class="nc" id="L138">        this.username = username;</span>
+<span class="nc" id="L139">    }</span>
+
+    public void setPassword(String password) {
+<span class="nc" id="L142">        this.password = password;</span>
+<span class="nc" id="L143">    }</span>
+
+    public String getEmail() {
+<span class="nc" id="L146">        return email;</span>
+    }
+
+    public void setEmail(String email) {
+<span class="nc" id="L150">        this.email = email;</span>
+<span class="nc" id="L151">    }</span>
+
+    public String getFirstName() {
+<span class="nc" id="L154">        return firstName;</span>
+    }
+
+    public void setFirstName(String firstName) {
+<span class="nc" id="L158">        this.firstName = firstName;</span>
+<span class="nc" id="L159">    }</span>
+
+    public String getLastName() {
+<span class="nc" id="L162">        return lastName;</span>
+    }
+
+    public void setLastName(String lastName) {
+<span class="nc" id="L166">        this.lastName = lastName;</span>
+<span class="nc" id="L167">    }</span>
+
+    public List&lt;Role&gt; getRoles() {
+<span class="nc" id="L170">        return roles;</span>
+    }
+
+    public void setRoles(List&lt;Role&gt; roles) {
+<span class="nc" id="L174">        this.roles = roles;</span>
+<span class="nc" id="L175">    }</span>
+
+    public void setAccountNonExpired(boolean accountNonExpired) {
+<span class="nc" id="L178">        this.accountNonExpired = accountNonExpired;</span>
+<span class="nc" id="L179">    }</span>
+
+    public void setAccountNonLocked(boolean accountNonLocked) {
+<span class="nc" id="L182">        this.accountNonLocked = accountNonLocked;</span>
+<span class="nc" id="L183">    }</span>
+
+    public void setCredentialsNonExpired(boolean credentialsNonExpired) {
+<span class="nc" id="L186">        this.credentialsNonExpired = credentialsNonExpired;</span>
+<span class="nc" id="L187">    }</span>
+
+    public void setEnabled(boolean enabled) {
+<span class="nc" id="L190">        this.enabled = enabled;</span>
+<span class="nc" id="L191">    }</span>
+
+    public LocalDateTime getCreatedAt() {
+<span class="nc" id="L194">        return createdAt;</span>
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+<span class="nc" id="L198">        this.createdAt = createdAt;</span>
+<span class="nc" id="L199">    }</span>
+
+    public LocalDateTime getUpdatedAt() {
+<span class="nc" id="L202">        return updatedAt;</span>
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+<span class="nc" id="L206">        this.updatedAt = updatedAt;</span>
+<span class="nc" id="L207">    }</span>
+
+    public LocalDateTime getLastLogin() {
+<span class="nc" id="L210">        return lastLogin;</span>
+    }
+
+    public void setLastLogin(LocalDateTime lastLogin) {
+<span class="nc" id="L214">        this.lastLogin = lastLogin;</span>
+<span class="nc" id="L215">    }</span>
+
+    // Métodos de conveniência
+    public String getFullName() {
+<span class="nc bnc" id="L219" title="All 4 branches missed.">        if (firstName != null &amp;&amp; lastName != null) {</span>
+<span class="nc" id="L220">            return firstName + &quot; &quot; + lastName;</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">        } else if (firstName != null) {</span>
+<span class="nc" id="L222">            return firstName;</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">        } else if (lastName != null) {</span>
+<span class="nc" id="L224">            return lastName;</span>
+        }
+<span class="nc" id="L226">        return username;</span>
+    }
+
+    public boolean hasRole(Role role) {
+<span class="nc bnc" id="L230" title="All 4 branches missed.">        return roles != null &amp;&amp; roles.contains(role);</span>
+    }
+
+    public void addRole(Role role) {
+<span class="nc bnc" id="L234" title="All 4 branches missed.">        if (roles != null &amp;&amp; !roles.contains(role)) {</span>
+<span class="nc" id="L235">            roles.add(role);</span>
+        }
+<span class="nc" id="L237">    }</span>
+
+    @PreUpdate
+    public void preUpdate() {
+<span class="nc" id="L241">        this.updatedAt = LocalDateTime.now();</span>
+<span class="nc" id="L242">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L246">        return &quot;User{&quot; +</span>
+                &quot;id=&quot; + id +
+                &quot;, username='&quot; + username + '\'' +
+                &quot;, email='&quot; + email + '\'' +
+                &quot;, roles=&quot; + roles +
+                &quot;, enabled=&quot; + enabled +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

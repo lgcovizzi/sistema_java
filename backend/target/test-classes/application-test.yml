@@ -1,0 +1,66 @@
+# Configurações para ambiente de teste
+spring:
+  profiles:
+    active: test
+    
+  # Configuração do banco H2 para testes
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+    
+  # JPA/Hibernate para testes
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: false
+        
+  # Redis para testes (será sobrescrito pelos Testcontainers)
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+    
+  # Cache para testes
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+      
+  # Mail desabilitado para testes
+  mail:
+    host: localhost
+    port: 25
+    
+# Configurações da aplicação para testes
+app:
+  rsa:
+    keys:
+      directory: ./test-keys
+      
+# Logging para testes
+logging:
+  level:
+    com.sistema: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO
+    
+# Management endpoints para testes
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      
+# Server para testes
+server:
+  port: 0  # Porta aleatória para testes

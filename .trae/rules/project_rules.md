@@ -8,7 +8,7 @@ Sistema Java completo implementado com Spring Boot 3.2.0, utilizando PostgreSQL 
 
 ### Backend Spring Boot
 - **Framework**: Spring Boot 3.2.0
-- **Java**: 17
+- **Java**: 21
 - **Dependências principais**:
   - Spring Web
   - Spring Data JPA
@@ -99,7 +99,7 @@ O projeto utiliza Docker Compose com os seguintes serviços:
 - **Serviço**: `app`
 - **Contexto de Build**: `./backend`
 - **Dockerfile**: `./backend/Dockerfile`
-- **Imagem Base**: `maven:3.9.6-eclipse-temurin-17` (build) + `eclipse-temurin:17-jre-alpine` (runtime)
+- **Imagem Base**: `maven:3.9.6-eclipse-temurin-21` (build) + `eclipse-temurin:21-jre-alpine` (runtime)
 - **Porta**: 8080:8080
 - **Dependências**: postgres, redis
 - **Variáveis de ambiente**:
@@ -160,11 +160,11 @@ O projeto utiliza Docker Compose com os seguintes serviços:
 ### Dockerfile Implementado
 
 #### Multi-stage Build
-- **Stage 1 (build)**: `maven:3.9.6-eclipse-temurin-17`
+- **Stage 1 (build)**: `maven:3.9.6-eclipse-temurin-21`
   - Copia `pom.xml` e baixa dependências
   - Copia código fonte e compila aplicação
   - Gera JAR executável
-- **Stage 2 (runtime)**: `eclipse-temurin:17-jre-alpine`
+- **Stage 2 (runtime)**: `eclipse-temurin:21-jre-alpine`
   - Copia apenas o JAR da aplicação
   - Configuração otimizada para produção
   - Imagem final menor e mais segura
@@ -362,6 +362,426 @@ O projeto possui uma estrutura completa de documentação na pasta `docs/`:
   - `private_key.pem`: Chave privada RSA
   - `public_key.pem`: Chave pública RSA
 - **Classe Responsável**: `com.sistema.config.RSAKeyManager`
+
+## Test-Driven Development (TDD)
+
+### Visão Geral do TDD
+
+O Test-Driven Development é uma metodologia de desenvolvimento onde os testes são escritos antes do código de produção. O projeto Sistema Java adota TDD como prática fundamental para garantir qualidade, confiabilidade e manutenibilidade do código.
+
+### Princípios Fundamentais
+
+#### 1. Ciclo Red-Green-Refactor
+
+**Red (Vermelho)**:
+- Escrever um teste que falha
+- O teste deve ser específico e focado em uma única funcionalidade
+- Executar o teste para confirmar que falha
+
+**Green (Verde)**:
+- Escrever o código mínimo necessário para fazer o teste passar
+- Foco na funcionalidade, não na elegância do código
+- Executar todos os testes para garantir que passam
+
+**Refactor (Refatorar)**:
+- Melhorar o código mantendo os testes passando
+- Eliminar duplicação e melhorar design
+- Executar testes após cada refatoração
+
+#### 2. Regras do TDD
+
+1. **Não escrever código de produção sem um teste falhando**
+2. **Não escrever mais teste do que o suficiente para falhar**
+3. **Não escrever mais código de produção do que o suficiente para passar no teste**
+
+### Estrutura de Testes
+
+#### Organização de Diretórios
+
+```
+src/
+├── main/
+│   └── java/
+│       └── com/
+│           └── sistema/
+│               ├── controller/
+│               ├── service/
+│               ├── repository/
+│               └── config/
+└── test/
+    └── java/
+        └── com/
+            └── sistema/
+                ├── controller/     # Testes de controladores
+                ├── service/        # Testes de serviços
+                ├── repository/     # Testes de repositórios
+                ├── config/         # Testes de configuração
+                ├── integration/    # Testes de integração
+                └── e2e/           # Testes end-to-end
+```
+
+#### Dependências de Teste
+
+**Configuração no pom.xml**:
+```xml
+<dependencies>
+    <!-- JUnit 5 -->
+    <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <scope>test</scope>
+    </dependency>
+    
+    <!-- Mockito -->
+    <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <scope>test</scope>
+    </dependency>
+    
+    <!-- Spring Boot Test -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+    
+    <!-- Testcontainers -->
+    <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <scope>test</scope>
+    </dependency>
+    
+    <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>postgresql</artifactId>
+        <scope>test</scope>
+    </dependency>
+    
+    <!-- AssertJ -->
+    <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
+```
+
+### Estratégias de Teste
+
+#### 1. Testes Unitários
+
+**Características**:
+- Testam uma única unidade de código isoladamente
+- Usam mocks para dependências externas
+- Execução rápida (< 100ms por teste)
+- Cobertura de código > 80%
+
+**Exemplo de Estrutura**:
+```java
+@ExtendWith(MockitoExtension.class)
+class HealthServiceTest {
+    
+    @Mock
+    private RedisTemplate<String, Object> redisTemplate;
+    
+    @InjectMocks
+    private HealthService healthService;
+    
+    @Test
+    @DisplayName("Deve retornar status UP quando Redis está disponível")
+    void shouldReturnUpWhenRedisIsAvailable() {
+        // Given
+        when(redisTemplate.hasKey(anyString())).thenReturn(true);
+        
+        // When
+        HealthStatus status = healthService.checkRedisHealth();
+        
+        // Then
+        assertThat(status.getStatus()).isEqualTo("UP");
+    }
+}
+```
+
+#### 2. Testes de Integração
+
+**Características**:
+- Testam integração entre componentes
+- Usam banco de dados real ou Testcontainers
+- Verificam fluxo completo de dados
+- Executados em ambiente isolado
+
+**Configuração com Testcontainers**:
+```java
+@SpringBootTest
+@Testcontainers
+class HealthControllerIntegrationTest {
+    
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
+            .withDatabaseName("test_db")
+            .withUsername("test")
+            .withPassword("test");
+    
+    @Autowired
+    private TestRestTemplate restTemplate;
+    
+    @Test
+    @DisplayName("Deve retornar health check com status 200")
+    void shouldReturnHealthCheckWithStatus200() {
+        // When
+        ResponseEntity<Map> response = restTemplate.getForEntity("/api/health", Map.class);
+        
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).containsKey("status");
+    }
+}
+```
+
+#### 3. Testes End-to-End (E2E)
+
+**Características**:
+- Testam fluxo completo da aplicação
+- Incluem interface web quando aplicável
+- Usam ambiente próximo à produção
+- Executados em pipeline de CI/CD
+
+### Convenções de Nomenclatura
+
+#### Classes de Teste
+
+- **Testes Unitários**: `{ClasseTestada}Test`
+  - Exemplo: `HealthServiceTest`
+- **Testes de Integração**: `{ClasseTestada}IntegrationTest`
+  - Exemplo: `HealthControllerIntegrationTest`
+- **Testes E2E**: `{Funcionalidade}E2ETest`
+  - Exemplo: `LoginFlowE2ETest`
+
+#### Métodos de Teste
+
+**Padrão**: `should{ExpectedBehavior}When{StateUnderTest}`
+
+**Exemplos**:
+- `shouldReturnHealthStatusWhenRedisIsAvailable()`
+- `shouldThrowExceptionWhenDatabaseIsUnavailable()`
+- `shouldRedirectToDashboardWhenLoginIsSuccessful()`
+
+#### Estrutura Given-When-Then
+
+```java
+@Test
+void shouldCalculateTotalWhenValidItemsProvided() {
+    // Given (Arrange)
+    List<Item> items = Arrays.asList(
+        new Item("item1", 10.0),
+        new Item("item2", 20.0)
+    );
+    
+    // When (Act)
+    double total = calculator.calculateTotal(items);
+    
+    // Then (Assert)
+    assertThat(total).isEqualTo(30.0);
+}
+```
+
+### Ferramentas de Qualidade
+
+#### 1. Cobertura de Código
+
+**JaCoCo Configuration**:
+```xml
+<plugin>
+    <groupId>org.jacoco</groupId>
+    <artifactId>jacoco-maven-plugin</artifactId>
+    <version>0.8.8</version>
+    <executions>
+        <execution>
+            <goals>
+                <goal>prepare-agent</goal>
+            </goals>
+        </execution>
+        <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+                <goal>report</goal>
+            </goals>
+        </execution>
+    </executions>
+</plugin>
+```
+
+**Métricas de Cobertura**:
+- **Mínimo aceitável**: 70%
+- **Meta**: 85%
+- **Classes críticas**: 95%
+
+#### 2. Análise Estática
+
+**SonarQube Integration**:
+- Análise de qualidade de código
+- Detecção de code smells
+- Verificação de vulnerabilidades
+- Métricas de complexidade
+
+### Configurações de Ambiente
+
+#### Profiles de Teste
+
+**application-test.yml**:
+```yaml
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  redis:
+    host: localhost
+    port: 6370  # Porta diferente para testes
+logging:
+  level:
+    com.sistema: DEBUG
+```
+
+#### Docker para Testes
+
+**docker-compose.test.yml**:
+```yaml
+version: '3.8'
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: test_db
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_pass
+    ports:
+      - "5433:5432"
+  
+  redis-test:
+    image: redis:7-alpine
+    ports:
+      - "6370:6379"
+```
+
+### Boas Práticas
+
+#### 1. Escrita de Testes
+
+- **Um conceito por teste**: Cada teste deve verificar apenas uma funcionalidade
+- **Testes independentes**: Não devem depender da ordem de execução
+- **Nomes descritivos**: Usar `@DisplayName` para clareza
+- **Arrange-Act-Assert**: Estrutura clara e consistente
+- **Dados de teste**: Usar builders ou factories para objetos complexos
+
+#### 2. Mocks e Stubs
+
+- **Mock apenas dependências externas**: Não mockar classes do próprio sistema
+- **Verificar interações importantes**: Usar `verify()` quando necessário
+- **Evitar over-mocking**: Preferir objetos reais quando possível
+- **Reset mocks**: Limpar estado entre testes
+
+#### 3. Performance
+
+- **Testes rápidos**: Unitários < 100ms, integração < 5s
+- **Paralelização**: Configurar execução paralela quando possível
+- **Cleanup**: Limpar recursos após testes
+- **Profiles separados**: Usar configurações otimizadas para testes
+
+### Integração com CI/CD
+
+#### Pipeline de Testes
+
+```yaml
+# .github/workflows/test.yml
+name: Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+      
+      - name: Run Unit Tests
+        run: ./mvnw test
+      
+      - name: Run Integration Tests
+        run: ./mvnw verify -P integration-tests
+      
+      - name: Generate Coverage Report
+        run: ./mvnw jacoco:report
+      
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v3
+```
+
+#### Quality Gates
+
+- **Todos os testes devem passar**: 100% de sucesso
+- **Cobertura mínima**: 70% para merge
+- **Sem vulnerabilidades críticas**: SonarQube analysis
+- **Performance**: Testes não devem exceder tempo limite
+
+### Troubleshooting de Testes
+
+#### Problemas Comuns
+
+**1. Testes Flaky (Instáveis)**:
+- Dependência de tempo ou ordem
+- Estado compartilhado entre testes
+- Recursos externos indisponíveis
+
+**Solução**:
+```java
+// Usar timeouts apropriados
+@Test
+@Timeout(value = 5, unit = TimeUnit.SECONDS)
+void shouldCompleteWithinTimeout() {
+    // teste
+}
+
+// Isolar estado
+@BeforeEach
+void setUp() {
+    // limpar estado
+}
+```
+
+**2. Testes Lentos**:
+- Muitas chamadas de rede
+- Banco de dados não otimizado
+- Configuração inadequada
+
+**Solução**:
+- Usar mocks para dependências externas
+- Configurar banco em memória para testes
+- Otimizar queries e índices
+
+### Métricas e Monitoramento
+
+#### KPIs de Teste
+
+- **Cobertura de código**: % de linhas testadas
+- **Tempo de execução**: Duração total dos testes
+- **Taxa de sucesso**: % de testes que passam
+- **Flakiness**: % de testes instáveis
+
+#### Relatórios
+
+- **JaCoCo**: Cobertura de código
+- **Surefire**: Resultados de testes unitários
+- **Failsafe**: Resultados de testes de integração
+- **SonarQube**: Qualidade geral do código
 
 ## Regras de Documentação
 

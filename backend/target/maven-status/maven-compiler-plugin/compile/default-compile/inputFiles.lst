@@ -1,3 +1,4 @@
+/home/lg/sistema_java/backend/src/main/java/com/sistema/controller/LoginController.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/config/SecurityConfig.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/service/RefreshTokenService.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/controller/HealthController.java

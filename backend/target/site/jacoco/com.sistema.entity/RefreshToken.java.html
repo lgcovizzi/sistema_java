@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RefreshToken.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">sistema-java</a> &gt; <a href="index.source.html" class="el_package">com.sistema.entity</a> &gt; <span class="el_source">RefreshToken.java</span></div><h1>RefreshToken.java</h1><pre class="source lang-java linenums">package com.sistema.entity;
+
+import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDateTime;
+import java.util.Objects;
+
+/**
+ * Entidade para gerenciar tokens de refresh com sessão persistente.
+ * Permite que usuários mantenham sessões ativas por até 6 meses.
+ */
+@Entity
+@Table(name = &quot;refresh_tokens&quot;, indexes = {
+    @Index(name = &quot;idx_refresh_token&quot;, columnList = &quot;token&quot;, unique = true),
+    @Index(name = &quot;idx_user_id&quot;, columnList = &quot;user_id&quot;),
+    @Index(name = &quot;idx_expires_at&quot;, columnList = &quot;expires_at&quot;)
+})
+public class RefreshToken {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = &quot;token&quot;, nullable = false, unique = true, length = 500)
+    private String token;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;user_id&quot;, nullable = false)
+    private User user;
+
+    @Column(name = &quot;expires_at&quot;, nullable = false)
+    private LocalDateTime expiresAt;
+
+<span class="pc" id="L36">    @Column(name = &quot;is_revoked&quot;, nullable = false)</span>
+<span class="pc" id="L37">    private Boolean isRevoked = false;</span>
+
+    @Column(name = &quot;device_info&quot;, length = 255)
+    private String deviceInfo;
+
+    @Column(name = &quot;ip_address&quot;, length = 45)
+    private String ipAddress;
+
+    @Column(name = &quot;user_agent&quot;, length = 500)
+    private String userAgent;
+
+    @Column(name = &quot;last_used_at&quot;)
+    private LocalDateTime lastUsedAt;
+
+    @CreationTimestamp
+    @Column(name = &quot;created_at&quot;, nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = &quot;updated_at&quot;, nullable = false)
+    private LocalDateTime updatedAt;
+
+    // Construtores
+<span class="fc" id="L60">    public RefreshToken() {}</span>
+
+<span class="nc" id="L62">    public RefreshToken(String token, User user, LocalDateTime expiresAt) {</span>
+<span class="nc" id="L63">        this.token = token;</span>
+<span class="nc" id="L64">        this.user = user;</span>
+<span class="nc" id="L65">        this.expiresAt = expiresAt;</span>
+<span class="nc" id="L66">        this.isRevoked = false;</span>
+<span class="nc" id="L67">    }</span>
+
+    public RefreshToken(String token, User user, LocalDateTime expiresAt, String deviceInfo, String ipAddress, String userAgent) {
+<span class="nc" id="L70">        this(token, user, expiresAt);</span>
+<span class="nc" id="L71">        this.deviceInfo = deviceInfo;</span>
+<span class="nc" id="L72">        this.ipAddress = ipAddress;</span>
+<span class="nc" id="L73">        this.userAgent = userAgent;</span>
+<span class="nc" id="L74">    }</span>
+
+    // Métodos de conveniência
+    
+    /**
+     * Verifica se o token está expirado.
+     *
+     * @return true se o token está expirado
+     */
+    public boolean isExpired() {
+<span class="nc" id="L84">        return LocalDateTime.now().isAfter(this.expiresAt);</span>
+    }
+
+    /**
+     * Verifica se o token é válido (não expirado e não revogado).
+     *
+     * @return true se o token é válido
+     */
+    public boolean isValid() {
+<span class="nc bnc" id="L93" title="All 4 branches missed.">        return !isExpired() &amp;&amp; !isRevoked;</span>
+    }
+
+    /**
+     * Revoga o token.
+     */
+    public void revoke() {
+<span class="nc" id="L100">        this.isRevoked = true;</span>
+<span class="nc" id="L101">    }</span>
+
+    /**
+     * Atualiza o último uso do token.
+     */
+    public void updateLastUsed() {
+<span class="nc" id="L107">        this.lastUsedAt = LocalDateTime.now();</span>
+<span class="nc" id="L108">    }</span>
+
+    /**
+     * Verifica se o token foi usado recentemente (últimas 24 horas).
+     *
+     * @return true se foi usado recentemente
+     */
+    public boolean isRecentlyUsed() {
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (lastUsedAt == null) {</span>
+<span class="nc" id="L117">            return false;</span>
+        }
+<span class="nc" id="L119">        return lastUsedAt.isAfter(LocalDateTime.now().minusDays(1));</span>
+    }
+
+    /**
+     * Calcula quantos dias restam até a expiração.
+     *
+     * @return número de dias até expiração
+     */
+    public long getDaysUntilExpiration() {
+<span class="nc bnc" id="L128" title="All 2 branches missed.">        if (isExpired()) {</span>
+<span class="nc" id="L129">            return 0;</span>
+        }
+<span class="nc" id="L131">        return java.time.Duration.between(LocalDateTime.now(), expiresAt).toDays();</span>
+    }
+
+    /**
+     * Obtém informações resumidas do dispositivo.
+     *
+     * @return string com informações do dispositivo
+     */
+    public String getDeviceSummary() {
+<span class="nc bnc" id="L140" title="All 4 branches missed.">        if (deviceInfo != null &amp;&amp; !deviceInfo.trim().isEmpty()) {</span>
+<span class="nc" id="L141">            return deviceInfo;</span>
+        }
+        
+<span class="nc bnc" id="L144" title="All 4 branches missed.">        if (userAgent != null &amp;&amp; !userAgent.trim().isEmpty()) {</span>
+            // Extrai informações básicas do User-Agent
+<span class="nc" id="L146">            String ua = userAgent.toLowerCase();</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">            if (ua.contains(&quot;mobile&quot;)) {</span>
+<span class="nc" id="L148">                return &quot;Mobile Device&quot;;</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">            } else if (ua.contains(&quot;tablet&quot;)) {</span>
+<span class="nc" id="L150">                return &quot;Tablet&quot;;</span>
+            } else {
+<span class="nc" id="L152">                return &quot;Desktop&quot;;</span>
+            }
+        }
+        
+<span class="nc" id="L156">        return &quot;Unknown Device&quot;;</span>
+    }
+
+    // Getters e Setters
+    
+    public Long getId() {
+<span class="nc" id="L162">        return id;</span>
+    }
+
+    public void setId(Long id) {
+<span class="nc" id="L166">        this.id = id;</span>
+<span class="nc" id="L167">    }</span>
+
+    public String getToken() {
+<span class="nc" id="L170">        return token;</span>
+    }
+
+    public void setToken(String token) {
+<span class="nc" id="L174">        this.token = token;</span>
+<span class="nc" id="L175">    }</span>
+
+    public User getUser() {
+<span class="nc" id="L178">        return user;</span>
+    }
+
+    public void setUser(User user) {
+<span class="nc" id="L182">        this.user = user;</span>
+<span class="nc" id="L183">    }</span>
+
+    public LocalDateTime getExpiresAt() {
+<span class="nc" id="L186">        return expiresAt;</span>
+    }
+
+    public void setExpiresAt(LocalDateTime expiresAt) {
+<span class="nc" id="L190">        this.expiresAt = expiresAt;</span>
+<span class="nc" id="L191">    }</span>
+
+    public Boolean getIsRevoked() {
+<span class="nc" id="L194">        return isRevoked;</span>
+    }
+
+    public void setIsRevoked(Boolean isRevoked) {
+<span class="nc" id="L198">        this.isRevoked = isRevoked;</span>
+<span class="nc" id="L199">    }</span>
+
+    public String getDeviceInfo() {
+<span class="nc" id="L202">        return deviceInfo;</span>
+    }
+
+    public void setDeviceInfo(String deviceInfo) {
+<span class="nc" id="L206">        this.deviceInfo = deviceInfo;</span>
+<span class="nc" id="L207">    }</span>
+
+    public String getIpAddress() {
+<span class="nc" id="L210">        return ipAddress;</span>
+    }
+
+    public void setIpAddress(String ipAddress) {
+<span class="nc" id="L214">        this.ipAddress = ipAddress;</span>
+<span class="nc" id="L215">    }</span>
+
+    public String getUserAgent() {
+<span class="nc" id="L218">        return userAgent;</span>
+    }
+
+    public void setUserAgent(String userAgent) {
+<span class="nc" id="L222">        this.userAgent = userAgent;</span>
+<span class="nc" id="L223">    }</span>
+
+    public LocalDateTime getLastUsedAt() {
+<span class="nc" id="L226">        return lastUsedAt;</span>
+    }
+
+    public void setLastUsedAt(LocalDateTime lastUsedAt) {
+<span class="nc" id="L230">        this.lastUsedAt = lastUsedAt;</span>
+<span class="nc" id="L231">    }</span>
+
+    public LocalDateTime getCreatedAt() {
+<span class="nc" id="L234">        return createdAt;</span>
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+<span class="nc" id="L238">        this.createdAt = createdAt;</span>
+<span class="nc" id="L239">    }</span>
+
+    public LocalDateTime getUpdatedAt() {
+<span class="nc" id="L242">        return updatedAt;</span>
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+<span class="nc" id="L246">        this.updatedAt = updatedAt;</span>
+<span class="nc" id="L247">    }</span>
+
+    // equals, hashCode e toString
+    
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L253" title="All 2 branches missed.">        if (this == o) return true;</span>
+<span class="nc bnc" id="L254" title="All 4 branches missed.">        if (o == null || getClass() != o.getClass()) return false;</span>
+<span class="nc" id="L255">        RefreshToken that = (RefreshToken) o;</span>
+<span class="nc bnc" id="L256" title="All 4 branches missed.">        return Objects.equals(id, that.id) &amp;&amp; Objects.equals(token, that.token);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L261">        return Objects.hash(id, token);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L266">        return &quot;RefreshToken{&quot; +</span>
+                &quot;id=&quot; + id +
+<span class="nc bnc" id="L268" title="All 2 branches missed.">                &quot;, token='&quot; + (token != null ? token.substring(0, Math.min(token.length(), 10)) + &quot;...&quot; : &quot;null&quot;) + &quot;'&quot; +</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">                &quot;, userId=&quot; + (user != null ? user.getId() : &quot;null&quot;) +</span>
+                &quot;, expiresAt=&quot; + expiresAt +
+                &quot;, isRevoked=&quot; + isRevoked +
+                &quot;, deviceInfo='&quot; + deviceInfo + &quot;'&quot; +
+                &quot;, createdAt=&quot; + createdAt +
+                '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

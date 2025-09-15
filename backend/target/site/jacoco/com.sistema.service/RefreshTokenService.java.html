@@ -50,33 +50,33 @@ import java.util.Optional;
      * @return O token de refresh criado
      */
     public RefreshToken createRefreshToken(User user, HttpServletRequest request) {
-<span class="nc" id="L53">        logger.debug(&quot;Criando refresh token para usuário: {}&quot;, user.getUsername());</span>
+<span class="fc" id="L53">        logger.debug(&quot;Criando refresh token para usuário: {}&quot;, user.getUsername());</span>
         
         // Limita o número de tokens por usuário
-<span class="nc" id="L56">        limitTokensPerUser(user);</span>
+<span class="fc" id="L56">        limitTokensPerUser(user);</span>
         
         // Gera token único
-<span class="nc" id="L59">        String token = generateSecureToken();</span>
+<span class="fc" id="L59">        String token = generateSecureToken();</span>
         
         // Calcula data de expiração (6 meses)
-<span class="nc" id="L62">        LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(refreshTokenExpiration);</span>
+<span class="fc" id="L62">        LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(refreshTokenExpiration);</span>
         
         // Extrai informações da requisição
-<span class="nc" id="L65">        String deviceInfo = extractDeviceInfo(request);</span>
-<span class="nc" id="L66">        String ipAddress = extractIpAddress(request);</span>
-<span class="nc" id="L67">        String userAgent = extractUserAgent(request);</span>
+<span class="fc" id="L65">        String deviceInfo = extractDeviceInfo(request);</span>
+<span class="fc" id="L66">        String ipAddress = extractIpAddress(request);</span>
+<span class="fc" id="L67">        String userAgent = extractUserAgent(request);</span>
         
         // Cria o refresh token
-<span class="nc" id="L70">        RefreshToken refreshToken = new RefreshToken(</span>
+<span class="fc" id="L70">        RefreshToken refreshToken = new RefreshToken(</span>
             token, user, expiresAt, deviceInfo, ipAddress, userAgent
         );
         
-<span class="nc" id="L74">        refreshToken.setLastUsedAt(LocalDateTime.now());</span>
+<span class="fc" id="L74">        refreshToken.setLastUsedAt(LocalDateTime.now());</span>
         
-<span class="nc" id="L76">        RefreshToken saved = refreshTokenRepository.save(refreshToken);</span>
-<span class="nc" id="L77">        logger.info(&quot;Refresh token criado com sucesso para usuário: {} (ID: {})&quot;, user.getUsername(), saved.getId());</span>
+<span class="fc" id="L76">        RefreshToken saved = refreshTokenRepository.save(refreshToken);</span>
+<span class="fc" id="L77">        logger.info(&quot;Refresh token criado com sucesso para usuário: {} (ID: {})&quot;, user.getUsername(), saved.getId());</span>
         
-<span class="nc" id="L79">        return saved;</span>
+<span class="fc" id="L79">        return saved;</span>
     }
 
     /**
@@ -86,22 +86,22 @@ import java.util.Optional;
      * @return Optional contendo o RefreshToken se válido
      */
     public Optional&lt;RefreshToken&gt; findValidRefreshToken(String token) {
-<span class="nc bnc" id="L89" title="All 4 branches missed.">        if (token == null || token.trim().isEmpty()) {</span>
-<span class="nc" id="L90">            return Optional.empty();</span>
+<span class="fc bfc" id="L89" title="All 4 branches covered.">        if (token == null || token.trim().isEmpty()) {</span>
+<span class="fc" id="L90">            return Optional.empty();</span>
         }
         
-<span class="nc" id="L93">        Optional&lt;RefreshToken&gt; refreshToken = refreshTokenRepository.findValidByToken(token, LocalDateTime.now());</span>
+<span class="fc" id="L93">        Optional&lt;RefreshToken&gt; refreshToken = refreshTokenRepository.findValidByToken(token, LocalDateTime.now());</span>
         
-<span class="nc bnc" id="L95" title="All 2 branches missed.">        if (refreshToken.isPresent()) {</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (refreshToken.isPresent()) {</span>
             // Atualiza último uso
-<span class="nc" id="L97">            refreshToken.get().updateLastUsed();</span>
-<span class="nc" id="L98">            refreshTokenRepository.save(refreshToken.get());</span>
-<span class="nc" id="L99">            logger.debug(&quot;Refresh token válido encontrado e atualizado&quot;);</span>
+<span class="fc" id="L97">            refreshToken.get().updateLastUsed();</span>
+<span class="fc" id="L98">            refreshTokenRepository.save(refreshToken.get());</span>
+<span class="fc" id="L99">            logger.debug(&quot;Refresh token válido encontrado e atualizado&quot;);</span>
         } else {
-<span class="nc" id="L101">            logger.debug(&quot;Refresh token inválido ou expirado: {}&quot;, token.substring(0, Math.min(token.length(), 10)) + &quot;...&quot;);</span>
+<span class="fc" id="L101">            logger.debug(&quot;Refresh token inválido ou expirado: {}&quot;, token.substring(0, Math.min(token.length(), 10)) + &quot;...&quot;);</span>
         }
         
-<span class="nc" id="L104">        return refreshToken;</span>
+<span class="fc" id="L104">        return refreshToken;</span>
     }
 
     /**
@@ -130,9 +130,9 @@ import java.util.Optional;
      * @return Número de tokens revogados
      */
     public int revokeAllUserTokens(User user) {
-<span class="nc" id="L133">        int revokedCount = refreshTokenRepository.revokeAllByUser(user);</span>
-<span class="nc" id="L134">        logger.info(&quot;Revogados {} refresh tokens do usuário: {}&quot;, revokedCount, user.getUsername());</span>
-<span class="nc" id="L135">        return revokedCount;</span>
+<span class="fc" id="L133">        int revokedCount = refreshTokenRepository.revokeAllByUser(user);</span>
+<span class="fc" id="L134">        logger.info(&quot;Revogados {} refresh tokens do usuário: {}&quot;, revokedCount, user.getUsername());</span>
+<span class="fc" id="L135">        return revokedCount;</span>
     }
 
     /**
@@ -181,8 +181,8 @@ import java.util.Optional;
      * @return true se atingiu o limite
      */
     public boolean hasReachedTokenLimit(User user) {
-<span class="nc" id="L184">        long validTokens = refreshTokenRepository.countValidByUser(user, LocalDateTime.now());</span>
-<span class="nc bnc" id="L185" title="All 2 branches missed.">        return validTokens &gt;= maxTokensPerUser;</span>
+<span class="fc" id="L184">        long validTokens = refreshTokenRepository.countValidByUser(user, LocalDateTime.now());</span>
+<span class="pc bpc" id="L185" title="1 of 2 branches missed.">        return validTokens &gt;= maxTokensPerUser;</span>
     }
 
     /**
@@ -191,9 +191,9 @@ import java.util.Optional;
      * @param user O usuário
      */
     private void limitTokensPerUser(User user) {
-<span class="nc" id="L194">        List&lt;RefreshToken&gt; validTokens = refreshTokenRepository.findValidByUser(user, LocalDateTime.now());</span>
+<span class="fc" id="L194">        List&lt;RefreshToken&gt; validTokens = refreshTokenRepository.findValidByUser(user, LocalDateTime.now());</span>
         
-<span class="nc bnc" id="L196" title="All 2 branches missed.">        if (validTokens.size() &gt;= maxTokensPerUser) {</span>
+<span class="pc bpc" id="L196" title="1 of 2 branches missed.">        if (validTokens.size() &gt;= maxTokensPerUser) {</span>
             // Remove os tokens mais antigos
 <span class="nc" id="L198">            int tokensToRemove = validTokens.size() - maxTokensPerUser + 1;</span>
             
@@ -205,7 +205,7 @@ import java.util.Optional;
             
 <span class="nc" id="L206">            logger.info(&quot;Removidos {} tokens antigos do usuário: {}&quot;, tokensToRemove, user.getUsername());</span>
         }
-<span class="nc" id="L208">    }</span>
+<span class="fc" id="L208">    }</span>
 
     /**
      * Gera um token seguro aleatório.
@@ -213,9 +213,9 @@ import java.util.Optional;
      * @return Token seguro em Base64
      */
     private String generateSecureToken() {
-<span class="nc" id="L216">        byte[] randomBytes = new byte[64]; // 512 bits</span>
-<span class="nc" id="L217">        secureRandom.nextBytes(randomBytes);</span>
-<span class="nc" id="L218">        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);</span>
+<span class="fc" id="L216">        byte[] randomBytes = new byte[64]; // 512 bits</span>
+<span class="fc" id="L217">        secureRandom.nextBytes(randomBytes);</span>
+<span class="fc" id="L218">        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);</span>
     }
 
     /**
@@ -225,22 +225,22 @@ import java.util.Optional;
      * @return Informações do dispositivo
      */
     private String extractDeviceInfo(HttpServletRequest request) {
-<span class="nc" id="L228">        String userAgent = request.getHeader(&quot;User-Agent&quot;);</span>
-<span class="nc bnc" id="L229" title="All 2 branches missed.">        if (userAgent == null) {</span>
-<span class="nc" id="L230">            return &quot;Unknown Device&quot;;</span>
+<span class="fc" id="L228">        String userAgent = request.getHeader(&quot;User-Agent&quot;);</span>
+<span class="fc bfc" id="L229" title="All 2 branches covered.">        if (userAgent == null) {</span>
+<span class="fc" id="L230">            return &quot;Unknown Device&quot;;</span>
         }
         
-<span class="nc" id="L233">        userAgent = userAgent.toLowerCase();</span>
-<span class="nc bnc" id="L234" title="All 2 branches missed.">        if (userAgent.contains(&quot;mobile&quot;)) {</span>
-<span class="nc" id="L235">            return &quot;Mobile Device&quot;;</span>
-<span class="nc bnc" id="L236" title="All 2 branches missed.">        } else if (userAgent.contains(&quot;tablet&quot;)) {</span>
+<span class="fc" id="L233">        userAgent = userAgent.toLowerCase();</span>
+<span class="fc bfc" id="L234" title="All 2 branches covered.">        if (userAgent.contains(&quot;mobile&quot;)) {</span>
+<span class="fc" id="L235">            return &quot;Mobile Device&quot;;</span>
+<span class="pc bpc" id="L236" title="1 of 2 branches missed.">        } else if (userAgent.contains(&quot;tablet&quot;)) {</span>
 <span class="nc" id="L237">            return &quot;Tablet&quot;;</span>
-<span class="nc bnc" id="L238" title="All 2 branches missed.">        } else if (userAgent.contains(&quot;postman&quot;)) {</span>
+<span class="pc bpc" id="L238" title="1 of 2 branches missed.">        } else if (userAgent.contains(&quot;postman&quot;)) {</span>
 <span class="nc" id="L239">            return &quot;Postman&quot;;</span>
-<span class="nc bnc" id="L240" title="All 2 branches missed.">        } else if (userAgent.contains(&quot;curl&quot;)) {</span>
+<span class="pc bpc" id="L240" title="1 of 2 branches missed.">        } else if (userAgent.contains(&quot;curl&quot;)) {</span>
 <span class="nc" id="L241">            return &quot;cURL&quot;;</span>
         } else {
-<span class="nc" id="L243">            return &quot;Desktop&quot;;</span>
+<span class="fc" id="L243">            return &quot;Desktop&quot;;</span>
         }
     }
 
@@ -251,17 +251,17 @@ import java.util.Optional;
      * @return Endereço IP
      */
     private String extractIpAddress(HttpServletRequest request) {
-<span class="nc" id="L254">        String xForwardedFor = request.getHeader(&quot;X-Forwarded-For&quot;);</span>
-<span class="nc bnc" id="L255" title="All 4 branches missed.">        if (xForwardedFor != null &amp;&amp; !xForwardedFor.isEmpty()) {</span>
-<span class="nc" id="L256">            return xForwardedFor.split(&quot;,&quot;)[0].trim();</span>
+<span class="fc" id="L254">        String xForwardedFor = request.getHeader(&quot;X-Forwarded-For&quot;);</span>
+<span class="pc bpc" id="L255" title="1 of 4 branches missed.">        if (xForwardedFor != null &amp;&amp; !xForwardedFor.isEmpty()) {</span>
+<span class="fc" id="L256">            return xForwardedFor.split(&quot;,&quot;)[0].trim();</span>
         }
         
-<span class="nc" id="L259">        String xRealIp = request.getHeader(&quot;X-Real-IP&quot;);</span>
-<span class="nc bnc" id="L260" title="All 4 branches missed.">        if (xRealIp != null &amp;&amp; !xRealIp.isEmpty()) {</span>
+<span class="fc" id="L259">        String xRealIp = request.getHeader(&quot;X-Real-IP&quot;);</span>
+<span class="pc bpc" id="L260" title="3 of 4 branches missed.">        if (xRealIp != null &amp;&amp; !xRealIp.isEmpty()) {</span>
 <span class="nc" id="L261">            return xRealIp;</span>
         }
         
-<span class="nc" id="L264">        return request.getRemoteAddr();</span>
+<span class="fc" id="L264">        return request.getRemoteAddr();</span>
     }
 
     /**
@@ -271,8 +271,8 @@ import java.util.Optional;
      * @return User-Agent
      */
     private String extractUserAgent(HttpServletRequest request) {
-<span class="nc" id="L274">        String userAgent = request.getHeader(&quot;User-Agent&quot;);</span>
-<span class="nc bnc" id="L275" title="All 2 branches missed.">        return userAgent != null ? userAgent : &quot;Unknown&quot;;</span>
+<span class="fc" id="L274">        String userAgent = request.getHeader(&quot;User-Agent&quot;);</span>
+<span class="fc bfc" id="L275" title="All 2 branches covered.">        return userAgent != null ? userAgent : &quot;Unknown&quot;;</span>
     }
 
     /**

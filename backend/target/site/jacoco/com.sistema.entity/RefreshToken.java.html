@@ -33,8 +33,8 @@ public class RefreshToken {
     @Column(name = &quot;expires_at&quot;, nullable = false)
     private LocalDateTime expiresAt;
 
-<span class="pc" id="L36">    @Column(name = &quot;is_revoked&quot;, nullable = false)</span>
-<span class="pc" id="L37">    private Boolean isRevoked = false;</span>
+<span class="fc" id="L36">    @Column(name = &quot;is_revoked&quot;, nullable = false)</span>
+<span class="fc" id="L37">    private Boolean isRevoked = false;</span>
 
     @Column(name = &quot;device_info&quot;, length = 255)
     private String deviceInfo;
@@ -59,19 +59,19 @@ public class RefreshToken {
     // Construtores
 <span class="fc" id="L60">    public RefreshToken() {}</span>
 
-<span class="nc" id="L62">    public RefreshToken(String token, User user, LocalDateTime expiresAt) {</span>
-<span class="nc" id="L63">        this.token = token;</span>
-<span class="nc" id="L64">        this.user = user;</span>
-<span class="nc" id="L65">        this.expiresAt = expiresAt;</span>
-<span class="nc" id="L66">        this.isRevoked = false;</span>
-<span class="nc" id="L67">    }</span>
+<span class="fc" id="L62">    public RefreshToken(String token, User user, LocalDateTime expiresAt) {</span>
+<span class="fc" id="L63">        this.token = token;</span>
+<span class="fc" id="L64">        this.user = user;</span>
+<span class="fc" id="L65">        this.expiresAt = expiresAt;</span>
+<span class="fc" id="L66">        this.isRevoked = false;</span>
+<span class="fc" id="L67">    }</span>
 
     public RefreshToken(String token, User user, LocalDateTime expiresAt, String deviceInfo, String ipAddress, String userAgent) {
-<span class="nc" id="L70">        this(token, user, expiresAt);</span>
-<span class="nc" id="L71">        this.deviceInfo = deviceInfo;</span>
-<span class="nc" id="L72">        this.ipAddress = ipAddress;</span>
-<span class="nc" id="L73">        this.userAgent = userAgent;</span>
-<span class="nc" id="L74">    }</span>
+<span class="fc" id="L70">        this(token, user, expiresAt);</span>
+<span class="fc" id="L71">        this.deviceInfo = deviceInfo;</span>
+<span class="fc" id="L72">        this.ipAddress = ipAddress;</span>
+<span class="fc" id="L73">        this.userAgent = userAgent;</span>
+<span class="fc" id="L74">    }</span>
 
     // Métodos de conveniência
     
@@ -81,7 +81,7 @@ public class RefreshToken {
      * @return true se o token está expirado
      */
     public boolean isExpired() {
-<span class="nc" id="L84">        return LocalDateTime.now().isAfter(this.expiresAt);</span>
+<span class="fc" id="L84">        return LocalDateTime.now().isAfter(this.expiresAt);</span>
     }
 
     /**
@@ -104,8 +104,8 @@ public class RefreshToken {
      * Atualiza o último uso do token.
      */
     public void updateLastUsed() {
-<span class="nc" id="L107">        this.lastUsedAt = LocalDateTime.now();</span>
-<span class="nc" id="L108">    }</span>
+<span class="fc" id="L107">        this.lastUsedAt = LocalDateTime.now();</span>
+<span class="fc" id="L108">    }</span>
 
     /**
      * Verifica se o token foi usado recentemente (últimas 24 horas).
@@ -125,10 +125,10 @@ public class RefreshToken {
      * @return número de dias até expiração
      */
     public long getDaysUntilExpiration() {
-<span class="nc bnc" id="L128" title="All 2 branches missed.">        if (isExpired()) {</span>
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">        if (isExpired()) {</span>
 <span class="nc" id="L129">            return 0;</span>
         }
-<span class="nc" id="L131">        return java.time.Duration.between(LocalDateTime.now(), expiresAt).toDays();</span>
+<span class="fc" id="L131">        return java.time.Duration.between(LocalDateTime.now(), expiresAt).toDays();</span>
     }
 
     /**
@@ -159,84 +159,84 @@ public class RefreshToken {
     // Getters e Setters
     
     public Long getId() {
-<span class="nc" id="L162">        return id;</span>
+<span class="fc" id="L162">        return id;</span>
     }
 
     public void setId(Long id) {
-<span class="nc" id="L166">        this.id = id;</span>
-<span class="nc" id="L167">    }</span>
+<span class="fc" id="L166">        this.id = id;</span>
+<span class="fc" id="L167">    }</span>
 
     public String getToken() {
-<span class="nc" id="L170">        return token;</span>
+<span class="fc" id="L170">        return token;</span>
     }
 
     public void setToken(String token) {
-<span class="nc" id="L174">        this.token = token;</span>
-<span class="nc" id="L175">    }</span>
+<span class="fc" id="L174">        this.token = token;</span>
+<span class="fc" id="L175">    }</span>
 
     public User getUser() {
-<span class="nc" id="L178">        return user;</span>
+<span class="fc" id="L178">        return user;</span>
     }
 
     public void setUser(User user) {
-<span class="nc" id="L182">        this.user = user;</span>
-<span class="nc" id="L183">    }</span>
+<span class="fc" id="L182">        this.user = user;</span>
+<span class="fc" id="L183">    }</span>
 
     public LocalDateTime getExpiresAt() {
-<span class="nc" id="L186">        return expiresAt;</span>
+<span class="fc" id="L186">        return expiresAt;</span>
     }
 
     public void setExpiresAt(LocalDateTime expiresAt) {
-<span class="nc" id="L190">        this.expiresAt = expiresAt;</span>
-<span class="nc" id="L191">    }</span>
+<span class="fc" id="L190">        this.expiresAt = expiresAt;</span>
+<span class="fc" id="L191">    }</span>
 
     public Boolean getIsRevoked() {
-<span class="nc" id="L194">        return isRevoked;</span>
+<span class="fc" id="L194">        return isRevoked;</span>
     }
 
     public void setIsRevoked(Boolean isRevoked) {
-<span class="nc" id="L198">        this.isRevoked = isRevoked;</span>
-<span class="nc" id="L199">    }</span>
+<span class="fc" id="L198">        this.isRevoked = isRevoked;</span>
+<span class="fc" id="L199">    }</span>
 
     public String getDeviceInfo() {
 <span class="nc" id="L202">        return deviceInfo;</span>
     }
 
     public void setDeviceInfo(String deviceInfo) {
-<span class="nc" id="L206">        this.deviceInfo = deviceInfo;</span>
-<span class="nc" id="L207">    }</span>
+<span class="fc" id="L206">        this.deviceInfo = deviceInfo;</span>
+<span class="fc" id="L207">    }</span>
 
     public String getIpAddress() {
 <span class="nc" id="L210">        return ipAddress;</span>
     }
 
     public void setIpAddress(String ipAddress) {
-<span class="nc" id="L214">        this.ipAddress = ipAddress;</span>
-<span class="nc" id="L215">    }</span>
+<span class="fc" id="L214">        this.ipAddress = ipAddress;</span>
+<span class="fc" id="L215">    }</span>
 
     public String getUserAgent() {
 <span class="nc" id="L218">        return userAgent;</span>
     }
 
     public void setUserAgent(String userAgent) {
-<span class="nc" id="L222">        this.userAgent = userAgent;</span>
-<span class="nc" id="L223">    }</span>
+<span class="fc" id="L222">        this.userAgent = userAgent;</span>
+<span class="fc" id="L223">    }</span>
 
     public LocalDateTime getLastUsedAt() {
 <span class="nc" id="L226">        return lastUsedAt;</span>
     }
 
     public void setLastUsedAt(LocalDateTime lastUsedAt) {
-<span class="nc" id="L230">        this.lastUsedAt = lastUsedAt;</span>
-<span class="nc" id="L231">    }</span>
+<span class="fc" id="L230">        this.lastUsedAt = lastUsedAt;</span>
+<span class="fc" id="L231">    }</span>
 
     public LocalDateTime getCreatedAt() {
 <span class="nc" id="L234">        return createdAt;</span>
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {
-<span class="nc" id="L238">        this.createdAt = createdAt;</span>
-<span class="nc" id="L239">    }</span>
+<span class="fc" id="L238">        this.createdAt = createdAt;</span>
+<span class="fc" id="L239">    }</span>
 
     public LocalDateTime getUpdatedAt() {
 <span class="nc" id="L242">        return updatedAt;</span>
@@ -250,7 +250,7 @@ public class RefreshToken {
     
     @Override
     public boolean equals(Object o) {
-<span class="nc bnc" id="L253" title="All 2 branches missed.">        if (this == o) return true;</span>
+<span class="pc bpc" id="L253" title="1 of 2 branches missed.">        if (this == o) return true;</span>
 <span class="nc bnc" id="L254" title="All 4 branches missed.">        if (o == null || getClass() != o.getClass()) return false;</span>
 <span class="nc" id="L255">        RefreshToken that = (RefreshToken) o;</span>
 <span class="nc bnc" id="L256" title="All 4 branches missed.">        return Objects.equals(id, that.id) &amp;&amp; Objects.equals(token, that.token);</span>

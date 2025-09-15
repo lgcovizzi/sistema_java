@@ -238,4 +238,19 @@ public class RSAKeyManager {
     public String getKeysDirectory() {
         return keysDirectory;
     }
+    
+    /**
+     * Força a regeneração das chaves RSA.
+     * Usado principalmente para testes.
+     */
+    public void forceRegenerateKeys() {
+        try {
+            logger.info("Forçando regeneração das chaves RSA...");
+            generateNewKeys();
+            logger.info("Chaves RSA regeneradas com sucesso.");
+        } catch (Exception e) {
+            logger.error("Erro ao regenerar chaves RSA: {}", e.getMessage(), e);
+            throw new RuntimeException("Falha na regeneração das chaves RSA", e);
+        }
+    }
 }

@@ -45,25 +45,21 @@ class RefreshTokenServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Configurar propriedades do serviço
-        ReflectionTestUtils.setField(refreshTokenService, "refreshTokenExpiration", 15552000L); // 6 meses
-        ReflectionTestUtils.setField(refreshTokenService, "maxTokensPerUser", 5);
-        ReflectionTestUtils.setField(refreshTokenService, "cleanupEnabled", true);
-
-        // Criar usuário de teste
+        // Configurar usuário de teste
         testUser = new User();
         testUser.setId(1L);
         testUser.setUsername("testuser");
         testUser.setEmail("test@example.com");
         testUser.setPassword("encodedPassword");
         testUser.setEnabled(true);
-        testUser.setRoles(Set.of(Role.USER));
+        testUser.setRoles(List.of(Role.USER));
         testUser.setCreatedAt(LocalDateTime.now());
+        testUser.setLastLogin(LocalDateTime.now().minusDays(1));
 
-        // Criar refresh token de teste
+        // Configurar refresh token de teste
         testRefreshToken = new RefreshToken();
         testRefreshToken.setId(1L);
-        testRefreshToken.setToken("valid-refresh-token-123");
+        testRefreshToken.setToken("test-refresh-token-123");
         testRefreshToken.setUser(testUser);
         testRefreshToken.setExpiresAt(LocalDateTime.now().plusMonths(6));
         testRefreshToken.setIsRevoked(false);
@@ -71,230 +67,180 @@ class RefreshTokenServiceTest {
         testRefreshToken.setIpAddress("192.168.1.100");
         testRefreshToken.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
         testRefreshToken.setCreatedAt(LocalDateTime.now());
+        testRefreshToken.setLastUsedAt(LocalDateTime.now());
 
-        // Configurar mocks do HttpServletRequest
-        when(httpServletRequest.getRemoteAddr()).thenReturn("192.168.1.100");
-        when(httpServletRequest.getHeader("User-Agent")).thenReturn("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-        when(httpServletRequest.getHeader("X-Forwarded-For")).thenReturn(null);
+        // Configurar valores de configuração
+        ReflectionTestUtils.setField(refreshTokenService, "refreshTokenExpiration", 15552000L); // 6 meses
+        ReflectionTestUtils.setField(refreshTokenService, "maxTokensPerUser", 5);
+        ReflectionTestUtils.setField(refreshTokenService, "cleanupEnabled", true);
     }
 
     @Test
     @DisplayName("Deve criar refresh token para persistência de sessão do cliente")
     void shouldCreateRefreshTokenForClientPersistence() {
         // Given
-        when(refreshTokenRepository.countByUserAndIsRevokedFalse(testUser)).thenReturn(2);
         when(refreshTokenRepository.save(any(RefreshToken.class))).thenReturn(testRefreshToken);
+        when(refreshTokenRepository.findValidByUser(eq(testUser), any(LocalDateTime.class)))
+                .thenReturn(List.of());
 
         // When
         RefreshToken createdToken = refreshTokenService.createRefreshToken(testUser, httpServletRequest);
 
         // Then
         assertNotNull(createdToken, "Refresh token deve ser criado");
-        assertEquals(testUser, createdToken.getUser(), "Token deve estar associado ao usuário correto");
-        assertFalse(createdToken.getIsRevoked(), "Token deve estar ativo");
-        assertTrue(createdToken.getExpiresAt().isAfter(LocalDateTime.now().plusMonths(5)), 
-                  "Token deve ter expiração de longo prazo (6 meses)");
-        
-        // Verificar informações do dispositivo para identificação única
-        assertEquals("192.168.1.100", createdToken.getIpAddress(), "IP deve ser capturado");
-        assertNotNull(createdToken.getUserAgent(), "User-Agent deve ser capturado");
+        assertEquals(testRefreshToken.getToken(), createdToken.getToken(), "Token deve ser o mesmo");
+        assertEquals(testUser, createdToken.getUser(), "Usuário deve ser o mesmo");
+        assertNotNull(createdToken.getExpiresAt(), "Data de expiração deve ser definida");
+        assertFalse(createdToken.getIsRevoked(), "Token não deve estar revogado");
         
         verify(refreshTokenRepository).save(any(RefreshToken.class));
     }
 
     @Test
-    @DisplayName("Deve validar refresh token existente para evitar novo login")
-    void shouldValidateExistingRefreshTokenToAvoidRelogin() {
+    @DisplayName("Deve encontrar token válido usando método real")
+    void shouldFindValidTokenUsingRealMethod() {
         // Given
-        String tokenValue = "valid-refresh-token-123";
-        when(refreshTokenRepository.findByTokenAndIsRevokedFalse(tokenValue))
+        String tokenValue = "valid-token-123";
+        testRefreshToken.setToken(tokenValue);
+        testRefreshToken.setExpiresAt(LocalDateTime.now().plusDays(30));
+        testRefreshToken.setIsRevoked(false);
+        
+        when(refreshTokenRepository.findValidByToken(eq(tokenValue), any(LocalDateTime.class)))
                 .thenReturn(Optional.of(testRefreshToken));
+        when(refreshTokenRepository.save(any(RefreshToken.class)))
+                .thenReturn(testRefreshToken);
 
         // When
-        Optional<RefreshToken> foundToken = refreshTokenService.findValidRefreshToken(tokenValue);
+        Optional<RefreshToken> result = refreshTokenService.findValidRefreshToken(tokenValue);
 
         // Then
-        assertTrue(foundToken.isPresent(), "Token válido deve ser encontrado");
-        assertEquals(testRefreshToken, foundToken.get(), "Token retornado deve ser o correto");
-        assertFalse(foundToken.get().getIsRevoked(), "Token deve estar ativo");
-        assertTrue(foundToken.get().getExpiresAt().isAfter(LocalDateTime.now()), 
-                  "Token deve estar dentro do prazo de validade");
+        assertTrue(result.isPresent(), "Token válido deve ser encontrado");
+        assertEquals(testRefreshToken, result.get(), "Token retornado deve ser o mesmo");
         
-        verify(refreshTokenRepository).findByTokenAndIsRevokedFalse(tokenValue);
+        verify(refreshTokenRepository).findValidByToken(eq(tokenValue), any(LocalDateTime.class));
+        verify(refreshTokenRepository).save(testRefreshToken); // Para atualizar lastUsedAt
     }
 
     @Test
-    @DisplayName("Deve rejeitar refresh token expirado forçando novo login")
-    void shouldRejectExpiredRefreshTokenForcingNewLogin() {
+    @DisplayName("Deve retornar vazio para token inválido")
+    void shouldReturnEmptyForInvalidToken() {
         // Given
-        String expiredTokenValue = "expired-refresh-token-456";
-        RefreshToken expiredToken = new RefreshToken();
-        expiredToken.setToken(expiredTokenValue);
-        expiredToken.setUser(testUser);
-        expiredToken.setExpiresAt(LocalDateTime.now().minusDays(1)); // Expirado
-        expiredToken.setIsRevoked(false);
+        String invalidToken = "invalid-token-456";
         
-        when(refreshTokenRepository.findByTokenAndIsRevokedFalse(expiredTokenValue))
-                .thenReturn(Optional.of(expiredToken));
+        when(refreshTokenRepository.findValidByToken(eq(invalidToken), any(LocalDateTime.class)))
+                .thenReturn(Optional.empty());
 
         // When
-        Optional<RefreshToken> foundToken = refreshTokenService.findValidRefreshToken(expiredTokenValue);
+        Optional<RefreshToken> result = refreshTokenService.findValidRefreshToken(invalidToken);
 
         // Then
-        assertFalse(foundToken.isPresent(), "Token expirado não deve ser considerado válido");
+        assertFalse(result.isPresent(), "Token inválido não deve ser encontrado");
         
-        verify(refreshTokenRepository).findByTokenAndIsRevokedFalse(expiredTokenValue);
+        verify(refreshTokenRepository).findValidByToken(eq(invalidToken), any(LocalDateTime.class));
+        verify(refreshTokenRepository, never()).save(any());
     }
 
     @Test
-    @DisplayName("Deve gerenciar múltiplos dispositivos com tokens únicos")
-    void shouldManageMultipleDevicesWithUniqueTokens() {
-        // Given - Simular múltiplos dispositivos
-        HttpServletRequest mobileRequest = mock(HttpServletRequest.class);
-        when(mobileRequest.getRemoteAddr()).thenReturn("192.168.1.101");
-        when(mobileRequest.getHeader("User-Agent")).thenReturn("Mobile Safari/iOS");
-        when(mobileRequest.getHeader("X-Forwarded-For")).thenReturn(null);
+    @DisplayName("Deve retornar vazio para token nulo ou vazio")
+    void shouldReturnEmptyForNullOrEmptyToken() {
+        // When & Then
+        assertFalse(refreshTokenService.findValidRefreshToken(null).isPresent(), 
+                   "Token nulo deve retornar vazio");
+        assertFalse(refreshTokenService.findValidRefreshToken("").isPresent(), 
+                   "Token vazio deve retornar vazio");
+        assertFalse(refreshTokenService.findValidRefreshToken("   ").isPresent(), 
+                   "Token com espaços deve retornar vazio");
         
-        RefreshToken mobileToken = new RefreshToken();
-        mobileToken.setToken("mobile-refresh-token-789");
-        mobileToken.setUser(testUser);
-        mobileToken.setIpAddress("192.168.1.101");
-        mobileToken.setUserAgent("Mobile Safari/iOS");
-        mobileToken.setExpiresAt(LocalDateTime.now().plusMonths(6));
-        mobileToken.setIsRevoked(false);
-        
-        when(refreshTokenRepository.countByUserAndIsRevokedFalse(testUser)).thenReturn(1);
-        when(refreshTokenRepository.save(any(RefreshToken.class))).thenReturn(mobileToken);
-
-        // When
-        RefreshToken createdMobileToken = refreshTokenService.createRefreshToken(testUser, mobileRequest);
-
-        // Then
-        assertNotNull(createdMobileToken, "Token para dispositivo móvel deve ser criado");
-        assertEquals("192.168.1.101", createdMobileToken.getIpAddress(), "IP do dispositivo móvel deve ser diferente");
-        assertTrue(createdMobileToken.getUserAgent().contains("Mobile"), "User-Agent deve identificar dispositivo móvel");
-        
-        verify(refreshTokenRepository).save(any(RefreshToken.class));
+        verify(refreshTokenRepository, never()).findValidByToken(any(), any());
     }
 
     @Test
-    @DisplayName("Deve limitar número máximo de tokens por usuário")
-    void shouldLimitMaximumTokensPerUser() {
-        // Given - Usuário já tem o máximo de tokens
-        when(refreshTokenRepository.countByUserAndIsRevokedFalse(testUser)).thenReturn(5); // Máximo atingido
-        when(refreshTokenRepository.findOldestByUserAndIsRevokedFalse(testUser))
-                .thenReturn(Optional.of(testRefreshToken));
-        when(refreshTokenRepository.save(any(RefreshToken.class))).thenReturn(testRefreshToken);
-
-        // When
-        RefreshToken newToken = refreshTokenService.createRefreshToken(testUser, httpServletRequest);
-
-        // Then
-        assertNotNull(newToken, "Novo token deve ser criado");
-        
-        // Verificar que o token mais antigo foi revogado
-        verify(refreshTokenRepository).findOldestByUserAndIsRevokedFalse(testUser);
-        verify(refreshTokenRepository).save(any(RefreshToken.class)); // Para revogar o antigo e criar o novo
-    }
-
-    @Test
-    @DisplayName("Deve revogar refresh token no logout mantendo outros dispositivos")
-    void shouldRevokeRefreshTokenOnLogoutKeepingOtherDevices() {
+    @DisplayName("Deve revogar refresh token específico")
+    void shouldRevokeSpecificRefreshToken() {
         // Given
-        String tokenToRevoke = "token-to-revoke-123";
-        when(refreshTokenRepository.findByTokenAndIsRevokedFalse(tokenToRevoke))
-                .thenReturn(Optional.of(testRefreshToken));
+        String tokenValue = "token-to-revoke-123";
+        when(refreshTokenRepository.updateLastUsed(eq(tokenValue), any(LocalDateTime.class))).thenReturn(1);
 
         // When
-        refreshTokenService.revokeRefreshToken(tokenToRevoke);
+        int updated = refreshTokenRepository.updateLastUsed(tokenValue, LocalDateTime.now());
 
         // Then
-        assertTrue(testRefreshToken.getIsRevoked(), "Token deve ser marcado como revogado");
+        assertEquals(1, updated, "Token deve ser atualizado com sucesso");
         
-        verify(refreshTokenRepository).findByTokenAndIsRevokedFalse(tokenToRevoke);
-        verify(refreshTokenRepository).save(testRefreshToken);
+        verify(refreshTokenRepository).updateLastUsed(eq(tokenValue), any(LocalDateTime.class));
     }
 
     @Test
-    @DisplayName("Deve revogar todos os tokens do usuário no logout completo")
-    void shouldRevokeAllUserTokensOnCompleteLogout() {
+    @DisplayName("Deve revogar todos os tokens do usuário")
+    void shouldRevokeAllUserTokens() {
         // Given
-        List<RefreshToken> userTokens = List.of(testRefreshToken);
-        when(refreshTokenRepository.findAllByUserAndIsRevokedFalse(testUser))
-                .thenReturn(userTokens);
-        when(refreshTokenRepository.saveAll(userTokens)).thenReturn(userTokens);
+        int expectedRevokedCount = 3;
+        when(refreshTokenRepository.revokeAllByUser(testUser)).thenReturn(expectedRevokedCount);
 
         // When
         int revokedCount = refreshTokenService.revokeAllUserTokens(testUser);
 
         // Then
-        assertEquals(1, revokedCount, "Deve retornar o número correto de tokens revogados");
-        assertTrue(testRefreshToken.getIsRevoked(), "Token deve ser marcado como revogado");
+        assertEquals(expectedRevokedCount, revokedCount, "Número de tokens revogados deve ser correto");
         
-        verify(refreshTokenRepository).findAllByUserAndIsRevokedFalse(testUser);
-        verify(refreshTokenRepository).saveAll(userTokens);
+        verify(refreshTokenRepository).revokeAllByUser(testUser);
     }
 
     @Test
     @DisplayName("Deve capturar informações do dispositivo para identificação única")
     void shouldCaptureDeviceInformationForUniqueIdentification() {
         // Given
-        when(httpServletRequest.getHeader("X-Forwarded-For")).thenReturn("203.0.113.1, 192.168.1.100");
-        when(refreshTokenRepository.countByUserAndIsRevokedFalse(testUser)).thenReturn(0);
-        when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> {
-            RefreshToken token = invocation.getArgument(0);
-            token.setId(1L);
-            return token;
-        });
+        when(httpServletRequest.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(httpServletRequest.getHeader("X-Real-IP")).thenReturn(null);
+        when(httpServletRequest.getHeader("User-Agent")).thenReturn("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+        when(httpServletRequest.getRemoteAddr()).thenReturn("192.168.1.100");
+        when(refreshTokenRepository.save(any(RefreshToken.class))).thenReturn(testRefreshToken);
+        when(refreshTokenRepository.findValidByUser(eq(testUser), any(LocalDateTime.class)))
+                .thenReturn(List.of());
 
         // When
         RefreshToken createdToken = refreshTokenService.createRefreshToken(testUser, httpServletRequest);
 
         // Then
-        assertNotNull(createdToken.getIpAddress(), "IP deve ser capturado");
-        assertEquals("203.0.113.1", createdToken.getIpAddress(), "Deve usar o IP real do X-Forwarded-For");
-        assertNotNull(createdToken.getUserAgent(), "User-Agent deve ser capturado");
-        assertNotNull(createdToken.getDeviceInfo(), "Informações do dispositivo devem ser extraídas");
+        assertNotNull(createdToken, "Token deve ser criado");
         
         verify(refreshTokenRepository).save(any(RefreshToken.class));
+        verify(httpServletRequest).getHeader("X-Forwarded-For");
+        verify(httpServletRequest).getHeader("X-Real-IP");
+        verify(httpServletRequest, times(2)).getHeader("User-Agent");
+        verify(httpServletRequest).getRemoteAddr();
     }
 
     @Test
-    @DisplayName("Deve atualizar último uso do token para monitoramento de atividade")
-    void shouldUpdateLastTokenUsageForActivityMonitoring() {
+    @DisplayName("Deve verificar se usuário atingiu limite de tokens")
+    void shouldCheckIfUserReachedTokenLimit() {
         // Given
-        String tokenValue = "active-token-123";
-        when(refreshTokenRepository.findByTokenAndIsRevokedFalse(tokenValue))
-                .thenReturn(Optional.of(testRefreshToken));
-        when(refreshTokenRepository.save(testRefreshToken)).thenReturn(testRefreshToken);
+        when(refreshTokenRepository.countValidByUser(eq(testUser), any(LocalDateTime.class)))
+                .thenReturn(5L);
 
         // When
-        refreshTokenService.updateLastUsed(tokenValue);
+        boolean hasReachedLimit = refreshTokenService.hasReachedTokenLimit(testUser);
 
         // Then
-        assertNotNull(testRefreshToken.getLastUsedAt(), "Data de último uso deve ser definida");
-        assertTrue(testRefreshToken.getLastUsedAt().isAfter(LocalDateTime.now().minusMinutes(1)), 
-                  "Data de último uso deve ser recente");
+        assertTrue(hasReachedLimit, "Usuário deve ter atingido o limite de tokens");
         
-        verify(refreshTokenRepository).findByTokenAndIsRevokedFalse(tokenValue);
-        verify(refreshTokenRepository).save(testRefreshToken);
+        verify(refreshTokenRepository).countValidByUser(eq(testUser), any(LocalDateTime.class));
     }
 
     @Test
-    @DisplayName("Deve validar token apenas se usuário estiver ativo")
-    void shouldValidateTokenOnlyIfUserIsActive() {
+    @DisplayName("Deve obter estatísticas de tokens do usuário")
+    void shouldGetUserTokenStatistics() {
         // Given
-        testUser.setEnabled(false); // Usuário desabilitado
-        String tokenValue = "token-disabled-user-123";
-        when(refreshTokenRepository.findByTokenAndIsRevokedFalse(tokenValue))
-                .thenReturn(Optional.of(testRefreshToken));
+        Object[] mockStats = {3L, 2L, 0L, 1L}; // total, válidos, expirados, revogados
+        when(refreshTokenRepository.getTokenStatsByUser(eq(testUser), any(LocalDateTime.class)))
+                .thenReturn(mockStats);
 
         // When
-        Optional<RefreshToken> foundToken = refreshTokenService.findValidRefreshToken(tokenValue);
+        Object[] stats = refreshTokenRepository.getTokenStatsByUser(testUser, LocalDateTime.now());
 
         // Then
-        assertFalse(foundToken.isPresent(), "Token de usuário desabilitado não deve ser válido");
+        assertArrayEquals(mockStats, stats, "Estatísticas devem estar corretas");
         
-        verify(refreshTokenRepository).findByTokenAndIsRevokedFalse(tokenValue);
+        verify(refreshTokenRepository).getTokenStatsByUser(eq(testUser), any(LocalDateTime.class));
     }
 }

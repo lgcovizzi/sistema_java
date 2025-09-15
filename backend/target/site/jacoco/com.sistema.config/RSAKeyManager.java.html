@@ -50,19 +50,19 @@ import java.util.Base64;
             
 <span class="fc bfc" id="L51" title="All 2 branches covered.">            if (keysExist()) {</span>
 <span class="fc" id="L52">                logger.info(&quot;Chaves RSA encontradas. Verificando validade...&quot;);</span>
-<span class="pc bpc" id="L53" title="1 of 2 branches missed.">                if (loadAndValidateKeys()) {</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">                if (loadAndValidateKeys()) {</span>
 <span class="fc" id="L54">                    logger.info(&quot;Chaves RSA válidas carregadas com sucesso.&quot;);</span>
                 } else {
-<span class="nc" id="L56">                    logger.warn(&quot;Chaves RSA inválidas. Gerando novas chaves...&quot;);</span>
-<span class="nc" id="L57">                    generateNewKeys();</span>
+<span class="fc" id="L56">                    logger.warn(&quot;Chaves RSA inválidas. Gerando novas chaves...&quot;);</span>
+<span class="fc" id="L57">                    generateNewKeys();</span>
                 }
             } else {
 <span class="fc" id="L60">                logger.info(&quot;Chaves RSA não encontradas. Gerando novas chaves...&quot;);</span>
 <span class="fc" id="L61">                generateNewKeys();</span>
             }
-<span class="nc" id="L63">        } catch (Exception e) {</span>
-<span class="nc" id="L64">            logger.error(&quot;Erro ao inicializar chaves RSA: {}&quot;, e.getMessage(), e);</span>
-<span class="nc" id="L65">            throw new RuntimeException(&quot;Falha na inicialização das chaves RSA&quot;, e);</span>
+<span class="fc" id="L63">        } catch (Exception e) {</span>
+<span class="fc" id="L64">            logger.error(&quot;Erro ao inicializar chaves RSA: {}&quot;, e.getMessage(), e);</span>
+<span class="fc" id="L65">            throw new RuntimeException(&quot;Falha na inicialização das chaves RSA&quot;, e);</span>
 <span class="fc" id="L66">        }</span>
 <span class="fc" id="L67">    }</span>
 
@@ -86,9 +86,9 @@ import java.util.Base64;
 
             // Valida as chaves testando criptografia/descriptografia
 <span class="fc" id="L88">            return validateKeyPair(privateKey, publicKey);</span>
-<span class="nc" id="L89">        } catch (Exception e) {</span>
-<span class="nc" id="L90">            logger.error(&quot;Erro ao carregar chaves: {}&quot;, e.getMessage());</span>
-<span class="nc" id="L91">            return false;</span>
+<span class="fc" id="L89">        } catch (Exception e) {</span>
+<span class="fc" id="L90">            logger.error(&quot;Erro ao carregar chaves: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L91">            return false;</span>
         }
     }
 
@@ -236,7 +236,22 @@ import java.util.Base64;
     }
 
     public String getKeysDirectory() {
-<span class="nc" id="L239">        return keysDirectory;</span>
+<span class="fc" id="L239">        return keysDirectory;</span>
     }
+    
+    /**
+     * Força a regeneração das chaves RSA.
+     * Usado principalmente para testes.
+     */
+    public void forceRegenerateKeys() {
+        try {
+<span class="fc" id="L248">            logger.info(&quot;Forçando regeneração das chaves RSA...&quot;);</span>
+<span class="fc" id="L249">            generateNewKeys();</span>
+<span class="fc" id="L250">            logger.info(&quot;Chaves RSA regeneradas com sucesso.&quot;);</span>
+<span class="nc" id="L251">        } catch (Exception e) {</span>
+<span class="nc" id="L252">            logger.error(&quot;Erro ao regenerar chaves RSA: {}&quot;, e.getMessage(), e);</span>
+<span class="nc" id="L253">            throw new RuntimeException(&quot;Falha na regeneração das chaves RSA&quot;, e);</span>
+<span class="fc" id="L254">        }</span>
+<span class="fc" id="L255">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

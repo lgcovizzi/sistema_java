@@ -90,9 +90,9 @@ public class User implements UserDetails {
     // Métodos do UserDetails
     @Override
     public Collection&lt;? extends GrantedAuthority&gt; getAuthorities() {
-<span class="nc" id="L93">        return roles.stream()</span>
-<span class="nc" id="L94">                .map(role -&gt; new SimpleGrantedAuthority(&quot;ROLE_&quot; + role.name()))</span>
-<span class="nc" id="L95">                .collect(Collectors.toList());</span>
+<span class="fc" id="L93">        return roles.stream()</span>
+<span class="fc" id="L94">                .map(role -&gt; new SimpleGrantedAuthority(&quot;ROLE_&quot; + role.name()))</span>
+<span class="fc" id="L95">                .collect(Collectors.toList());</span>
     }
 
     @Override
@@ -102,7 +102,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-<span class="nc" id="L105">        return username;</span>
+<span class="fc" id="L105">        return username;</span>
     }
 
     @Override
@@ -122,57 +122,57 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-<span class="nc" id="L125">        return enabled;</span>
+<span class="fc" id="L125">        return enabled;</span>
     }
 
     // Getters e Setters
     public Long getId() {
-<span class="nc" id="L130">        return id;</span>
+<span class="fc" id="L130">        return id;</span>
     }
 
     public void setId(Long id) {
-<span class="nc" id="L134">        this.id = id;</span>
-<span class="nc" id="L135">    }</span>
+<span class="fc" id="L134">        this.id = id;</span>
+<span class="fc" id="L135">    }</span>
 
     public void setUsername(String username) {
-<span class="nc" id="L138">        this.username = username;</span>
-<span class="nc" id="L139">    }</span>
+<span class="fc" id="L138">        this.username = username;</span>
+<span class="fc" id="L139">    }</span>
 
     public void setPassword(String password) {
-<span class="nc" id="L142">        this.password = password;</span>
-<span class="nc" id="L143">    }</span>
+<span class="fc" id="L142">        this.password = password;</span>
+<span class="fc" id="L143">    }</span>
 
     public String getEmail() {
-<span class="nc" id="L146">        return email;</span>
+<span class="fc" id="L146">        return email;</span>
     }
 
     public void setEmail(String email) {
-<span class="nc" id="L150">        this.email = email;</span>
-<span class="nc" id="L151">    }</span>
+<span class="fc" id="L150">        this.email = email;</span>
+<span class="fc" id="L151">    }</span>
 
     public String getFirstName() {
 <span class="nc" id="L154">        return firstName;</span>
     }
 
     public void setFirstName(String firstName) {
-<span class="nc" id="L158">        this.firstName = firstName;</span>
-<span class="nc" id="L159">    }</span>
+<span class="fc" id="L158">        this.firstName = firstName;</span>
+<span class="fc" id="L159">    }</span>
 
     public String getLastName() {
 <span class="nc" id="L162">        return lastName;</span>
     }
 
     public void setLastName(String lastName) {
-<span class="nc" id="L166">        this.lastName = lastName;</span>
-<span class="nc" id="L167">    }</span>
+<span class="fc" id="L166">        this.lastName = lastName;</span>
+<span class="fc" id="L167">    }</span>
 
     public List&lt;Role&gt; getRoles() {
-<span class="nc" id="L170">        return roles;</span>
+<span class="fc" id="L170">        return roles;</span>
     }
 
     public void setRoles(List&lt;Role&gt; roles) {
-<span class="nc" id="L174">        this.roles = roles;</span>
-<span class="nc" id="L175">    }</span>
+<span class="fc" id="L174">        this.roles = roles;</span>
+<span class="fc" id="L175">    }</span>
 
     public void setAccountNonExpired(boolean accountNonExpired) {
 <span class="nc" id="L178">        this.accountNonExpired = accountNonExpired;</span>
@@ -187,16 +187,16 @@ public class User implements UserDetails {
 <span class="nc" id="L187">    }</span>
 
     public void setEnabled(boolean enabled) {
-<span class="nc" id="L190">        this.enabled = enabled;</span>
-<span class="nc" id="L191">    }</span>
+<span class="fc" id="L190">        this.enabled = enabled;</span>
+<span class="fc" id="L191">    }</span>
 
     public LocalDateTime getCreatedAt() {
 <span class="nc" id="L194">        return createdAt;</span>
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {
-<span class="nc" id="L198">        this.createdAt = createdAt;</span>
-<span class="nc" id="L199">    }</span>
+<span class="fc" id="L198">        this.createdAt = createdAt;</span>
+<span class="fc" id="L199">    }</span>
 
     public LocalDateTime getUpdatedAt() {
 <span class="nc" id="L202">        return updatedAt;</span>
@@ -207,23 +207,23 @@ public class User implements UserDetails {
 <span class="nc" id="L207">    }</span>
 
     public LocalDateTime getLastLogin() {
-<span class="nc" id="L210">        return lastLogin;</span>
+<span class="fc" id="L210">        return lastLogin;</span>
     }
 
     public void setLastLogin(LocalDateTime lastLogin) {
-<span class="nc" id="L214">        this.lastLogin = lastLogin;</span>
-<span class="nc" id="L215">    }</span>
+<span class="fc" id="L214">        this.lastLogin = lastLogin;</span>
+<span class="fc" id="L215">    }</span>
 
     // Métodos de conveniência
     public String getFullName() {
-<span class="nc bnc" id="L219" title="All 4 branches missed.">        if (firstName != null &amp;&amp; lastName != null) {</span>
-<span class="nc" id="L220">            return firstName + &quot; &quot; + lastName;</span>
-<span class="nc bnc" id="L221" title="All 2 branches missed.">        } else if (firstName != null) {</span>
+<span class="pc bpc" id="L219" title="1 of 4 branches missed.">        if (firstName != null &amp;&amp; lastName != null) {</span>
+<span class="fc" id="L220">            return firstName + &quot; &quot; + lastName;</span>
+<span class="pc bpc" id="L221" title="1 of 2 branches missed.">        } else if (firstName != null) {</span>
 <span class="nc" id="L222">            return firstName;</span>
-<span class="nc bnc" id="L223" title="All 2 branches missed.">        } else if (lastName != null) {</span>
+<span class="pc bpc" id="L223" title="1 of 2 branches missed.">        } else if (lastName != null) {</span>
 <span class="nc" id="L224">            return lastName;</span>
         }
-<span class="nc" id="L226">        return username;</span>
+<span class="fc" id="L226">        return username;</span>
     }
 
     public boolean hasRole(Role role) {

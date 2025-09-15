@@ -28,9 +28,9 @@ import java.io.IOException;
  * para validar tokens JWT e configurar o contexto de segurança.
  */
 @Component
-<span class="fc" id="L31">public class JwtAuthenticationFilter extends OncePerRequestFilter {</span>
+<span class="nc" id="L31">public class JwtAuthenticationFilter extends OncePerRequestFilter {</span>
 
-<span class="fc" id="L33">    private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);</span>
+<span class="nc" id="L33">    private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);</span>
     private static final String BEARER_PREFIX = &quot;Bearer &quot;;
     private static final String AUTHORIZATION_HEADER = &quot;Authorization&quot;;
 
@@ -52,18 +52,18 @@ import java.io.IOException;
     ) throws ServletException, IOException {
 
         try {
-<span class="fc" id="L55">            String jwt = extractJwtFromRequest(request);</span>
+<span class="nc" id="L55">            String jwt = extractJwtFromRequest(request);</span>
             
-<span class="pc bpc" id="L57" title="3 of 4 branches missed.">            if (jwt != null &amp;&amp; SecurityContextHolder.getContext().getAuthentication() == null) {</span>
+<span class="nc bnc" id="L57" title="All 4 branches missed.">            if (jwt != null &amp;&amp; SecurityContextHolder.getContext().getAuthentication() == null) {</span>
 <span class="nc" id="L58">                authenticateUser(jwt, request);</span>
             }
 <span class="nc" id="L60">        } catch (Exception e) {</span>
 <span class="nc" id="L61">            logger.error(&quot;Erro durante autenticação JWT: {}&quot;, e.getMessage());</span>
             // Não interrompe a cadeia de filtros, apenas loga o erro
-<span class="fc" id="L63">        }</span>
+<span class="nc" id="L63">        }</span>
 
-<span class="fc" id="L65">        filterChain.doFilter(request, response);</span>
-<span class="fc" id="L66">    }</span>
+<span class="nc" id="L65">        filterChain.doFilter(request, response);</span>
+<span class="nc" id="L66">    }</span>
 
     /**
      * Extrai o token JWT do cabeçalho Authorization da requisição.
@@ -72,13 +72,13 @@ import java.io.IOException;
      * @return O token JWT ou null se não encontrado
      */
     private String extractJwtFromRequest(HttpServletRequest request) {
-<span class="fc" id="L75">        String bearerToken = request.getHeader(AUTHORIZATION_HEADER);</span>
+<span class="nc" id="L75">        String bearerToken = request.getHeader(AUTHORIZATION_HEADER);</span>
         
-<span class="pc bpc" id="L77" title="3 of 4 branches missed.">        if (bearerToken != null &amp;&amp; bearerToken.startsWith(BEARER_PREFIX)) {</span>
+<span class="nc bnc" id="L77" title="All 4 branches missed.">        if (bearerToken != null &amp;&amp; bearerToken.startsWith(BEARER_PREFIX)) {</span>
 <span class="nc" id="L78">            return bearerToken.substring(BEARER_PREFIX.length());</span>
         }
         
-<span class="fc" id="L81">        return null;</span>
+<span class="nc" id="L81">        return null;</span>
     }
 
     /**
@@ -145,21 +145,21 @@ import java.io.IOException;
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-<span class="fc" id="L148">        String path = request.getRequestURI();</span>
+<span class="nc" id="L148">        String path = request.getRequestURI();</span>
         
         // Não aplica o filtro para endpoints públicos
-<span class="pc bpc" id="L151" title="1 of 2 branches missed.">        return path.startsWith(&quot;/api/auth/login&quot;) ||</span>
-<span class="pc bpc" id="L152" title="1 of 2 branches missed.">               path.startsWith(&quot;/api/auth/register&quot;) ||</span>
-<span class="pc bpc" id="L153" title="1 of 2 branches missed.">               path.startsWith(&quot;/api/login&quot;) ||</span>
-<span class="pc bpc" id="L154" title="1 of 2 branches missed.">               path.startsWith(&quot;/login&quot;) ||</span>
-<span class="pc bpc" id="L155" title="1 of 2 branches missed.">               path.startsWith(&quot;/logout&quot;) ||</span>
-<span class="pc bpc" id="L156" title="1 of 2 branches missed.">               path.startsWith(&quot;/dashboard&quot;) ||</span>
-<span class="fc bfc" id="L157" title="All 2 branches covered.">               path.startsWith(&quot;/api/health&quot;) ||</span>
-<span class="fc bfc" id="L158" title="All 2 branches covered.">               path.startsWith(&quot;/api/info&quot;) ||</span>
-<span class="pc bpc" id="L159" title="1 of 2 branches missed.">               path.startsWith(&quot;/actuator&quot;) ||</span>
-<span class="pc bpc" id="L160" title="1 of 2 branches missed.">               path.startsWith(&quot;/error&quot;) ||</span>
-<span class="fc bfc" id="L161" title="All 2 branches covered.">               path.equals(&quot;/&quot;) ||</span>
-<span class="fc bfc" id="L162" title="All 2 branches covered.">               path.equals(&quot;/api-simple&quot;);</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">        return path.startsWith(&quot;/api/auth/login&quot;) ||</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">               path.startsWith(&quot;/api/auth/register&quot;) ||</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">               path.startsWith(&quot;/api/login&quot;) ||</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">               path.startsWith(&quot;/login&quot;) ||</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">               path.startsWith(&quot;/logout&quot;) ||</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">               path.startsWith(&quot;/dashboard&quot;) ||</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">               path.startsWith(&quot;/api/health&quot;) ||</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">               path.startsWith(&quot;/api/info&quot;) ||</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">               path.startsWith(&quot;/actuator&quot;) ||</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">               path.startsWith(&quot;/error&quot;) ||</span>
+<span class="nc bnc" id="L161" title="All 2 branches missed.">               path.equals(&quot;/&quot;) ||</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">               path.equals(&quot;/api-simple&quot;);</span>
     }
 
     /**

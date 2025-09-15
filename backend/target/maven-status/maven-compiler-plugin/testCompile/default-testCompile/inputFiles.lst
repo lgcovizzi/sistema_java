@@ -8,8 +8,12 @@
 /home/lg/sistema_java/backend/src/test/java/com/sistema/service/JwtServiceTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/service/CookiePersistenceTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/integration/HealthControllerIntegrationTest.java
+/home/lg/sistema_java/backend/src/test/java/com/sistema/repository/UserRepositoryTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/controller/HomeControllerTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/service/AuthServiceCookiePersistenceTest.java
+/home/lg/sistema_java/backend/src/test/java/com/sistema/model/UserTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/config/RSAKeyManagerTest.java
+/home/lg/sistema_java/backend/src/test/java/com/sistema/model/EmailVerificationTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/service/RefreshTokenServiceTest.java
 /home/lg/sistema_java/backend/src/test/java/com/sistema/controller/AuthControllerTest.java
+/home/lg/sistema_java/backend/src/test/java/com/sistema/model/UserRoleTest.java

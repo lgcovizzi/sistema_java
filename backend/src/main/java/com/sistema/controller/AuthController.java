@@ -3,6 +3,8 @@ package com.sistema.controller;
 import com.sistema.entity.User;
 import com.sistema.service.AuthService;
 import com.sistema.service.JwtService;
+import com.sistema.service.TokenBlacklistService;
+import com.sistema.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -36,11 +38,13 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtService jwtService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Autowired
-    public AuthController(AuthService authService, JwtService jwtService) {
+    public AuthController(AuthService authService, JwtService jwtService, TokenBlacklistService tokenBlacklistService) {
         this.authService = authService;
         this.jwtService = jwtService;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     /**
@@ -134,21 +138,60 @@ public class AuthController {
      * Endpoint para logout (invalidação de token).
      * 
      * @param logoutRequest dados do logout
+     * @param httpRequest requisição HTTP para extrair token atual
      * @return confirmação de logout
      */
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestBody(required = false) LogoutRequest logoutRequest) {
+    public ResponseEntity<?> logout(@RequestBody(required = false) LogoutRequest logoutRequest, HttpServletRequest httpRequest) {
         try {
             String refreshToken = logoutRequest != null ? logoutRequest.getRefreshToken() : null;
             boolean revokeAll = logoutRequest != null ? logoutRequest.isRevokeAll() : false;
             
+            // Extrai o token de acesso atual da requisição
+            String currentAccessToken = extractTokenFromRequest(httpRequest);
+            String username = null;
+            
+            if (currentAccessToken != null) {
+                try {
+                    username = jwtService.extractUsername(currentAccessToken);
+                    // Revoga o token de acesso atual
+                    tokenBlacklistService.revokeToken(currentAccessToken);
+                    logger.info("Token de acesso atual revogado para usuário: {}", username);
+                } catch (Exception e) {
+                    logger.warn("Erro ao revogar token de acesso atual: {}", e.getMessage());
+                }
+            }
+            
+            // Revoga o refresh token se fornecido
+            if (refreshToken != null && !refreshToken.trim().isEmpty()) {
+                try {
+                    if (jwtService.isValidRefreshToken(refreshToken)) {
+                        tokenBlacklistService.revokeToken(refreshToken);
+                        logger.info("Refresh token revogado");
+                    }
+                } catch (Exception e) {
+                    logger.warn("Erro ao revogar refresh token: {}", e.getMessage());
+                }
+            }
+            
+            // Se solicitado, revoga todos os tokens do usuário
+            if (revokeAll && username != null) {
+                tokenBlacklistService.revokeAllUserTokens(username);
+                logger.info("Todos os tokens do usuário {} foram revogados", username);
+            }
+            
+            // Chama o logout do AuthService para limpeza adicional
             authService.logout(refreshToken, revokeAll);
             
-            logger.info("Logout realizado com sucesso");
+            logger.info("Logout realizado com sucesso para usuário: {}", username);
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Logout realizado com sucesso");
             response.put("timestamp", System.currentTimeMillis());
+            response.put("tokensRevoked", true);
+            if (revokeAll) {
+                response.put("allTokensRevoked", true);
+            }
             
             return ResponseEntity.ok(response);
             
@@ -336,6 +379,20 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
         }
+    }
+
+    /**
+     * Extrai o token JWT do cabeçalho Authorization da requisição.
+     * 
+     * @param request requisição HTTP
+     * @return token JWT ou null se não encontrado
+     */
+    private String extractTokenFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
     }
 
     /**

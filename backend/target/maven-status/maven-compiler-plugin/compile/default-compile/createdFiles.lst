@@ -7,6 +7,7 @@ com/sistema/config/SecurityConfig$DevSecurityConfig.class
 com/sistema/controller/AuthController$ValidateTokenRequest.class
 com/sistema/controller/WebController.class
 com/sistema/entity/RefreshToken.class
+com/sistema/service/TokenBlacklistService.class
 com/sistema/controller/AuthController$RefreshTokenRequest.class
 com/sistema/controller/AuthController$EnableUserRequest.class
 com/sistema/config/RedisConfig.class
@@ -21,6 +22,7 @@ com/sistema/entity/User.class
 com/sistema/repository/UserRepository.class
 com/sistema/SistemaJavaApplication.class
 com/sistema/controller/LoginController.class
+com/sistema/config/DataLoader.class
 com/sistema/config/RSAKeyManager.class
 com/sistema/repository/RefreshTokenRepository.class
 com/sistema/controller/AuthController.class

@@ -132,13 +132,15 @@ class HealthControllerIntegrationTest {
     @Test
     @DisplayName("Deve redirecionar api-simple para página inicial")
     void shouldRedirectApiSimpleToHomePage() {
-        // When
-        ResponseEntity<String> response = restTemplate.getForEntity(
-            "http://localhost:" + port + "/api-simple", String.class);
+        // When - Testando o redirecionamento sem seguir automaticamente
+        ResponseEntity<String> response = restTemplate.exchange(
+            "http://localhost:" + port + "/api-simple", 
+            org.springframework.http.HttpMethod.GET, 
+            null, 
+            String.class);
 
-        // Then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        // Após redirecionamento, deve retornar o conteúdo da página inicial
-        assertThat(response.getBody()).contains("Sistema Java");
+        // Then - Deve retornar 302 (redirecionamento)
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+        assertThat(response.getHeaders().getLocation().getPath()).isEqualTo("/");
     }
 }

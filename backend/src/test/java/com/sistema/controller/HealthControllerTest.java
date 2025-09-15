@@ -12,19 +12,14 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
-/**
- * Testes unitários para HealthController
- * Seguindo práticas de TDD com padrão Given-When-Then
- */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("HealthController Tests")
 class HealthControllerTest {
@@ -32,55 +27,119 @@ class HealthControllerTest {
     @Mock
     private RedisTemplate<String, Object> redisTemplate;
 
-    @InjectMocks
-    private HealthController healthController;
-
     @Mock
     private ValueOperations<String, Object> valueOperations;
 
+    @InjectMocks
+    private HealthController healthController;
+
     @BeforeEach
     void setUp() {
-        // Setup comum para todos os testes
+        lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     }
 
     @Test
-    @DisplayName("Deve retornar status UP quando health check é chamado")
-    void shouldReturnStatusUpWhenHealthCheckIsCalled() {
+    @DisplayName("Should return health status successfully")
+    void health_ShouldReturnHealthStatus() {
+        // Given
+        LocalDateTime beforeCall = LocalDateTime.now();
+
         // When
         ResponseEntity<Map<String, Object>> response = healthController.health();
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().get("status")).isEqualTo("UP");
-        assertThat(response.getBody().get("service")).isEqualTo("Sistema Java Backend");
-        assertThat(response.getBody().get("version")).isEqualTo("1.0.0");
-        assertThat(response.getBody()).containsKey("timestamp");
+        
+        Map<String, Object> body = response.getBody();
+        assertThat(body.get("status")).isEqualTo("UP");
+        assertThat(body.get("service")).isEqualTo("Sistema Java Backend");
+        assertThat(body.get("version")).isEqualTo("1.0.0");
+        assertThat(body.get("timestamp")).isInstanceOf(LocalDateTime.class);
+        
+        LocalDateTime timestamp = (LocalDateTime) body.get("timestamp");
+        assertThat(timestamp).isAfterOrEqualTo(beforeCall);
     }
 
     @Test
-    @DisplayName("Deve retornar informações da aplicação quando info é chamado")
-    void shouldReturnApplicationInfoWhenInfoIsCalled() {
+    @DisplayName("Should test Redis connectivity successfully")
+    void testRedis_Success() {
+        // Given - Mock to capture and return the stored value
+        Map<String, String> redisStorage = new HashMap<>();
+        
+        doAnswer(invocation -> {
+            String key = invocation.getArgument(0);
+            String value = invocation.getArgument(1);
+            redisStorage.put(key, value);
+            return null;
+        }).when(valueOperations).set(anyString(), anyString());
+        
+        when(valueOperations.get(anyString())).thenAnswer(invocation -> {
+            String key = invocation.getArgument(0);
+            return redisStorage.get(key);
+        });
+
+        // When
+        ResponseEntity<Map<String, Object>> response = healthController.testRedis();
+
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        
+        Map<String, Object> body = response.getBody();
+        assertThat(body.get("status")).isEqualTo("SUCCESS");
+        assertThat(body.get("key")).isNotNull();
+        assertThat(body.get("value_stored")).isNotNull();
+        assertThat(body.get("value_retrieved")).isNotNull();
+        assertThat(body.get("redis_working")).isEqualTo(true);
+        
+        verify(valueOperations).set(anyString(), anyString());
+        verify(valueOperations).get(anyString());
+    }
+
+    @Test
+    @DisplayName("Should handle Redis error gracefully")
+    void testRedis_Error() {
+        // Given
+        doThrow(new RuntimeException("Redis connection failed"))
+                .when(valueOperations).set(anyString(), anyString());
+
+        // When
+        ResponseEntity<Map<String, Object>> response = healthController.testRedis();
+
+        // Then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        
+        Map<String, Object> body = response.getBody();
+        assertThat(body.get("status")).isEqualTo("ERROR");
+        assertThat(body.get("error")).isEqualTo("Redis connection failed");
+    }
+
+    @Test
+    @DisplayName("Should return application info successfully")
+    void info_ShouldReturnApplicationInfo() {
         // When
         ResponseEntity<Map<String, Object>> response = healthController.info();
 
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().get("application")).isEqualTo("Sistema Java");
-        assertThat(response.getBody().get("description")).isEqualTo("Sistema Java com Spring Boot, PostgreSQL, Redis e MailHog");
-        assertThat(response.getBody()).containsKey("java_version");
-        assertThat(response.getBody()).containsKey("spring_profiles");
+        
+        Map<String, Object> body = response.getBody();
+        assertThat(body.get("application")).isEqualTo("Sistema Java");
+        assertThat(body.get("description")).isEqualTo("Sistema Java com Spring Boot, PostgreSQL, Redis e MailHog");
+        assertThat(body.get("java_version")).isNotNull();
+        assertThat(body.get("spring_profiles")).isNotNull();
     }
 
     @Test
-    @DisplayName("Deve retornar sucesso quando Redis está funcionando")
-    void shouldReturnSuccessWhenRedisIsWorking() {
+    @DisplayName("Should handle Redis value mismatch")
+    void testRedis_ValueMismatch() {
         // Given
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        String testValue = "Redis funcionando em ";
-        doNothing().when(valueOperations).set(anyString(), anyString());
-        when(valueOperations.get(anyString())).thenReturn(testValue + "2024-01-01T10:00:00");
+        String storedValue = "Original value";
+        String retrievedValue = "Different value";
+        when(valueOperations.get(anyString())).thenReturn(retrievedValue);
 
         // When
         ResponseEntity<Map<String, Object>> response = healthController.testRedis();
@@ -88,18 +147,17 @@ class HealthControllerTest {
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().get("status")).isEqualTo("SUCCESS");
-        assertThat(response.getBody()).containsKey("key");
-        assertThat(response.getBody()).containsKey("value_stored");
-        assertThat(response.getBody()).containsKey("value_retrieved");
+        
+        Map<String, Object> body = response.getBody();
+        assertThat(body.get("status")).isEqualTo("SUCCESS");
+        assertThat(body.get("redis_working")).isEqualTo(false);
     }
 
     @Test
-    @DisplayName("Deve retornar erro quando Redis falha")
-    void shouldReturnErrorWhenRedisFails() {
+    @DisplayName("Should handle null value from Redis")
+    void testRedis_NullValue() {
         // Given
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-        doThrow(new RuntimeException("Redis connection failed")).when(valueOperations).set(anyString(), anyString());
+        when(valueOperations.get(anyString())).thenReturn(null);
 
         // When
         ResponseEntity<Map<String, Object>> response = healthController.testRedis();
@@ -107,7 +165,26 @@ class HealthControllerTest {
         // Then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().get("status")).isEqualTo("ERROR");
-        assertThat(response.getBody().get("error")).isEqualTo("Redis connection failed");
+        
+        Map<String, Object> body = response.getBody();
+        assertThat(body.get("status")).isEqualTo("SUCCESS");
+        assertThat(body.get("value_retrieved")).isNull();
+        assertThat(body.get("redis_working")).isEqualTo(false);
+    }
+
+    @Test
+    @DisplayName("Should verify Redis operations are called correctly")
+    void testRedis_VerifyOperations() {
+        // Given
+        String testValue = "Test value";
+        when(valueOperations.get(anyString())).thenReturn(testValue);
+
+        // When
+        healthController.testRedis();
+
+        // Then
+        verify(redisTemplate, times(2)).opsForValue();
+        verify(valueOperations).set(startsWith("test:"), contains("Redis funcionando em"));
+        verify(valueOperations).get(startsWith("test:"));
     }
 }

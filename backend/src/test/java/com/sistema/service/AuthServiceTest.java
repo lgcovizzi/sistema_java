@@ -1,0 +1,543 @@
+package com.sistema.service;
+
+import com.sistema.entity.RefreshToken;
+import com.sistema.entity.Role;
+import com.sistema.entity.User;
+import com.sistema.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.time.LocalDateTime;
+import java.util.*;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("AuthService Tests")
+class AuthServiceTest {
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private JwtService jwtService;
+
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
+    @Mock
+    private AuthenticationManager authenticationManager;
+
+    @Mock
+    private HttpServletRequest request;
+
+    @Mock
+    private Authentication authentication;
+
+    @InjectMocks
+    private AuthService authService;
+
+    private User testUser;
+    private RefreshToken testRefreshToken;
+
+    @BeforeEach
+    void setUp() {
+        authService.setAuthenticationManager(authenticationManager);
+        
+        testUser = new User();
+        testUser.setId(1L);
+        testUser.setUsername("testuser");
+        testUser.setEmail("test@example.com");
+        testUser.setPassword("encodedPassword");
+        testUser.setFirstName("Test");
+        testUser.setLastName("User");
+        testUser.setEnabled(true);
+        testUser.setRoles(List.of(Role.USER));
+        testUser.setLastLogin(LocalDateTime.now());
+
+        testRefreshToken = new RefreshToken();
+        testRefreshToken.setToken("refresh-token-123");
+        testRefreshToken.setUser(testUser);
+        testRefreshToken.setExpiresAt(LocalDateTime.now().plusDays(30));
+    }
+
+    @Test
+    @DisplayName("Should load user by username successfully")
+    void loadUserByUsername_Success() {
+        // Given
+        when(userRepository.findByUsernameOrEmail("testuser", "testuser")).thenReturn(Optional.of(testUser));
+
+        // When
+        UserDetails result = authService.loadUserByUsername("testuser");
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getUsername()).isEqualTo("testuser");
+        assertThat(result.isEnabled()).isTrue();
+        verify(userRepository).findByUsernameOrEmail("testuser", "testuser");
+    }
+
+    @Test
+    @DisplayName("Should throw exception when user not found")
+    void loadUserByUsername_UserNotFound() {
+        // Given
+        when(userRepository.findByUsernameOrEmail("nonexistent", "nonexistent")).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> authService.loadUserByUsername("nonexistent"))
+                .isInstanceOf(UsernameNotFoundException.class)
+                .hasMessageContaining("Usuário não encontrado: nonexistent");
+    }
+
+    @Test
+    @DisplayName("Should authenticate user successfully with username")
+    void authenticate_WithUsername_Success() {
+        // Given
+        String accessToken = "access-token-123";
+        String refreshToken = "refresh-token-123";
+        
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(testUser);
+        when(jwtService.generateAccessToken(testUser)).thenReturn(accessToken);
+        when(refreshTokenService.createRefreshToken(testUser, request)).thenReturn(testRefreshToken);
+
+        // When
+        Map<String, Object> result = authService.authenticate("testuser", "password", request);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.get("accessToken")).isEqualTo(accessToken);
+        assertThat(result.get("refreshToken")).isEqualTo(refreshToken);
+        assertThat(result.get("tokenType")).isEqualTo("Bearer");
+        assertThat(result.get("expiresIn")).isEqualTo(3600);
+        
+        Map<String, Object> userInfo = (Map<String, Object>) result.get("user");
+        assertThat(userInfo.get("username")).isEqualTo("testuser");
+        assertThat(userInfo.get("email")).isEqualTo("test@example.com");
+        
+        verify(userRepository).updateLastLogin(eq(1L), any(LocalDateTime.class));
+    }
+
+    @Test
+    @DisplayName("Should authenticate user successfully with email")
+    void authenticate_WithEmail_Success() {
+        // Given
+        String accessToken = "access-token-123";
+        
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(testUser);
+        when(jwtService.generateAccessToken(testUser)).thenReturn(accessToken);
+        when(refreshTokenService.createRefreshToken(testUser, request)).thenReturn(testRefreshToken);
+
+        // When
+        Map<String, Object> result = authService.authenticate("test@example.com", "password", request);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.get("accessToken")).isEqualTo(accessToken);
+        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when authentication fails")
+    void authenticate_BadCredentials() {
+        // Given
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new BadCredentialsException("Invalid credentials"));
+
+        // When & Then
+        assertThatThrownBy(() -> authService.authenticate("testuser", "wrongpassword", request))
+                .isInstanceOf(BadCredentialsException.class)
+                .hasMessageContaining("Credenciais inválidas");
+        
+        // Verify that updateLastLogin was not called since authentication failed
+        verify(userRepository, never()).updateLastLogin(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should register new user successfully")
+    void register_Success() {
+        // Given
+        when(userRepository.existsByUsername("newuser")).thenReturn(false);
+        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("password")).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+        // When
+        User result = authService.register("newuser", "new@example.com", "password", "New", "User");
+
+        // Then
+        assertThat(result).isNotNull();
+        verify(userRepository).existsByUsername("newuser");
+        verify(userRepository).existsByEmail("new@example.com");
+        verify(passwordEncoder).encode("password");
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should throw exception when username already exists")
+    void register_UsernameExists() {
+        // Given
+        when(userRepository.existsByUsername("existinguser")).thenReturn(true);
+
+        // When & Then
+        assertThatThrownBy(() -> authService.register("existinguser", "new@example.com", "password", "New", "User"))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Username já está em uso");
+    }
+
+    @Test
+    @DisplayName("Should throw exception when email already exists")
+    void register_EmailExists() {
+        // Given
+        when(userRepository.existsByUsername("newuser")).thenReturn(false);
+        when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
+
+        // When & Then
+        assertThatThrownBy(() -> authService.register("newuser", "existing@example.com", "password", "New", "User"))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Email já está em uso");
+    }
+
+    @Test
+    @DisplayName("Should register and authenticate user successfully")
+    void registerAndAuthenticate_Success() {
+        // Given
+        when(userRepository.existsByUsername("newuser")).thenReturn(false);
+        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("password")).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(testUser);
+        when(jwtService.generateAccessToken(testUser)).thenReturn("access-token");
+        when(refreshTokenService.createRefreshToken(testUser, request)).thenReturn(testRefreshToken);
+
+        // When
+        Map<String, Object> result = authService.registerAndAuthenticate("newuser", "new@example.com", "password", "New", "User", request);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.get("accessToken")).isEqualTo("access-token");
+        verify(userRepository).save(any(User.class));
+        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+    }
+
+    @Test
+    @DisplayName("Should refresh access token successfully")
+    void refreshAccessToken_Success() {
+        // Given
+        String newAccessToken = "new-access-token";
+        RefreshToken newRefreshToken = new RefreshToken();
+        newRefreshToken.setToken("new-refresh-token");
+        newRefreshToken.setExpiresAt(LocalDateTime.now().plusDays(30));
+        
+        when(refreshTokenService.findValidRefreshToken("refresh-token-123"))
+                .thenReturn(Optional.of(testRefreshToken));
+        when(jwtService.generateAccessToken(testUser)).thenReturn(newAccessToken);
+        when(refreshTokenService.createRefreshToken(testUser, request)).thenReturn(newRefreshToken);
+
+        // When
+        Map<String, Object> result = authService.refreshAccessToken("refresh-token-123", request);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.get("accessToken")).isEqualTo(newAccessToken);
+        assertThat(result.get("refreshToken")).isEqualTo("new-refresh-token");
+        assertThat(result.get("tokenType")).isEqualTo("Bearer");
+        
+        verify(refreshTokenService).revokeRefreshToken("refresh-token-123");
+    }
+
+    @Test
+    @DisplayName("Should throw exception when refresh token is invalid")
+    void refreshAccessToken_InvalidToken() {
+        // Given
+        when(refreshTokenService.findValidRefreshToken("invalid-token"))
+                .thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> authService.refreshAccessToken("invalid-token", request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Refresh token inválido ou expirado");
+    }
+
+    @Test
+    @DisplayName("Should change password successfully")
+    void changePassword_Success() {
+        // Given
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("currentPassword", "encodedPassword")).thenReturn(true);
+        when(passwordEncoder.encode("newPassword")).thenReturn("newEncodedPassword");
+        when(userRepository.save(testUser)).thenReturn(testUser);
+
+        // When
+        authService.changePassword("testuser", "currentPassword", "newPassword");
+
+        // Then
+        verify(passwordEncoder).matches("currentPassword", "encodedPassword");
+        verify(passwordEncoder).encode("newPassword");
+        verify(userRepository).save(testUser);
+    }
+
+    @Test
+    @DisplayName("Should throw exception when current password is incorrect")
+    void changePassword_IncorrectCurrentPassword() {
+        // Given
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("wrongPassword", "encodedPassword")).thenReturn(false);
+
+        // When & Then
+        assertThatThrownBy(() -> authService.changePassword("testuser", "wrongPassword", "newPassword"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Senha atual incorreta");
+    }
+
+    @Test
+    @DisplayName("Should throw exception when user not found for password change")
+    void changePassword_UserNotFound() {
+        // Given
+        when(userRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> authService.changePassword("nonexistent", "password", "newPassword"))
+                .isInstanceOf(UsernameNotFoundException.class)
+                .hasMessageContaining("Usuário não encontrado: nonexistent");
+    }
+
+    @Test
+    @DisplayName("Should set user enabled status")
+    void setUserEnabled_Success() {
+        // When
+        authService.setUserEnabled(1L, false);
+
+        // Then
+        verify(userRepository).updateUserStatus(1L, false);
+    }
+
+    @Test
+    @DisplayName("Should find user by ID")
+    void findById_Success() {
+        // Given
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+
+        // When
+        Optional<User> result = authService.findById(1L);
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.get().getId()).isEqualTo(1L);
+        verify(userRepository).findById(1L);
+    }
+
+    @Test
+    @DisplayName("Should find user by username")
+    void findByUsername_Success() {
+        // Given
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+
+        // When
+        Optional<User> result = authService.findByUsername("testuser");
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.get().getUsername()).isEqualTo("testuser");
+        verify(userRepository).findByUsername("testuser");
+    }
+
+    @Test
+    @DisplayName("Should find active users")
+    void findActiveUsers_Success() {
+        // Given
+        List<User> activeUsers = Arrays.asList(testUser);
+        when(userRepository.findByEnabledTrue()).thenReturn(activeUsers);
+
+        // When
+        List<User> result = authService.findActiveUsers();
+
+        // Then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getUsername()).isEqualTo("testuser");
+        verify(userRepository).findByEnabledTrue();
+    }
+
+    @Test
+    @DisplayName("Should search users by term")
+    void searchUsers_Success() {
+        // Given
+        List<User> searchResults = Arrays.asList(testUser);
+        when(userRepository.searchUsers("test")).thenReturn(searchResults);
+
+        // When
+        List<User> result = authService.searchUsers("test");
+
+        // Then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getUsername()).isEqualTo("testuser");
+        verify(userRepository).searchUsers("test");
+    }
+
+    @Test
+    @DisplayName("Should validate token for user successfully")
+    void isTokenValidForUser_Success() {
+        // Given
+        String token = "valid-token";
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(jwtService.isTokenValid(token, testUser)).thenReturn(true);
+
+        // When
+        boolean result = authService.isTokenValidForUser(token, "testuser");
+
+        // Then
+        assertThat(result).isTrue();
+        verify(jwtService).isTokenValid(token, testUser);
+    }
+
+    @Test
+    @DisplayName("Should return false when user not found for token validation")
+    void isTokenValidForUser_UserNotFound() {
+        // Given
+        when(userRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
+
+        // When
+        boolean result = authService.isTokenValidForUser("token", "nonexistent");
+
+        // Then
+        assertThat(result).isFalse();
+        verify(jwtService, never()).isTokenValid(anyString(), any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should return false when user is disabled")
+    void isTokenValidForUser_UserDisabled() {
+        // Given
+        testUser.setEnabled(false);
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+
+        // When
+        boolean result = authService.isTokenValidForUser("token", "testuser");
+
+        // Then
+        assertThat(result).isFalse();
+        verify(jwtService, never()).isTokenValid(anyString(), any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should handle exception during token validation")
+    void isTokenValidForUser_Exception() {
+        // Given
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(jwtService.isTokenValid(anyString(), any(User.class)))
+                .thenThrow(new RuntimeException("Token validation error"));
+
+        // When
+        boolean result = authService.isTokenValidForUser("token", "testuser");
+
+        // Then
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should logout user with single token revocation")
+    void logout_SingleToken() {
+        // Given
+        when(refreshTokenService.findValidRefreshToken("refresh-token-123"))
+                .thenReturn(Optional.of(testRefreshToken));
+
+        // When
+        authService.logout("refresh-token-123", false);
+
+        // Then
+        verify(refreshTokenService).revokeRefreshToken("refresh-token-123");
+        verify(refreshTokenService, never()).revokeAllUserTokens(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should logout user with all tokens revocation")
+    void logout_AllTokens() {
+        // Given
+        when(refreshTokenService.findValidRefreshToken("refresh-token-123"))
+                .thenReturn(Optional.of(testRefreshToken));
+        when(refreshTokenService.revokeAllUserTokens(testUser)).thenReturn(3);
+
+        // When
+        authService.logout("refresh-token-123", true);
+
+        // Then
+        verify(refreshTokenService).revokeAllUserTokens(testUser);
+        verify(refreshTokenService, never()).revokeRefreshToken(anyString());
+    }
+
+    @Test
+    @DisplayName("Should handle logout with null refresh token")
+    void logout_NullRefreshToken() {
+        // When
+        authService.logout(null, false);
+
+        // Then
+        verify(refreshTokenService, never()).findValidRefreshToken(anyString());
+        verify(refreshTokenService, never()).revokeRefreshToken(anyString());
+        verify(refreshTokenService, never()).revokeAllUserTokens(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should handle logout with invalid refresh token")
+    void logout_InvalidRefreshToken() {
+        // Given
+        when(refreshTokenService.findValidRefreshToken("invalid-token"))
+                .thenReturn(Optional.empty());
+
+        // When
+        authService.logout("invalid-token", false);
+
+        // Then
+        verify(refreshTokenService).findValidRefreshToken("invalid-token");
+        verify(refreshTokenService, never()).revokeRefreshToken(anyString());
+        verify(refreshTokenService, never()).revokeAllUserTokens(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Should get user statistics")
+    void getUserStatistics_Success() {
+        // Given
+        when(userRepository.count()).thenReturn(100L);
+        when(userRepository.countByEnabledTrue()).thenReturn(85L);
+        when(userRepository.countByRole(Role.ADMIN)).thenReturn(5L);
+        when(userRepository.countByRole(Role.USER)).thenReturn(95L);
+
+        // When
+        Map<String, Object> result = authService.getUserStatistics();
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.get("totalUsers")).isEqualTo(100L);
+        assertThat(result.get("activeUsers")).isEqualTo(85L);
+        assertThat(result.get("adminUsers")).isEqualTo(5L);
+        assertThat(result.get("regularUsers")).isEqualTo(95L);
+        
+        verify(userRepository).count();
+        verify(userRepository).countByEnabledTrue();
+        verify(userRepository).countByRole(Role.ADMIN);
+        verify(userRepository).countByRole(Role.USER);
+    }
+}

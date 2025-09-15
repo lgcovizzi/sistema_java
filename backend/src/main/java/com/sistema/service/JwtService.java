@@ -153,6 +153,26 @@ public class JwtService {
     }
 
     /**
+     * Extrai a data de emissão do token JWT.
+     * 
+     * @param token o token JWT
+     * @return data de emissão
+     */
+    public Date extractIssuedAt(String token) {
+        return extractClaim(token, Claims::getIssuedAt);
+    }
+
+    /**
+     * Extrai o JTI (JWT ID) do token JWT.
+     * 
+     * @param token o token JWT
+     * @return JTI do token ou null se não estiver presente
+     */
+    public String extractJti(String token) {
+        return extractClaim(token, Claims::getId);
+    }
+
+    /**
      * Extrai um claim específico do token JWT.
      * 
      * @param token o token JWT

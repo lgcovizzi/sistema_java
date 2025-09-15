@@ -2,6 +2,7 @@ package com.sistema.security;
 
 import com.sistema.service.JwtService;
 import com.sistema.service.AuthService;
+import com.sistema.service.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,6 +40,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     @Lazy
     private AuthService authService;
+
+    @Autowired
+    private TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(
@@ -91,9 +95,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
+            // Verifica se o token está na blacklist
+            if (tokenBlacklistService.isTokenRevoked(jwt)) {
+                logger.debug("Token JWT está na blacklist (revogado)");
+                return;
+            }
+
             String username = jwtService.extractUsername(jwt);
             if (username == null) {
                 logger.debug("Username não encontrado no token JWT");
+                return;
+            }
+
+            // Verifica se todos os tokens do usuário foram revogados
+            if (tokenBlacklistService.isTokenGloballyRevoked(jwt, username)) {
+                logger.debug("Token JWT foi revogado globalmente para o usuário: {}", username);
                 return;
             }
 

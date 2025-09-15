@@ -548,8 +548,91 @@ aspell check docs/*.md
 ## API
 [Endpoints relacionados]
 
+## Alterações Recentes
+
+### Resolução de Conflito de Mapeamento (Dezembro 2024)
+
+#### Problema Identificado
+- **Erro**: `java.lang.IllegalStateException: Ambiguous mapping. Cannot map 'webController' method`
+- **Causa**: Conflito entre métodos `dashboard` no `WebController` e `LoginController`
+- **Endpoint conflitante**: `GET /dashboard`
+
+#### Solução Implementada
+- **Arquivo alterado**: `/backend/src/main/java/com/sistema/controller/WebController.java`
+- **Ação**: Removido método `dashboard` duplicado do `WebController`
+- **Resultado**: Mantido apenas o método `dashboard` no `LoginController`
+
+#### Funcionalidades Implementadas
+
+##### 1. Sistema de Login
+- **Controller**: `LoginController`
+- **Endpoints**:
+  - `POST /api/login`: Autenticação de usuários
+  - `GET /dashboard`: Página do dashboard pós-login
+- **Credenciais de teste**:
+  - Username: `demo`
+  - Password: `demo123`
+
+##### 2. Interface de Dashboard
+- **Template**: `/backend/src/main/resources/templates/dashboard.html`
+- **Funcionalidades**:
+  - Interface responsiva
+  - Navegação integrada
+  - Dados dinâmicos via Thymeleaf
+
+#### Testes Realizados
+- ✅ Login via API (`POST /api/login`)
+- ✅ Acesso ao dashboard (`GET /dashboard`)
+- ✅ Página principal (`GET /`)
+- ✅ Health checks (`GET /api/health`)
+- ✅ Teste Redis (`GET /api/redis-test`)
+- ✅ Informações da aplicação (`GET /api/info`)
+
+#### Commit e Deploy
+- **Commit**: "Resolve conflito de mapeamento ambíguo removendo método dashboard duplicado do WebController"
+- **Arquivos alterados**: 6 arquivos (695 inserções, 325 deleções)
+- **Novos arquivos**: `LoginController.java`, `dashboard.html`
+- **Status**: Enviado para repositório Git (branch main)
+- **Deploy**: Aplicação rodando em http://localhost:8080
+
 ## Troubleshooting
-[Problemas conhecidos]
+
+### Problemas Conhecidos e Soluções
+
+#### 1. Conflito de Mapeamento Ambíguo
+**Sintoma**: `IllegalStateException: Ambiguous mapping`
+**Causa**: Múltiplos controladores mapeando o mesmo endpoint
+**Solução**: 
+- Verificar logs com `docker-compose logs app | grep -A 10 'Ambiguous mapping'`
+- Identificar controladores conflitantes
+- Remover ou renomear endpoints duplicados
+
+#### 2. Falha na Inicialização da Aplicação
+**Sintoma**: Container não inicia ou para imediatamente
+**Diagnóstico**:
+```bash
+# Verificar logs detalhados
+docker-compose logs app
+
+# Verificar status dos containers
+docker-compose ps
+
+# Rebuild completo
+docker-compose down
+docker-compose up -d --build
+```
+
+#### 3. Problemas de Conectividade com Banco
+**Sintoma**: Erro de conexão com PostgreSQL
+**Verificação**:
+```bash
+# Status do PostgreSQL
+docker-compose logs postgres
+
+# Teste de conectividade
+docker-compose exec app curl -f http://localhost:8080/api/health
+```
+
 ```
 
 ### Qualidade da Documentação

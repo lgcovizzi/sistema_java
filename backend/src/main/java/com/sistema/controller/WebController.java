@@ -15,11 +15,5 @@ public class WebController {
         return "index";
     }
     
-    @GetMapping("/dashboard")
-    public String dashboard(Model model) {
-        model.addAttribute("appName", "Sistema Java");
-        model.addAttribute("version", "1.0.0");
-        model.addAttribute("status", "Online");
-        return "index";
-    }
+
 }

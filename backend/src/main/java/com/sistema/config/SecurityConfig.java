@@ -72,7 +72,11 @@ public class SecurityConfig {
                     "/api/auth/register",
                     "/api/auth/validate-token",
                     "/actuator/**",
-                    "/error"
+                    "/error",
+                    "/login",
+                    "/api/login",
+                    "/logout",
+                    "/dashboard"
                 ).permitAll()
                 
                 // Endpoints administrativos - requerem role ADMIN

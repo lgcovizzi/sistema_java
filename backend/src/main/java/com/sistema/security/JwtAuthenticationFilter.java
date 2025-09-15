@@ -134,6 +134,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Não aplica o filtro para endpoints públicos
         return path.startsWith("/api/auth/login") ||
                path.startsWith("/api/auth/register") ||
+               path.startsWith("/api/login") ||
+               path.startsWith("/login") ||
+               path.startsWith("/logout") ||
+               path.startsWith("/dashboard") ||
                path.startsWith("/api/health") ||
                path.startsWith("/api/info") ||
                path.startsWith("/actuator") ||

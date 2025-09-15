@@ -197,13 +197,15 @@ O projeto utiliza Docker Compose com os seguintes serviços:
   - **.trae/rules/project_rules.md**: Regras e documentação do projeto
 
 ### Endpoints Funcionais
-- **http://localhost:8080/**: Interface web responsiva com template Thymeleaf
+- **http://localhost:8080/**: Interface web responsiva com template Thymeleaf (via Docker Compose)
 - **http://localhost:8080/api-simple**: Redirecionamento para página principal
 - **http://localhost:8080/api/health**: Status da aplicação
 - **http://localhost:8080/api/info**: Informações do sistema
 - **http://localhost:8080/api/redis-test**: Teste do Redis
 - **http://localhost:8080/actuator**: Endpoints do Actuator
 - **http://localhost:8025**: Interface web do MailHog
+
+**Nota**: A aplicação está configurada para rodar na porta 8080 através do Docker Compose. Para desenvolvimento local, a aplicação pode ser executada na porta 8082 via Maven (`mvn spring-boot:run`) para evitar conflitos de porta.
 
 ### Documentação Implementada
 
@@ -248,12 +250,14 @@ O projeto possui uma estrutura completa de documentação na pasta `docs/`:
 - Otimizações e boas práticas
 
 ### Status do Projeto
-- ✅ **Aplicação funcionando**: Todos os serviços rodando
+- ✅ **Aplicação funcionando**: Todos os serviços rodando na porta 8080 via Docker Compose
 - ✅ **Conectividade PostgreSQL**: Configurada e testada
 - ✅ **Conectividade Redis**: Configurada e testada
 - ✅ **MailHog**: Disponível para testes de email
 - ✅ **Endpoints REST**: Implementados e funcionais
 - ✅ **Docker Compose**: Totalmente operacional
+- ✅ **Configuração de Porta**: Aplicação acessível em http://localhost:8080
+- ✅ **Desenvolvimento Local**: Configurado para porta 8082 quando executado via Maven
 - ✅ **Documentação**: Estrutura completa implementada
 - ✅ **Guias de instalação**: Documentação detalhada criada
 - ✅ **API Documentation**: Todos os endpoints documentados
@@ -323,12 +327,17 @@ O projeto possui uma estrutura completa de documentação na pasta `docs/`:
 - Otimizações e boas práticas
 
 ### Desenvolvimento
+- **Produção**: Usar Docker Compose (`docker-compose up -d`) - aplicação disponível em http://localhost:8080
+- **Desenvolvimento Local**: Executar via Maven (`mvn spring-boot:run`) - aplicação disponível em http://localhost:8082
 - Para desenvolvimento local, mapear o código fonte como volume
 - Usar profiles do Spring Boot para diferentes ambientes
 - Configurar hot reload quando possível
 - Manter separação clara entre backend e outros componentes
 - Consultar documentação na pasta `docs/` para referências
 - Atualizar documentação ao implementar novas features
+- **Configuração de Porta**:
+  - Docker Compose: Porta 8080 (configurada no docker-compose.yml)
+  - Maven local: Porta 8082 (configurada no application.yml)
 - **Thymeleaf**:
   - Templates HTML em `/src/main/resources/templates/`
   - Controladores Spring MVC em `/src/main/java/com/sistema/controller/`

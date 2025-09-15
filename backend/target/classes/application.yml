@@ -5,6 +5,9 @@ spring:
   profiles:
     active: default
   
+  server:
+    port: 8082
+  
   datasource:
     url: jdbc:postgresql://localhost:5432/sistema_db
     username: sistema_user

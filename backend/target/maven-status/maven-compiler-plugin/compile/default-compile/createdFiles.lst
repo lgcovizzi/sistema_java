@@ -26,6 +26,7 @@ com/sistema/SistemaJavaApplication.class
 com/sistema/model/UserRole.class
 com/sistema/controller/LoginController.class
 com/sistema/config/DataLoader.class
+com/sistema/controller/NewsController.class
 com/sistema/config/RSAKeyManager.class
 com/sistema/repository/RefreshTokenRepository.class
 com/sistema/controller/AuthController.class

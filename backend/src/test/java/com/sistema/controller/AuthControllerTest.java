@@ -134,8 +134,9 @@ class AuthControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Credenciais inválidas"))
-                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+                .andExpect(jsonPath("$.error").value(true))
+                .andExpect(jsonPath("$.message").value("Credenciais inválidas"))
+                .andExpect(jsonPath("$.errorCode").value("INVALID_CREDENTIALS"));
     }
 
     @Test
@@ -149,19 +150,20 @@ class AuthControllerTest {
         registerRequest.setFirstName("New");
         registerRequest.setLastName("User");
         
-        when(authService.register(anyString(), anyString(), anyString(), anyString(), anyString()))
-            .thenReturn(testUser);
+        when(authService.registerAndAuthenticate(anyString(), anyString(), anyString(), anyString(), anyString(), any(HttpServletRequest.class)))
+            .thenReturn(authResponse);
         
         // When & Then
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.message").value("Usuário registrado com sucesso"))
+                .andExpect(jsonPath("$.accessToken").value("access-token-123"))
+                .andExpect(jsonPath("$.refreshToken").value("refresh-token-123"))
                 .andExpect(jsonPath("$.user.username").value("testuser"))
                 .andExpect(jsonPath("$.user.email").value("test@example.com"));
         
-        verify(authService).register("newuser", "newuser@example.com", "password123", "New", "User");
+        verify(authService).registerAndAuthenticate("newuser", "newuser@example.com", "password123", "New", "User", any(HttpServletRequest.class));
     }
 
     @Test
@@ -193,7 +195,7 @@ class AuthControllerTest {
         refreshResponse.put("tokenType", "Bearer");
         refreshResponse.put("expiresIn", 3600);
         
-        when(authService.refreshAccessToken("valid-refresh-token", any(HttpServletRequest.class)))
+        when(authService.refreshAccessToken(eq("valid-refresh-token"), any(HttpServletRequest.class)))
             .thenReturn(refreshResponse);
         
         // When & Then
@@ -204,7 +206,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.accessToken").value("new-access-token"))
                 .andExpect(jsonPath("$.refreshToken").value("new-refresh-token"));
         
-        verify(authService).refreshAccessToken(anyString(), any(HttpServletRequest.class));
+        verify(authService).refreshAccessToken(eq("valid-refresh-token"), any(HttpServletRequest.class));
     }
 
     @Test
@@ -214,15 +216,17 @@ class AuthControllerTest {
         AuthController.RefreshTokenRequest refreshRequest = new AuthController.RefreshTokenRequest();
         refreshRequest.setRefreshToken("invalid-refresh-token");
         
-        when(authService.refreshAccessToken("invalid-refresh-token", any(HttpServletRequest.class)))
-            .thenThrow(new RuntimeException("Invalid refresh token"));
+        when(authService.refreshAccessToken(eq("invalid-refresh-token"), any(HttpServletRequest.class)))
+            .thenThrow(new IllegalArgumentException("Invalid refresh token"));
         
         // When & Then
         mockMvc.perform(post("/api/auth/refresh")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(refreshRequest)))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Token de refresh inválido"));
+                .andExpect(jsonPath("$.error").value(true))
+                .andExpect(jsonPath("$.message").value("Refresh token inválido"))
+                .andExpect(jsonPath("$.errorCode").value("INVALID_REFRESH_TOKEN"));
     }
 
     @Test
@@ -278,10 +282,6 @@ class AuthControllerTest {
         logoutRequest.setRefreshToken("refresh-token-123");
         logoutRequest.setRevokeAll(false);
         
-        SecurityContextHolder.setContext(securityContext);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getName()).thenReturn("testuser");
-        
         doNothing().when(authService).logout("refresh-token-123", false);
         
         // When & Then
@@ -330,7 +330,7 @@ class AuthControllerTest {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.getName()).thenReturn("testuser");
         
-        doThrow(new BadCredentialsException("Current password is incorrect"))
+        doThrow(new IllegalArgumentException("Senha atual incorreta"))
             .when(authService).changePassword("testuser", "wrongPassword", "newPassword123");
         
         // When & Then
@@ -338,7 +338,9 @@ class AuthControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(changePasswordRequest)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("Senha atual incorreta"));
+                .andExpect(jsonPath("$.error").value(true))
+                .andExpect(jsonPath("$.message").value("Senha atual incorreta"))
+                .andExpect(jsonPath("$.errorCode").value("INVALID_PASSWORD"));
     }
 
     @Test
@@ -347,17 +349,14 @@ class AuthControllerTest {
         // Given
         SecurityContextHolder.setContext(securityContext);
         when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getName()).thenReturn("testuser");
-        when(authService.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(authentication.getPrincipal()).thenReturn(testUser);
         
         // When & Then
-        mockMvc.perform(get("/api/auth/profile")
+        mockMvc.perform(get("/api/auth/me")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("testuser"))
                 .andExpect(jsonPath("$.email").value("test@example.com"));
-        
-        verify(authService).findByUsername("testuser");
     }
 
 }

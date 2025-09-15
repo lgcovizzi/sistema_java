@@ -114,14 +114,14 @@ class RSAKeyManagerJwtIntegrationTest {
         
         // Verificar informações do token
         var tokenInfo = jwtService.getTokenInfo(accessToken);
-        assertThat(tokenInfo).containsKey("subject");
-        assertThat(tokenInfo).containsKey("type");
+        assertThat(tokenInfo).containsKey("username");
+        assertThat(tokenInfo).containsKey("tokenType");
         assertThat(tokenInfo).containsKey("issuer");
         assertThat(tokenInfo).containsKey("issuedAt");
-        assertThat(tokenInfo).containsKey("expiration");
+        assertThat(tokenInfo).containsKey("expiresAt");
         assertThat(tokenInfo).containsKey("expired");
-        assertThat(tokenInfo.get("subject")).isEqualTo("testuser");
-        assertThat(tokenInfo.get("type")).isEqualTo("access");
+        assertThat(tokenInfo.get("username")).isEqualTo("testuser");
+        assertThat(tokenInfo.get("tokenType")).isEqualTo("access");
         assertThat(tokenInfo.get("expired")).isEqualTo(false);
     }
 
@@ -147,7 +147,13 @@ class RSAKeyManagerJwtIntegrationTest {
         assertThat(newJwtService.extractUsername(newToken)).isEqualTo("testuser");
         
         // Token antigo não deve mais ser válido com as novas chaves
-        assertThat(newJwtService.isValidAccessToken(firstToken)).isFalse();
+        // Usar try-catch pois a validação pode lançar exceção de assinatura inválida
+        try {
+            assertThat(newJwtService.isValidAccessToken(firstToken)).isFalse();
+        } catch (Exception e) {
+            // Esperado: token com chaves antigas deve falhar na validação
+            assertThat(e).isInstanceOf(io.jsonwebtoken.security.SignatureException.class);
+        }
     }
 
     @Test

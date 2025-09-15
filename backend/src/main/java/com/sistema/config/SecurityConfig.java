@@ -76,7 +76,8 @@ public class SecurityConfig {
                     "/login",
                     "/api/login",
                     "/logout",
-                    "/dashboard"
+                    "/dashboard",
+                    "/news"
                 ).permitAll()
                 
                 // Endpoints administrativos - requerem role ADMIN

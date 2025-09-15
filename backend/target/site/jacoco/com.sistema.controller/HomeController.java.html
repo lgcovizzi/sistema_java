@@ -5,19 +5,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.ui.Model;
 
 @Controller
-<span class="nc" id="L8">public class HomeController {</span>
+<span class="fc" id="L8">public class HomeController {</span>
 
     @GetMapping(&quot;/&quot;)
     public String home(Model model) {
         // Adicionar dados dinâmicos ao modelo se necessário
-<span class="nc" id="L13">        model.addAttribute(&quot;appName&quot;, &quot;Sistema Java&quot;);</span>
-<span class="nc" id="L14">        model.addAttribute(&quot;version&quot;, &quot;1.0.0&quot;);</span>
-<span class="nc" id="L15">        return &quot;index&quot;; // Retorna o template index.html</span>
+<span class="fc" id="L13">        model.addAttribute(&quot;appName&quot;, &quot;Sistema Java&quot;);</span>
+<span class="fc" id="L14">        model.addAttribute(&quot;version&quot;, &quot;1.0.0&quot;);</span>
+<span class="fc" id="L15">        return &quot;index&quot;; // Retorna o template index.html</span>
     }
     
     @GetMapping(&quot;/api-simple&quot;)
     public String apiSimple() {
-<span class="nc" id="L20">        return &quot;redirect:/&quot;;</span>
+<span class="fc" id="L20">        return &quot;redirect:/&quot;;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notícias - Sistema Java</title>
+    <style>
+        :root {
+            --primary-blue: #1877f2;
+            --primary-blue-hover: #166fe5;
+            --secondary-green: #42b883;
+            --background-gray: #f0f2f5;
+            --card-white: #ffffff;
+            --text-primary: #1c1e21;
+            --text-secondary: #65676b;
+            --border-light: #dadde1;
+            --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-gray);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background-color: var(--card-white);
+            box-shadow: var(--shadow);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 0.5rem 1rem;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary-blue);
+            text-decoration: none;
+        }
+
+        .search-bar {
+            flex: 1;
+            max-width: 400px;
+            margin: 0 2rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            background-color: var(--background-gray);
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary-blue);
+            background-color: var(--card-white);
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .btn-login {
+            background-color: transparent;
+            color: var(--primary-blue);
+            border: 1px solid var(--primary-blue);
+        }
+
+        .btn-login:hover {
+            background-color: var(--primary-blue);
+            color: white;
+        }
+
+        .btn-register {
+            background-color: var(--secondary-green);
+            color: white;
+        }
+
+        .btn-register:hover {
+            background-color: #369870;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-top: 80px;
+            max-width: 680px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 1rem;
+        }
+
+        /* Create Post */
+        .create-post {
+            background-color: var(--card-white);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .create-post-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            background-color: var(--background-gray);
+            font-size: 1rem;
+            outline: none;
+            resize: none;
+        }
+
+        .create-post-input:focus {
+            border-color: var(--primary-blue);
+        }
+
+        .create-post-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .post-options {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .post-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: background-color 0.2s ease;
+        }
+
+        .post-option:hover {
+            background-color: var(--background-gray);
+        }
+
+        /* News Feed */
+        .news-feed {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .post {
+            background-color: var(--card-white);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: box-shadow 0.2s ease;
+        }
+
+        .post:hover {
+            box-shadow: var(--shadow-hover);
+        }
+
+        .post-header {
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .post-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-green));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .post-info h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .post-time {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .post-content {
+            padding: 0 1rem 1rem;
+        }
+
+        .post-text {
+            margin-bottom: 0.75rem;
+            line-height: 1.5;
+        }
+
+        .post-image {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .post-actions {
+            display: flex;
+            justify-content: space-around;
+            padding: 0.5rem 1rem;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .post-action {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .post-action:hover {
+            background-color: var(--background-gray);
+        }
+
+        .post-action.like:hover {
+            color: #e74c3c;
+        }
+
+        .post-action.comment:hover {
+            color: var(--primary-blue);
+        }
+
+        .post-action.share:hover {
+            color: var(--secondary-green);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-container {
+                padding: 0 0.5rem;
+            }
+
+            .search-bar {
+                display: none;
+            }
+
+            .logo {
+                font-size: 1.5rem;
+            }
+
+            .auth-buttons {
+                gap: 0.25rem;
+            }
+
+            .btn {
+                padding: 0.5rem 0.8rem;
+                font-size: 0.8rem;
+            }
+
+            .main-content {
+                padding: 0.5rem;
+                margin-top: 70px;
+            }
+
+            .post-options {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .post-actions {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+
+            .post-action {
+                justify-content: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <a href="/" class="logo" th:text="${appName}">Sistema Java</a>
+            
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="Pesquisar notícias...">
+            </div>
+            
+            <div class="auth-buttons">
+                <a href="#" class="btn btn-login">Entrar</a>
+                <a href="#" class="btn btn-register">Cadastrar</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Create Post -->
+        <div class="create-post">
+            <textarea class="create-post-input" placeholder="No que você está pensando?" rows="3"></textarea>
+            <div class="create-post-actions">
+                <div class="post-options">
+                    <div class="post-option">
+                        <span>📷</span>
+                        <span>Foto</span>
+                    </div>
+                    <div class="post-option">
+                        <span>🎥</span>
+                        <span>Vídeo</span>
+                    </div>
+                    <div class="post-option">
+                        <span>😊</span>
+                        <span>Sentimento</span>
+                    </div>
+                </div>
+                <button class="btn btn-register">Publicar</button>
+            </div>
+        </div>
+
+        <!-- News Feed -->
+        <div class="news-feed">
+            <!-- Post 1 -->
+            <article class="post">
+                <div class="post-header">
+                    <div class="post-avatar">TN</div>
+                    <div class="post-info">
+                        <h3>Tech News Brasil</h3>
+                        <div class="post-time">2 horas atrás</div>
+                    </div>
+                </div>
+                <div class="post-content">
+                    <p class="post-text">
+                        🚀 Nova versão do Spring Boot 3.3 foi lançada! Principais melhorias incluem performance otimizada, 
+                        suporte aprimorado para GraalVM e novas funcionalidades de observabilidade. 
+                        Confira as novidades e como migrar sua aplicação.
+                    </p>
+                    <div class="post-image">
+                        <span>Spring Boot 3.3 - Novidades</span>
+                    </div>
+                </div>
+                <div class="post-actions">
+                    <div class="post-action like">
+                        <span>👍</span>
+                        <span>Curtir</span>
+                    </div>
+                    <div class="post-action comment">
+                        <span>💬</span>
+                        <span>Comentar</span>
+                    </div>
+                    <div class="post-action share">
+                        <span>📤</span>
+                        <span>Compartilhar</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Post 2 -->
+            <article class="post">
+                <div class="post-header">
+                    <div class="post-avatar">JD</div>
+                    <div class="post-info">
+                        <h3>Java Developers</h3>
+                        <div class="post-time">4 horas atrás</div>
+                    </div>
+                </div>
+                <div class="post-content">
+                    <p class="post-text">
+                        💡 Dica do dia: Utilizando Records em Java para criar DTOs mais limpos e eficientes. 
+                        Os Records reduzem significativamente o boilerplate code e melhoram a legibilidade.
+                        
+                        Exemplo:
+                        public record UserDTO(String name, String email, LocalDate birthDate) {}
+                    </p>
+                </div>
+                <div class="post-actions">
+                    <div class="post-action like">
+                        <span>👍</span>
+                        <span>Curtir</span>
+                    </div>
+                    <div class="post-action comment">
+                        <span>💬</span>
+                        <span>Comentar</span>
+                    </div>
+                    <div class="post-action share">
+                        <span>📤</span>
+                        <span>Compartilhar</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Post 3 -->
+            <article class="post">
+                <div class="post-header">
+                    <div class="post-avatar">DT</div>
+                    <div class="post-info">
+                        <h3>DevTech Community</h3>
+                        <div class="post-time">6 horas atrás</div>
+                    </div>
+                </div>
+                <div class="post-content">
+                    <p class="post-text">
+                        🔧 Docker Compose vs Kubernetes: Quando usar cada um?
+                        
+                        Docker Compose é perfeito para desenvolvimento local e aplicações simples, 
+                        enquanto Kubernetes brilha em ambientes de produção com alta disponibilidade e escalabilidade.
+                        
+                        Qual você prefere para seus projetos?
+                    </p>
+                    <div class="post-image">
+                        <span>Docker vs Kubernetes</span>
+                    </div>
+                </div>
+                <div class="post-actions">
+                    <div class="post-action like">
+                        <span>👍</span>
+                        <span>Curtir</span>
+                    </div>
+                    <div class="post-action comment">
+                        <span>💬</span>
+                        <span>Comentar</span>
+                    </div>
+                    <div class="post-action share">
+                        <span>📤</span>
+                        <span>Compartilhar</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Post 4 -->
+            <article class="post">
+                <div class="post-header">
+                    <div class="post-avatar">SJ</div>
+                    <div class="post-info">
+                        <h3>Sistema Java</h3>
+                        <div class="post-time">8 horas atrás</div>
+                    </div>
+                </div>
+                <div class="post-content">
+                    <p class="post-text">
+                        🎉 Bem-vindos à nossa nova plataforma de notícias! 
+                        
+                        Aqui você encontrará as últimas novidades do mundo da tecnologia, 
+                        dicas de desenvolvimento, tutoriais e muito mais.
+                        
+                        Fique ligado para conteúdo exclusivo sobre Java, Spring Boot, Docker e outras tecnologias modernas!
+                    </p>
+                </div>
+                <div class="post-actions">
+                    <div class="post-action like">
+                        <span>👍</span>
+                        <span>Curtir</span>
+                    </div>
+                    <div class="post-action comment">
+                        <span>💬</span>
+                        <span>Comentar</span>
+                    </div>
+                    <div class="post-action share">
+                        <span>📤</span>
+                        <span>Compartilhar</span>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </main>
+
+    <script>
+        // Simular interações básicas
+        document.querySelectorAll('.post-action').forEach(action => {
+            action.addEventListener('click', function() {
+                const actionType = this.classList.contains('like') ? 'curtiu' : 
+                                 this.classList.contains('comment') ? 'comentou' : 'compartilhou';
+                
+                // Feedback visual simples
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = 'scale(1)';
+                }, 150);
+                
+                console.log(`Usuário ${actionType} o post`);
+            });
+        });
+
+        // Funcionalidade da barra de pesquisa
+        document.querySelector('.search-input')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                console.log('Pesquisando por:', this.value);
+                alert(`Pesquisando por: "${this.value}"`);
+            }
+        });
+
+        // Funcionalidade do botão publicar
+        document.querySelector('.create-post-actions .btn')?.addEventListener('click', function() {
+            const textarea = document.querySelector('.create-post-input');
+            if (textarea.value.trim()) {
+                alert('Post publicado com sucesso!');
+                textarea.value = '';
+            } else {
+                alert('Digite algo para publicar!');
+            }
+        });
+    </script>
+</body>
+</html>

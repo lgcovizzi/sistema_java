@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  * Entidade User para autenticação e autorização.
  * Implementa UserDetails para integração com Spring Security.
  */
-@Entity
+@Entity(name = "User")
 @Table(name = "users")
 public class User implements UserDetails {
 

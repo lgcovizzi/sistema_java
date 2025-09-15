@@ -12,59 +12,59 @@ import java.util.Map;
 @RestController
 @RequestMapping(&quot;/api&quot;)
 @CrossOrigin(origins = &quot;*&quot;)
-<span class="nc" id="L15">public class HealthController {</span>
+<span class="fc" id="L15">public class HealthController {</span>
 
     @Autowired
     private RedisTemplate&lt;String, Object&gt; redisTemplate;
 
     @GetMapping(&quot;/health&quot;)
     public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; health() {
-<span class="nc" id="L22">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L23">        response.put(&quot;status&quot;, &quot;UP&quot;);</span>
-<span class="nc" id="L24">        response.put(&quot;timestamp&quot;, LocalDateTime.now());</span>
-<span class="nc" id="L25">        response.put(&quot;service&quot;, &quot;Sistema Java Backend&quot;);</span>
-<span class="nc" id="L26">        response.put(&quot;version&quot;, &quot;1.0.0&quot;);</span>
+<span class="fc" id="L22">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L23">        response.put(&quot;status&quot;, &quot;UP&quot;);</span>
+<span class="fc" id="L24">        response.put(&quot;timestamp&quot;, LocalDateTime.now());</span>
+<span class="fc" id="L25">        response.put(&quot;service&quot;, &quot;Sistema Java Backend&quot;);</span>
+<span class="fc" id="L26">        response.put(&quot;version&quot;, &quot;1.0.0&quot;);</span>
         
-<span class="nc" id="L28">        return ResponseEntity.ok(response);</span>
+<span class="fc" id="L28">        return ResponseEntity.ok(response);</span>
     }
 
     @GetMapping(&quot;/redis-test&quot;)
     public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; testRedis() {
-<span class="nc" id="L33">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L33">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
         
         try {
-<span class="nc" id="L36">            String key = &quot;test:&quot; + System.currentTimeMillis();</span>
-<span class="nc" id="L37">            String value = &quot;Redis funcionando em &quot; + LocalDateTime.now();</span>
+<span class="fc" id="L36">            String key = &quot;test:&quot; + System.currentTimeMillis();</span>
+<span class="fc" id="L37">            String value = &quot;Redis funcionando em &quot; + LocalDateTime.now();</span>
             
             // Salvar no Redis
-<span class="nc" id="L40">            redisTemplate.opsForValue().set(key, value);</span>
+<span class="fc" id="L40">            redisTemplate.opsForValue().set(key, value);</span>
             
             // Recuperar do Redis
-<span class="nc" id="L43">            String retrievedValue = (String) redisTemplate.opsForValue().get(key);</span>
+<span class="fc" id="L43">            String retrievedValue = (String) redisTemplate.opsForValue().get(key);</span>
             
-<span class="nc" id="L45">            response.put(&quot;status&quot;, &quot;SUCCESS&quot;);</span>
-<span class="nc" id="L46">            response.put(&quot;key&quot;, key);</span>
-<span class="nc" id="L47">            response.put(&quot;value_stored&quot;, value);</span>
-<span class="nc" id="L48">            response.put(&quot;value_retrieved&quot;, retrievedValue);</span>
-<span class="nc" id="L49">            response.put(&quot;redis_working&quot;, value.equals(retrievedValue));</span>
+<span class="fc" id="L45">            response.put(&quot;status&quot;, &quot;SUCCESS&quot;);</span>
+<span class="fc" id="L46">            response.put(&quot;key&quot;, key);</span>
+<span class="fc" id="L47">            response.put(&quot;value_stored&quot;, value);</span>
+<span class="fc" id="L48">            response.put(&quot;value_retrieved&quot;, retrievedValue);</span>
+<span class="fc" id="L49">            response.put(&quot;redis_working&quot;, value.equals(retrievedValue));</span>
             
-<span class="nc" id="L51">        } catch (Exception e) {</span>
-<span class="nc" id="L52">            response.put(&quot;status&quot;, &quot;ERROR&quot;);</span>
-<span class="nc" id="L53">            response.put(&quot;error&quot;, e.getMessage());</span>
-<span class="nc" id="L54">        }</span>
+<span class="fc" id="L51">        } catch (Exception e) {</span>
+<span class="fc" id="L52">            response.put(&quot;status&quot;, &quot;ERROR&quot;);</span>
+<span class="fc" id="L53">            response.put(&quot;error&quot;, e.getMessage());</span>
+<span class="fc" id="L54">        }</span>
         
-<span class="nc" id="L56">        return ResponseEntity.ok(response);</span>
+<span class="fc" id="L56">        return ResponseEntity.ok(response);</span>
     }
 
     @GetMapping(&quot;/info&quot;)
     public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; info() {
-<span class="nc" id="L61">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L62">        response.put(&quot;application&quot;, &quot;Sistema Java&quot;);</span>
-<span class="nc" id="L63">        response.put(&quot;description&quot;, &quot;Sistema Java com Spring Boot, PostgreSQL, Redis e MailHog&quot;);</span>
-<span class="nc" id="L64">        response.put(&quot;java_version&quot;, System.getProperty(&quot;java.version&quot;));</span>
-<span class="nc" id="L65">        response.put(&quot;spring_profiles&quot;, System.getProperty(&quot;spring.profiles.active&quot;, &quot;default&quot;));</span>
+<span class="fc" id="L61">        Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L62">        response.put(&quot;application&quot;, &quot;Sistema Java&quot;);</span>
+<span class="fc" id="L63">        response.put(&quot;description&quot;, &quot;Sistema Java com Spring Boot, PostgreSQL, Redis e MailHog&quot;);</span>
+<span class="fc" id="L64">        response.put(&quot;java_version&quot;, System.getProperty(&quot;java.version&quot;));</span>
+<span class="fc" id="L65">        response.put(&quot;spring_profiles&quot;, System.getProperty(&quot;spring.profiles.active&quot;, &quot;default&quot;));</span>
         
-<span class="nc" id="L67">        return ResponseEntity.ok(response);</span>
+<span class="fc" id="L67">        return ResponseEntity.ok(response);</span>
     }
 
 }

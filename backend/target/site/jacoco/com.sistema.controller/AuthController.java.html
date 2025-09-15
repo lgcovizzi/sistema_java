@@ -34,18 +34,18 @@ import java.util.Optional;
 @CrossOrigin(origins = &quot;*&quot;, maxAge = 3600)
 public class AuthController {
 
-<span class="nc" id="L37">    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);</span>
+<span class="fc" id="L37">    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);</span>
 
     private final AuthService authService;
     private final JwtService jwtService;
     private final TokenBlacklistService tokenBlacklistService;
 
     @Autowired
-<span class="nc" id="L44">    public AuthController(AuthService authService, JwtService jwtService, TokenBlacklistService tokenBlacklistService) {</span>
-<span class="nc" id="L45">        this.authService = authService;</span>
-<span class="nc" id="L46">        this.jwtService = jwtService;</span>
-<span class="nc" id="L47">        this.tokenBlacklistService = tokenBlacklistService;</span>
-<span class="nc" id="L48">    }</span>
+<span class="fc" id="L44">    public AuthController(AuthService authService, JwtService jwtService, TokenBlacklistService tokenBlacklistService) {</span>
+<span class="fc" id="L45">        this.authService = authService;</span>
+<span class="fc" id="L46">        this.jwtService = jwtService;</span>
+<span class="fc" id="L47">        this.tokenBlacklistService = tokenBlacklistService;</span>
+<span class="fc" id="L48">    }</span>
 
     /**
      * Endpoint para autenticação de usuários.
@@ -57,19 +57,19 @@ public class AuthController {
     @PostMapping(&quot;/login&quot;)
     public ResponseEntity&lt;?&gt; login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest httpRequest) {
         try {
-<span class="nc" id="L60">            Map&lt;String, Object&gt; authResponse = authService.authenticate(</span>
-<span class="nc" id="L61">                    loginRequest.getUsernameOrEmail(),</span>
-<span class="nc" id="L62">                    loginRequest.getPassword(),</span>
+<span class="fc" id="L60">            Map&lt;String, Object&gt; authResponse = authService.authenticate(</span>
+<span class="fc" id="L61">                    loginRequest.getUsernameOrEmail(),</span>
+<span class="fc" id="L62">                    loginRequest.getPassword(),</span>
                     httpRequest
             );
             
-<span class="nc" id="L66">            logger.info(&quot;Login realizado com sucesso para: {}&quot;, loginRequest.getUsernameOrEmail());</span>
-<span class="nc" id="L67">            return ResponseEntity.ok(authResponse);</span>
+<span class="fc" id="L66">            logger.info(&quot;Login realizado com sucesso para: {}&quot;, loginRequest.getUsernameOrEmail());</span>
+<span class="fc" id="L67">            return ResponseEntity.ok(authResponse);</span>
             
-<span class="nc" id="L69">        } catch (Exception e) {</span>
-<span class="nc" id="L70">            logger.warn(&quot;Falha no login para: {}&quot;, loginRequest.getUsernameOrEmail());</span>
-<span class="nc" id="L71">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
-<span class="nc" id="L72">                    .body(createErrorResponse(&quot;Credenciais inválidas&quot;, &quot;INVALID_CREDENTIALS&quot;));</span>
+<span class="fc" id="L69">        } catch (Exception e) {</span>
+<span class="fc" id="L70">            logger.warn(&quot;Falha no login para: {}&quot;, loginRequest.getUsernameOrEmail());</span>
+<span class="fc" id="L71">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
+<span class="fc" id="L72">                    .body(createErrorResponse(&quot;Credenciais inválidas&quot;, &quot;INVALID_CREDENTIALS&quot;));</span>
         }
     }
 
@@ -83,17 +83,17 @@ public class AuthController {
     @PostMapping(&quot;/register&quot;)
     public ResponseEntity&lt;?&gt; register(@Valid @RequestBody RegisterRequest registerRequest, HttpServletRequest httpRequest) {
         try {
-<span class="nc" id="L86">            Map&lt;String, Object&gt; authResponse = authService.registerAndAuthenticate(</span>
-<span class="nc" id="L87">                    registerRequest.getUsername(),</span>
-<span class="nc" id="L88">                    registerRequest.getEmail(),</span>
-<span class="nc" id="L89">                    registerRequest.getPassword(),</span>
-<span class="nc" id="L90">                    registerRequest.getFirstName(),</span>
-<span class="nc" id="L91">                    registerRequest.getLastName(),</span>
+<span class="fc" id="L86">            Map&lt;String, Object&gt; authResponse = authService.registerAndAuthenticate(</span>
+<span class="fc" id="L87">                    registerRequest.getUsername(),</span>
+<span class="fc" id="L88">                    registerRequest.getEmail(),</span>
+<span class="fc" id="L89">                    registerRequest.getPassword(),</span>
+<span class="fc" id="L90">                    registerRequest.getFirstName(),</span>
+<span class="fc" id="L91">                    registerRequest.getLastName(),</span>
                     httpRequest
             );
             
-<span class="nc" id="L95">            logger.info(&quot;Usuário registrado com sucesso: {}&quot;, registerRequest.getUsername());</span>
-<span class="nc" id="L96">            return ResponseEntity.status(HttpStatus.CREATED).body(authResponse);</span>
+<span class="fc" id="L95">            logger.info(&quot;Usuário registrado com sucesso: {}&quot;, registerRequest.getUsername());</span>
+<span class="fc" id="L96">            return ResponseEntity.status(HttpStatus.CREATED).body(authResponse);</span>
             
 <span class="nc" id="L98">        } catch (IllegalArgumentException e) {</span>
 <span class="nc" id="L99">            logger.warn(&quot;Erro no registro: {}&quot;, e.getMessage());</span>
@@ -116,21 +116,21 @@ public class AuthController {
     @PostMapping(&quot;/refresh&quot;)
     public ResponseEntity&lt;?&gt; refreshToken(@Valid @RequestBody RefreshTokenRequest refreshRequest, HttpServletRequest httpRequest) {
         try {
-<span class="nc" id="L119">            Map&lt;String, Object&gt; refreshResponse = authService.refreshAccessToken(</span>
-<span class="nc" id="L120">                    refreshRequest.getRefreshToken(),</span>
+<span class="fc" id="L119">            Map&lt;String, Object&gt; refreshResponse = authService.refreshAccessToken(</span>
+<span class="fc" id="L120">                    refreshRequest.getRefreshToken(),</span>
                     httpRequest
             );
             
-<span class="nc" id="L124">            return ResponseEntity.ok(refreshResponse);</span>
+<span class="fc" id="L124">            return ResponseEntity.ok(refreshResponse);</span>
             
 <span class="nc" id="L126">        } catch (IllegalArgumentException e) {</span>
 <span class="nc" id="L127">            logger.warn(&quot;Refresh token inválido: {}&quot;, e.getMessage());</span>
 <span class="nc" id="L128">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)</span>
 <span class="nc" id="L129">                    .body(createErrorResponse(&quot;Refresh token inválido&quot;, &quot;INVALID_REFRESH_TOKEN&quot;));</span>
-<span class="nc" id="L130">        } catch (Exception e) {</span>
-<span class="nc" id="L131">            logger.error(&quot;Erro no refresh do token&quot;, e);</span>
-<span class="nc" id="L132">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
-<span class="nc" id="L133">                    .body(createErrorResponse(&quot;Erro interno do servidor&quot;, &quot;INTERNAL_ERROR&quot;));</span>
+<span class="fc" id="L130">        } catch (Exception e) {</span>
+<span class="fc" id="L131">            logger.error(&quot;Erro no refresh do token&quot;, e);</span>
+<span class="fc" id="L132">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
+<span class="fc" id="L133">                    .body(createErrorResponse(&quot;Erro interno do servidor&quot;, &quot;INTERNAL_ERROR&quot;));</span>
         }
     }
 
@@ -144,14 +144,14 @@ public class AuthController {
     @PostMapping(&quot;/logout&quot;)
     public ResponseEntity&lt;?&gt; logout(@RequestBody(required = false) LogoutRequest logoutRequest, HttpServletRequest httpRequest) {
         try {
-<span class="nc bnc" id="L147" title="All 2 branches missed.">            String refreshToken = logoutRequest != null ? logoutRequest.getRefreshToken() : null;</span>
-<span class="nc bnc" id="L148" title="All 2 branches missed.">            boolean revokeAll = logoutRequest != null ? logoutRequest.isRevokeAll() : false;</span>
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">            String refreshToken = logoutRequest != null ? logoutRequest.getRefreshToken() : null;</span>
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">            boolean revokeAll = logoutRequest != null ? logoutRequest.isRevokeAll() : false;</span>
             
             // Extrai o token de acesso atual da requisição
-<span class="nc" id="L151">            String currentAccessToken = extractTokenFromRequest(httpRequest);</span>
-<span class="nc" id="L152">            String username = null;</span>
+<span class="fc" id="L151">            String currentAccessToken = extractTokenFromRequest(httpRequest);</span>
+<span class="fc" id="L152">            String username = null;</span>
             
-<span class="nc bnc" id="L154" title="All 2 branches missed.">            if (currentAccessToken != null) {</span>
+<span class="pc bpc" id="L154" title="1 of 2 branches missed.">            if (currentAccessToken != null) {</span>
                 try {
 <span class="nc" id="L156">                    username = jwtService.extractUsername(currentAccessToken);</span>
                     // Revoga o token de acesso atual
@@ -163,37 +163,37 @@ public class AuthController {
             }
             
             // Revoga o refresh token se fornecido
-<span class="nc bnc" id="L166" title="All 4 branches missed.">            if (refreshToken != null &amp;&amp; !refreshToken.trim().isEmpty()) {</span>
+<span class="pc bpc" id="L166" title="2 of 4 branches missed.">            if (refreshToken != null &amp;&amp; !refreshToken.trim().isEmpty()) {</span>
                 try {
-<span class="nc bnc" id="L168" title="All 2 branches missed.">                    if (jwtService.isValidRefreshToken(refreshToken)) {</span>
+<span class="pc bpc" id="L168" title="1 of 2 branches missed.">                    if (jwtService.isValidRefreshToken(refreshToken)) {</span>
 <span class="nc" id="L169">                        tokenBlacklistService.revokeToken(refreshToken);</span>
 <span class="nc" id="L170">                        logger.info(&quot;Refresh token revogado&quot;);</span>
                     }
 <span class="nc" id="L172">                } catch (Exception e) {</span>
 <span class="nc" id="L173">                    logger.warn(&quot;Erro ao revogar refresh token: {}&quot;, e.getMessage());</span>
-<span class="nc" id="L174">                }</span>
+<span class="fc" id="L174">                }</span>
             }
             
             // Se solicitado, revoga todos os tokens do usuário
-<span class="nc bnc" id="L178" title="All 4 branches missed.">            if (revokeAll &amp;&amp; username != null) {</span>
+<span class="pc bpc" id="L178" title="3 of 4 branches missed.">            if (revokeAll &amp;&amp; username != null) {</span>
 <span class="nc" id="L179">                tokenBlacklistService.revokeAllUserTokens(username);</span>
 <span class="nc" id="L180">                logger.info(&quot;Todos os tokens do usuário {} foram revogados&quot;, username);</span>
             }
             
             // Chama o logout do AuthService para limpeza adicional
-<span class="nc" id="L184">            authService.logout(refreshToken, revokeAll);</span>
+<span class="fc" id="L184">            authService.logout(refreshToken, revokeAll);</span>
             
-<span class="nc" id="L186">            logger.info(&quot;Logout realizado com sucesso para usuário: {}&quot;, username);</span>
+<span class="fc" id="L186">            logger.info(&quot;Logout realizado com sucesso para usuário: {}&quot;, username);</span>
             
-<span class="nc" id="L188">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L189">            response.put(&quot;message&quot;, &quot;Logout realizado com sucesso&quot;);</span>
-<span class="nc" id="L190">            response.put(&quot;timestamp&quot;, System.currentTimeMillis());</span>
-<span class="nc" id="L191">            response.put(&quot;tokensRevoked&quot;, true);</span>
-<span class="nc bnc" id="L192" title="All 2 branches missed.">            if (revokeAll) {</span>
+<span class="fc" id="L188">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L189">            response.put(&quot;message&quot;, &quot;Logout realizado com sucesso&quot;);</span>
+<span class="fc" id="L190">            response.put(&quot;timestamp&quot;, System.currentTimeMillis());</span>
+<span class="fc" id="L191">            response.put(&quot;tokensRevoked&quot;, true);</span>
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">            if (revokeAll) {</span>
 <span class="nc" id="L193">                response.put(&quot;allTokensRevoked&quot;, true);</span>
             }
             
-<span class="nc" id="L196">            return ResponseEntity.ok(response);</span>
+<span class="fc" id="L196">            return ResponseEntity.ok(response);</span>
             
 <span class="nc" id="L198">        } catch (Exception e) {</span>
 <span class="nc" id="L199">            logger.error(&quot;Erro durante logout&quot;, e);</span>
@@ -211,10 +211,10 @@ public class AuthController {
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;?&gt; getCurrentUser() {
         try {
-<span class="nc" id="L214">            Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
-<span class="nc" id="L215">            User user = (User) auth.getPrincipal();</span>
+<span class="fc" id="L214">            Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc" id="L215">            User user = (User) auth.getPrincipal();</span>
             
-<span class="nc" id="L217">            Map&lt;String, Object&gt; userInfo = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L217">            Map&lt;String, Object&gt; userInfo = new HashMap&lt;&gt;();</span>
 <span class="nc" id="L218">            userInfo.put(&quot;id&quot;, user.getId());</span>
 <span class="nc" id="L219">            userInfo.put(&quot;username&quot;, user.getUsername());</span>
 <span class="nc" id="L220">            userInfo.put(&quot;email&quot;, user.getEmail());</span>
@@ -225,10 +225,10 @@ public class AuthController {
             
 <span class="nc" id="L226">            return ResponseEntity.ok(userInfo);</span>
             
-<span class="nc" id="L228">        } catch (Exception e) {</span>
-<span class="nc" id="L229">            logger.error(&quot;Erro ao obter informações do usuário&quot;, e);</span>
-<span class="nc" id="L230">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
-<span class="nc" id="L231">                    .body(createErrorResponse(&quot;Erro interno do servidor&quot;, &quot;INTERNAL_ERROR&quot;));</span>
+<span class="fc" id="L228">        } catch (Exception e) {</span>
+<span class="fc" id="L229">            logger.error(&quot;Erro ao obter informações do usuário&quot;, e);</span>
+<span class="fc" id="L230">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
+<span class="fc" id="L231">                    .body(createErrorResponse(&quot;Erro interno do servidor&quot;, &quot;INTERNAL_ERROR&quot;));</span>
         }
     }
 
@@ -242,30 +242,30 @@ public class AuthController {
     @PreAuthorize(&quot;isAuthenticated()&quot;)
     public ResponseEntity&lt;?&gt; changePassword(@Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
         try {
-<span class="nc" id="L245">            Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
-<span class="nc" id="L246">            String username = auth.getName();</span>
+<span class="fc" id="L245">            Authentication auth = SecurityContextHolder.getContext().getAuthentication();</span>
+<span class="fc" id="L246">            String username = auth.getName();</span>
             
-<span class="nc" id="L248">            authService.changePassword(</span>
+<span class="fc" id="L248">            authService.changePassword(</span>
                     username,
-<span class="nc" id="L250">                    changePasswordRequest.getCurrentPassword(),</span>
-<span class="nc" id="L251">                    changePasswordRequest.getNewPassword()</span>
+<span class="fc" id="L250">                    changePasswordRequest.getCurrentPassword(),</span>
+<span class="fc" id="L251">                    changePasswordRequest.getNewPassword()</span>
             );
             
-<span class="nc" id="L254">            logger.info(&quot;Senha alterada para usuário: {}&quot;, username);</span>
+<span class="fc" id="L254">            logger.info(&quot;Senha alterada para usuário: {}&quot;, username);</span>
             
-<span class="nc" id="L256">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L257">            response.put(&quot;message&quot;, &quot;Senha alterada com sucesso&quot;);</span>
-<span class="nc" id="L258">            response.put(&quot;timestamp&quot;, System.currentTimeMillis());</span>
+<span class="fc" id="L256">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L257">            response.put(&quot;message&quot;, &quot;Senha alterada com sucesso&quot;);</span>
+<span class="fc" id="L258">            response.put(&quot;timestamp&quot;, System.currentTimeMillis());</span>
             
-<span class="nc" id="L260">            return ResponseEntity.ok(response);</span>
+<span class="fc" id="L260">            return ResponseEntity.ok(response);</span>
             
 <span class="nc" id="L262">        } catch (IllegalArgumentException e) {</span>
 <span class="nc" id="L263">            return ResponseEntity.status(HttpStatus.BAD_REQUEST)</span>
 <span class="nc" id="L264">                    .body(createErrorResponse(e.getMessage(), &quot;INVALID_PASSWORD&quot;));</span>
-<span class="nc" id="L265">        } catch (Exception e) {</span>
-<span class="nc" id="L266">            logger.error(&quot;Erro ao alterar senha&quot;, e);</span>
-<span class="nc" id="L267">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
-<span class="nc" id="L268">                    .body(createErrorResponse(&quot;Erro interno do servidor&quot;, &quot;INTERNAL_ERROR&quot;));</span>
+<span class="fc" id="L265">        } catch (Exception e) {</span>
+<span class="fc" id="L266">            logger.error(&quot;Erro ao alterar senha&quot;, e);</span>
+<span class="fc" id="L267">            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
+<span class="fc" id="L268">                    .body(createErrorResponse(&quot;Erro interno do servidor&quot;, &quot;INTERNAL_ERROR&quot;));</span>
         }
     }
 
@@ -278,27 +278,27 @@ public class AuthController {
     @PostMapping(&quot;/validate-token&quot;)
     public ResponseEntity&lt;?&gt; validateToken(@Valid @RequestBody ValidateTokenRequest validateTokenRequest) {
         try {
-<span class="nc" id="L281">            String token = validateTokenRequest.getToken();</span>
+<span class="fc" id="L281">            String token = validateTokenRequest.getToken();</span>
             
-<span class="nc" id="L283">            Map&lt;String, Object&gt; tokenInfo = jwtService.getTokenInfo(token);</span>
-<span class="nc" id="L284">            boolean isValid = jwtService.isValidAccessToken(token);</span>
+<span class="fc" id="L283">            Map&lt;String, Object&gt; tokenInfo = jwtService.getTokenInfo(token);</span>
+<span class="fc" id="L284">            boolean isValid = jwtService.isValidAccessToken(token);</span>
             
-<span class="nc" id="L286">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L287">            response.put(&quot;valid&quot;, isValid);</span>
-<span class="nc" id="L288">            response.put(&quot;tokenInfo&quot;, tokenInfo);</span>
+<span class="fc" id="L286">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L287">            response.put(&quot;valid&quot;, isValid);</span>
+<span class="fc" id="L288">            response.put(&quot;tokenInfo&quot;, tokenInfo);</span>
             
-<span class="nc bnc" id="L290" title="All 2 branches missed.">            if (isValid) {</span>
-<span class="nc" id="L291">                response.put(&quot;timeToExpiration&quot;, jwtService.getTimeToExpiration(token));</span>
+<span class="pc bpc" id="L290" title="1 of 2 branches missed.">            if (isValid) {</span>
+<span class="fc" id="L291">                response.put(&quot;timeToExpiration&quot;, jwtService.getTimeToExpiration(token));</span>
             }
             
-<span class="nc" id="L294">            return ResponseEntity.ok(response);</span>
+<span class="fc" id="L294">            return ResponseEntity.ok(response);</span>
             
-<span class="nc" id="L296">        } catch (Exception e) {</span>
-<span class="nc" id="L297">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L298">            response.put(&quot;valid&quot;, false);</span>
-<span class="nc" id="L299">            response.put(&quot;error&quot;, e.getMessage());</span>
+<span class="fc" id="L296">        } catch (Exception e) {</span>
+<span class="fc" id="L297">            Map&lt;String, Object&gt; response = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L298">            response.put(&quot;valid&quot;, false);</span>
+<span class="fc" id="L299">            response.put(&quot;error&quot;, e.getMessage());</span>
             
-<span class="nc" id="L301">            return ResponseEntity.ok(response);</span>
+<span class="fc" id="L301">            return ResponseEntity.ok(response);</span>
         }
     }
 
@@ -388,11 +388,11 @@ public class AuthController {
      * @return token JWT ou null se não encontrado
      */
     private String extractTokenFromRequest(HttpServletRequest request) {
-<span class="nc" id="L391">        String bearerToken = request.getHeader(&quot;Authorization&quot;);</span>
-<span class="nc bnc" id="L392" title="All 4 branches missed.">        if (bearerToken != null &amp;&amp; bearerToken.startsWith(&quot;Bearer &quot;)) {</span>
+<span class="fc" id="L391">        String bearerToken = request.getHeader(&quot;Authorization&quot;);</span>
+<span class="pc bpc" id="L392" title="3 of 4 branches missed.">        if (bearerToken != null &amp;&amp; bearerToken.startsWith(&quot;Bearer &quot;)) {</span>
 <span class="nc" id="L393">            return bearerToken.substring(7);</span>
         }
-<span class="nc" id="L395">        return null;</span>
+<span class="fc" id="L395">        return null;</span>
     }
 
     /**
@@ -403,17 +403,17 @@ public class AuthController {
      * @return mapa com dados do erro
      */
     private Map&lt;String, Object&gt; createErrorResponse(String message, String errorCode) {
-<span class="nc" id="L406">        Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L407">        error.put(&quot;error&quot;, true);</span>
-<span class="nc" id="L408">        error.put(&quot;message&quot;, message);</span>
-<span class="nc" id="L409">        error.put(&quot;errorCode&quot;, errorCode);</span>
-<span class="nc" id="L410">        error.put(&quot;timestamp&quot;, System.currentTimeMillis());</span>
-<span class="nc" id="L411">        return error;</span>
+<span class="fc" id="L406">        Map&lt;String, Object&gt; error = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L407">        error.put(&quot;error&quot;, true);</span>
+<span class="fc" id="L408">        error.put(&quot;message&quot;, message);</span>
+<span class="fc" id="L409">        error.put(&quot;errorCode&quot;, errorCode);</span>
+<span class="fc" id="L410">        error.put(&quot;timestamp&quot;, System.currentTimeMillis());</span>
+<span class="fc" id="L411">        return error;</span>
     }
 
     // Classes de Request DTOs
     
-<span class="nc" id="L416">    public static class LoginRequest {</span>
+<span class="fc" id="L416">    public static class LoginRequest {</span>
         @NotBlank(message = &quot;Username ou email é obrigatório&quot;)
         private String usernameOrEmail;
         
@@ -421,13 +421,13 @@ public class AuthController {
         private String password;
         
         // Getters e Setters
-<span class="nc" id="L424">        public String getUsernameOrEmail() { return usernameOrEmail; }</span>
-<span class="nc" id="L425">        public void setUsernameOrEmail(String usernameOrEmail) { this.usernameOrEmail = usernameOrEmail; }</span>
-<span class="nc" id="L426">        public String getPassword() { return password; }</span>
-<span class="nc" id="L427">        public void setPassword(String password) { this.password = password; }</span>
+<span class="fc" id="L424">        public String getUsernameOrEmail() { return usernameOrEmail; }</span>
+<span class="fc" id="L425">        public void setUsernameOrEmail(String usernameOrEmail) { this.usernameOrEmail = usernameOrEmail; }</span>
+<span class="fc" id="L426">        public String getPassword() { return password; }</span>
+<span class="fc" id="L427">        public void setPassword(String password) { this.password = password; }</span>
     }
     
-<span class="nc" id="L430">    public static class RegisterRequest {</span>
+<span class="fc" id="L430">    public static class RegisterRequest {</span>
         @NotBlank(message = &quot;Username é obrigatório&quot;)
         @Size(min = 3, max = 50, message = &quot;Username deve ter entre 3 e 50 caracteres&quot;)
         private String username;
@@ -444,28 +444,28 @@ public class AuthController {
         private String lastName;
         
         // Getters e Setters
-<span class="nc" id="L447">        public String getUsername() { return username; }</span>
-<span class="nc" id="L448">        public void setUsername(String username) { this.username = username; }</span>
-<span class="nc" id="L449">        public String getEmail() { return email; }</span>
-<span class="nc" id="L450">        public void setEmail(String email) { this.email = email; }</span>
-<span class="nc" id="L451">        public String getPassword() { return password; }</span>
-<span class="nc" id="L452">        public void setPassword(String password) { this.password = password; }</span>
-<span class="nc" id="L453">        public String getFirstName() { return firstName; }</span>
-<span class="nc" id="L454">        public void setFirstName(String firstName) { this.firstName = firstName; }</span>
-<span class="nc" id="L455">        public String getLastName() { return lastName; }</span>
-<span class="nc" id="L456">        public void setLastName(String lastName) { this.lastName = lastName; }</span>
+<span class="fc" id="L447">        public String getUsername() { return username; }</span>
+<span class="fc" id="L448">        public void setUsername(String username) { this.username = username; }</span>
+<span class="fc" id="L449">        public String getEmail() { return email; }</span>
+<span class="fc" id="L450">        public void setEmail(String email) { this.email = email; }</span>
+<span class="fc" id="L451">        public String getPassword() { return password; }</span>
+<span class="fc" id="L452">        public void setPassword(String password) { this.password = password; }</span>
+<span class="fc" id="L453">        public String getFirstName() { return firstName; }</span>
+<span class="fc" id="L454">        public void setFirstName(String firstName) { this.firstName = firstName; }</span>
+<span class="fc" id="L455">        public String getLastName() { return lastName; }</span>
+<span class="fc" id="L456">        public void setLastName(String lastName) { this.lastName = lastName; }</span>
     }
     
-<span class="nc" id="L459">    public static class RefreshTokenRequest {</span>
+<span class="fc" id="L459">    public static class RefreshTokenRequest {</span>
         @NotBlank(message = &quot;Refresh token é obrigatório&quot;)
         private String refreshToken;
         
         // Getters e Setters
-<span class="nc" id="L464">        public String getRefreshToken() { return refreshToken; }</span>
-<span class="nc" id="L465">        public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }</span>
+<span class="fc" id="L464">        public String getRefreshToken() { return refreshToken; }</span>
+<span class="fc" id="L465">        public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }</span>
     }
     
-<span class="nc" id="L468">    public static class ChangePasswordRequest {</span>
+<span class="fc" id="L468">    public static class ChangePasswordRequest {</span>
         @NotBlank(message = &quot;Senha atual é obrigatória&quot;)
         private String currentPassword;
         
@@ -474,30 +474,30 @@ public class AuthController {
         private String newPassword;
         
         // Getters e Setters
-<span class="nc" id="L477">        public String getCurrentPassword() { return currentPassword; }</span>
-<span class="nc" id="L478">        public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }</span>
-<span class="nc" id="L479">        public String getNewPassword() { return newPassword; }</span>
-<span class="nc" id="L480">        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }</span>
+<span class="fc" id="L477">        public String getCurrentPassword() { return currentPassword; }</span>
+<span class="fc" id="L478">        public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }</span>
+<span class="fc" id="L479">        public String getNewPassword() { return newPassword; }</span>
+<span class="fc" id="L480">        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }</span>
     }
     
-<span class="nc" id="L483">    public static class ValidateTokenRequest {</span>
+<span class="fc" id="L483">    public static class ValidateTokenRequest {</span>
         @NotBlank(message = &quot;Token é obrigatório&quot;)
         private String token;
         
         // Getters e Setters
-<span class="nc" id="L488">        public String getToken() { return token; }</span>
-<span class="nc" id="L489">        public void setToken(String token) { this.token = token; }</span>
+<span class="fc" id="L488">        public String getToken() { return token; }</span>
+<span class="fc" id="L489">        public void setToken(String token) { this.token = token; }</span>
     }
     
-<span class="nc" id="L492">    public static class LogoutRequest {</span>
+<span class="fc" id="L492">    public static class LogoutRequest {</span>
         private String refreshToken;
-<span class="nc" id="L494">        private boolean revokeAll = false;</span>
+<span class="fc" id="L494">        private boolean revokeAll = false;</span>
         
         // Getters e Setters
-<span class="nc" id="L497">        public String getRefreshToken() { return refreshToken; }</span>
-<span class="nc" id="L498">        public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }</span>
-<span class="nc" id="L499">        public boolean isRevokeAll() { return revokeAll; }</span>
-<span class="nc" id="L500">        public void setRevokeAll(boolean revokeAll) { this.revokeAll = revokeAll; }</span>
+<span class="fc" id="L497">        public String getRefreshToken() { return refreshToken; }</span>
+<span class="fc" id="L498">        public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }</span>
+<span class="fc" id="L499">        public boolean isRevokeAll() { return revokeAll; }</span>
+<span class="fc" id="L500">        public void setRevokeAll(boolean revokeAll) { this.revokeAll = revokeAll; }</span>
     }
     
 <span class="nc" id="L503">    public static class EnableUserRequest {</span>

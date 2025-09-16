@@ -454,4 +454,67 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         
         return stats;
     }
+
+    /**
+     * Busca usuário por CPF.
+     * 
+     * @param cpf CPF do usuário
+     * @return Optional com o usuário encontrado
+     */
+    public Optional<User> findByCpf(String cpf) {
+        try {
+            ValidationUtils.validateNotBlank(cpf, "CPF é obrigatório");
+            return userRepository.findByCpf(cpf);
+        } catch (Exception e) {
+            logError("Erro ao buscar usuário por CPF: " + cpf, e);
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Busca usuários por termo de pesquisa.
+     * 
+     * @param searchTerm termo de pesquisa
+     * @return lista de usuários encontrados
+     */
+    public List<User> searchUsers(String searchTerm) {
+        try {
+            ValidationUtils.validateNotBlank(searchTerm, "Termo de pesquisa é obrigatório");
+            return userRepository.findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(
+                searchTerm, searchTerm);
+        } catch (Exception e) {
+            logError("Erro ao pesquisar usuários com termo: " + searchTerm, e);
+            return List.of();
+        }
+    }
+
+    /**
+     * Busca todos os usuários ativos.
+     * 
+     * @return lista de usuários ativos
+     */
+    public List<User> findActiveUsers() {
+        try {
+            return userRepository.findByEnabledTrue();
+        } catch (Exception e) {
+            logError("Erro ao buscar usuários ativos", e);
+            return List.of();
+        }
+    }
+
+    /**
+     * Busca usuário por ID.
+     * 
+     * @param id ID do usuário
+     * @return Optional com o usuário encontrado
+     */
+    public Optional<User> findById(Long id) {
+        try {
+            ValidationUtils.validateNotNull(id, "ID do usuário é obrigatório");
+            return userRepository.findById(id);
+        } catch (Exception e) {
+            logError("Erro ao buscar usuário por ID: " + id, e);
+            return Optional.empty();
+        }
+    }
 }

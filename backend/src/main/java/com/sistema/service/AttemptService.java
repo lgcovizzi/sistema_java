@@ -193,7 +193,7 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
             
             int currentAttempts = (int) attempts;
             
-            logWarn("Tentativa {} falhada para identificador: {} - Total: {}", 
+            logger.warn("Tentativa {} falhada para identificador: {} - Total: {}", 
                        type, identifier, currentAttempts);
             
             // Ativa captcha se atingir o limite
@@ -251,7 +251,7 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
         
         storeWithTTLMinutes(captchaKey, "true", ATTEMPT_EXPIRY_MINUTES);
         
-        logWarn("Captcha ativado para {} - identificador: {} após {} tentativas", 
+        logger.warn("Captcha ativado para {} - identificador: {} após {} tentativas", 
                    type, identifier, MAX_ATTEMPTS_BEFORE_CAPTCHA);
     }
     
@@ -345,7 +345,7 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
             case "password_reset":
                 return recordPasswordResetAttempt(identifier);
             default:
-                logWarn("Tipo de tentativa desconhecido: {}", type);
+                logger.warn("Tipo de tentativa desconhecido: {}", type);
                 return 0;
         }
     }
@@ -358,7 +358,7 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
             case "password_reset":
                 return isCaptchaRequiredForPasswordReset(identifier);
             default:
-                logWarn("Tipo de verificação de captcha desconhecido: {}", type);
+                logger.warn("Tipo de verificação de captcha desconhecido: {}", type);
                 return false;
         }
     }
@@ -373,7 +373,7 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
                 clearPasswordResetAttempts(identifier);
                 break;
             default:
-                logWarn("Tipo de limpeza de tentativas desconhecido: {}", type);
+                logger.warn("Tipo de limpeza de tentativas desconhecido: {}", type);
         }
     }
     
@@ -385,14 +385,48 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
             case "password_reset":
                 return getPasswordResetAttempts(identifier);
             default:
-                logWarn("Tipo de obtenção de tentativas desconhecido: {}", type);
+                logger.warn("Tipo de obtenção de tentativas desconhecido: {}", type);
                 return 0;
         }
     }
     
     @Override
-    public boolean isRateLimitedControl(String identifier, String type) {
-        if ("password_reset".equalsIgnoreCase(type)) {
+    public int recordOperationAttempt(String identifier, String operationType) {
+        if ("password_reset".equalsIgnoreCase(operationType)) {
+            return recordPasswordResetAttempt(identifier);
+        }
+        return recordAttempt(operationType + "_attempts:", identifier, operationType);
+    }
+    
+    @Override
+    public boolean isCaptchaRequiredForOperation(String identifier, String operationType) {
+        if ("password_reset".equalsIgnoreCase(operationType)) {
+            return isCaptchaRequiredForPasswordReset(identifier);
+        }
+        return isCaptchaRequired(operationType + "_attempts:" + identifier);
+    }
+    
+    @Override
+    public void clearOperationAttempts(String identifier, String operationType) {
+        if ("password_reset".equalsIgnoreCase(operationType)) {
+            clearPasswordResetAttempts(identifier);
+        } else {
+            String key = operationType + "_attempts:" + identifier;
+            redisTemplate.delete(key);
+        }
+    }
+    
+    @Override
+    public int getOperationAttempts(String identifier, String operationType) {
+        if ("password_reset".equalsIgnoreCase(operationType)) {
+            return getPasswordResetAttempts(identifier);
+        }
+        return getAttempts(operationType + "_attempts:" + identifier);
+    }
+    
+    @Override
+    public boolean isOperationRateLimited(String identifier, String operationType) {
+        if ("password_reset".equalsIgnoreCase(operationType)) {
             return isPasswordResetRateLimited(identifier);
         }
         // Para outros tipos, não há rate limiting implementado
@@ -400,8 +434,8 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
     }
     
     @Override
-    public void recordSuccessControl(String identifier, String type) {
-        switch (type.toLowerCase()) {
+    public void recordOperationSuccess(String identifier, String operationType) {
+        switch (operationType.toLowerCase()) {
             case "login":
                 clearLoginAttempts(identifier);
                 break;
@@ -409,13 +443,13 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
                 recordPasswordResetSuccess(identifier);
                 break;
             default:
-                logWarn("Tipo de registro de sucesso desconhecido: {}", type);
+                logger.warn("Tipo de registro de sucesso desconhecido: " + operationType);
         }
     }
     
     @Override
-    public long getRateLimitRemainingSecondsControl(String identifier, String type) {
-        if ("password_reset".equalsIgnoreCase(type)) {
+    public long getRateLimitRemainingSeconds(String identifier, String operationType) {
+        if ("password_reset".equalsIgnoreCase(operationType)) {
             return getPasswordResetRateLimitRemainingSeconds(identifier);
         }
         // Para outros tipos, não há rate limiting
@@ -423,7 +457,29 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
     }
     
     @Override
-    public String createIdentifierControl(String ipAddress, String email) {
-        return createIdentifier(ipAddress, email);
+    public String createIdentifier(String ipAddress, String additionalInfo) {
+        return createIdentifier(ipAddress, additionalInfo);
+    }
+    
+    @Override
+    public AttemptControlOperations.AttemptStatistics getAttemptStatistics(String identifier) {
+        int loginAttempts = getLoginAttempts(identifier);
+        int operationAttempts = getPasswordResetAttempts(identifier);
+        boolean loginCaptchaRequired = isCaptchaRequiredForLogin(identifier);
+        boolean operationCaptchaRequired = isCaptchaRequiredForPasswordReset(identifier);
+        boolean operationRateLimited = isPasswordResetRateLimited(identifier);
+        long rateLimitRemaining = getPasswordResetRateLimitRemainingSeconds(identifier);
+        
+        return new AttemptControlOperations.AttemptStatistics(
+            identifier, loginAttempts, operationAttempts,
+            loginCaptchaRequired, operationCaptchaRequired,
+            operationRateLimited, rateLimitRemaining,
+            MAX_ATTEMPTS_BEFORE_CAPTCHA
+        );
+    }
+    
+    @Override
+    public int getMaxAttemptsBeforeCaptcha() {
+        return MAX_ATTEMPTS_BEFORE_CAPTCHA;
     }
 }

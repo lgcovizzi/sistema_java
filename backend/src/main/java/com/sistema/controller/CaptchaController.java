@@ -215,10 +215,11 @@ public class CaptchaController {
         Map<String, Object> response = new HashMap<>();
         
         try {
-            captchaService.cleanupExpiredCaptchas();
+            long removedCount = captchaService.cleanupExpiredCaptchas();
             
             response.put("success", true);
             response.put("message", "Limpeza de captchas expirados concluída");
+            response.put("removedCount", removedCount);
             
             logger.info("Limpeza de captchas executada via API");
             

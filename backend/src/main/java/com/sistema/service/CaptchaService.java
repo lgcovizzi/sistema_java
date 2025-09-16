@@ -60,7 +60,7 @@ public class CaptchaService extends BaseRedisService implements CaptchaOperation
      * 
      * @return objeto CaptchaData com ID e imagem em base64
      */
-    public CaptchaData generateCaptcha() {
+    public CaptchaData generateCaptchaData() {
         try {
             // Gerar texto do captcha
             String captchaText = kaptcha.createText();
@@ -96,7 +96,7 @@ public class CaptchaService extends BaseRedisService implements CaptchaOperation
      * @param userAnswer resposta do usuário
      * @return true se a resposta estiver correta
      */
-    public boolean validateCaptcha(String captchaId, String userAnswer) {
+    public boolean validateCaptchaInternal(String captchaId, String userAnswer) {
         try {
             // Validar entrada usando utilitários
             ValidationUtils.validateNotBlank(captchaId, "ID do captcha é obrigatório");
@@ -136,7 +136,7 @@ public class CaptchaService extends BaseRedisService implements CaptchaOperation
      * @param captchaId ID do captcha
      * @return true se o captcha existir
      */
-    public boolean captchaExists(String captchaId) {
+    public boolean captchaExistsInternal(String captchaId) {
         try {
             ValidationUtils.validateNotBlank(captchaId, "ID do captcha é obrigatório");
             String key = CAPTCHA_PREFIX + captchaId;
@@ -230,36 +230,66 @@ public class CaptchaService extends BaseRedisService implements CaptchaOperation
         }
     }
     
-    // Implementação da interface CaptchaOperations
+    /**
+     * Remove um captcha específico.
+     * 
+     * @param captchaId ID do captcha
+     * @return true se removido com sucesso
+     */
+    public boolean removeCaptchaInternal(String captchaId) {
+        try {
+            ValidationUtils.validateNotBlank(captchaId, "ID do captcha é obrigatório");
+            String key = CAPTCHA_PREFIX + captchaId;
+            boolean existed = keyExists(key);
+            if (existed) {
+                removeKey(key);
+                logger.info("Captcha removido: {}", captchaId);
+            }
+            return existed;
+        } catch (Exception e) {
+            logger.error("Erro ao remover captcha: {}", captchaId, e);
+            return false;
+        }
+    }
+    
+    // ========================================
+    // Implementação da Interface CaptchaOperations
+    // ========================================
     
     @Override
-    public CaptchaData createCaptcha() {
+    public Map<String, String> generateCaptcha() {
+        CaptchaData data = generateCaptchaData();
+        Map<String, String> result = new HashMap<>();
+        result.put("id", data.getId());
+        result.put("imageBase64", data.getImageBase64());
+        return result;
+    }
+    
+    @Override
+    public boolean validateCaptcha(String captchaId, String userResponse) {
+        return validateCaptchaInternal(captchaId, userResponse);
+    }
+    
+    @Override
+    public boolean captchaExists(String captchaId) {
+        return captchaExistsInternal(captchaId);
+    }
+    
+    @Override
+    public boolean removeCaptcha(String captchaId) {
+        return removeCaptchaInternal(captchaId);
+    }
+    
+    @Override
+    public Map<String, String> generateCaptcha(int width, int height, int textLength) {
+        // Para esta implementação, usa configurações padrão
+        // Em uma implementação mais avançada, poderia ser dinâmica
+        logger.warn("Geração de captcha com configurações customizadas não suportada - usando padrão");
         return generateCaptcha();
     }
     
     @Override
-    public boolean verifyCaptcha(String captchaId, String userInput) {
-        return validateCaptcha(captchaId, userInput);
-    }
-    
-    @Override
-    public boolean isCaptchaValid(String captchaId) {
-        return captchaExists(captchaId);
-    }
-    
-    @Override
-    public void invalidateCaptcha(String captchaId) {
-        try {
-            String key = CAPTCHA_PREFIX + captchaId;
-            removeKey(key);
-            logInfo("Captcha invalidado: {}", captchaId);
-        } catch (Exception e) {
-            logError("Erro ao invalidar captcha: {}", e.getMessage(), e);
-        }
-    }
-    
-    @Override
-    public Map<String, Object> getCaptchaConfiguration() {
+    public Map<String, Object> getDefaultCaptchaConfig() {
         Map<String, Object> config = new HashMap<>();
         config.put("expiryMinutes", CAPTCHA_EXPIRY_MINUTES);
         config.put("imageWidth", 200);
@@ -271,10 +301,8 @@ public class CaptchaService extends BaseRedisService implements CaptchaOperation
     }
     
     @Override
-    public void updateCaptchaConfiguration(Map<String, Object> newConfig) {
-        // Para esta implementação, a configuração é estática
-        // Em uma implementação mais avançada, poderia ser dinâmica
-        logWarn("Atualização de configuração de captcha não suportada nesta implementação");
+    public int getCaptchaTTLMinutes() {
+        return CAPTCHA_EXPIRY_MINUTES;
     }
     
     @Override
@@ -289,5 +317,26 @@ public class CaptchaService extends BaseRedisService implements CaptchaOperation
         result.put("activeCaptchas", stats.getActiveCaptchas());
         result.put("expiryMinutes", stats.getExpiryMinutes());
         return result;
+    }
+    
+    @Override
+    public boolean isValidCaptchaId(String captchaId) {
+        try {
+            return captchaId != null && !captchaId.trim().isEmpty() && captchaId.length() >= 16;
+        } catch (Exception e) {
+            logger.error("Erro ao validar ID do captcha: {}", captchaId, e);
+            return false;
+        }
+    }
+    
+    @Override
+    public boolean isValidCaptchaResponse(String userResponse) {
+        try {
+            return userResponse != null && !userResponse.trim().isEmpty() && 
+                   userResponse.trim().length() >= 3 && userResponse.trim().length() <= 10;
+        } catch (Exception e) {
+            logger.error("Erro ao validar resposta do captcha", e);
+            return false;
+        }
     }
 }

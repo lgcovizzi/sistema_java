@@ -58,6 +58,18 @@ public final class ValidationUtils {
     }
     
     /**
+     * Valida se uma string não é nula nem em branco.
+     * Alias para validateNotEmpty para compatibilidade.
+     * 
+     * @param value valor a validar
+     * @param fieldName nome do campo para mensagem de erro
+     * @throws IllegalArgumentException se valor é nulo ou em branco
+     */
+    public static void validateNotBlank(String value, String fieldName) {
+        validateNotEmpty(value, fieldName);
+    }
+    
+    /**
      * Valida se uma coleção não é nula nem vazia.
      * 
      * @param collection coleção a validar

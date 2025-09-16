@@ -73,6 +73,17 @@ public class AuthService extends BaseUserService implements UserDetailsService {
     }
 
     /**
+     * Busca usuário por email.
+     * 
+     * @param email email do usuário
+     * @return usuário encontrado ou Optional.empty()
+     */
+    protected Optional<User> findUserByEmail(String email) {
+        validateNotEmpty(email, "email");
+        return userRepository.findByEmail(email);
+    }
+
+    /**
      * Autentica um usuário com email e senha.
      * 
      * @param email email do usuário
@@ -109,7 +120,7 @@ public class AuthService extends BaseUserService implements UserDetailsService {
             
             // Gerar tokens
             String accessToken = jwtService.generateAccessToken(user);
-            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, null);
             
             Map<String, Object> response = new HashMap<>();
             response.put("accessToken", accessToken);
@@ -196,8 +207,8 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         ValidationUtils.validatePassword(password);
         
         // Verificar se dados já existem usando métodos da classe base
-        validateUsernameNotInUse(username);
-        validateEmailNotInUse(email);
+        validateUsernameNotInUse(username, null);
+        validateEmailNotInUse(email, null);
         
         // Verificar se CPF já existe
         if (userRepository.existsByCpf(cpf)) {
@@ -443,16 +454,33 @@ public class AuthService extends BaseUserService implements UserDetailsService {
     /**
      * Obtém estatísticas dos usuários.
      * 
-     * @return mapa com estatísticas
+     * @return objeto UserStatistics com estatísticas
      */
-    public Map<String, Object> getUserStatistics() {
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("totalUsers", userRepository.count());
-        stats.put("activeUsers", userRepository.countByEnabledTrue());
-        stats.put("adminUsers", userRepository.countByRole(UserRole.ADMIN));
-        stats.put("regularUsers", userRepository.countByRole(UserRole.USER));
+    @Override
+    public UserStatistics getUserStatistics() {
+        UserStatistics stats = super.getUserStatistics();
+        
+        logInfo("Estatísticas de usuários consultadas");
         
         return stats;
+    }
+    
+    /**
+     * Retorna estatísticas de usuários como Map para uso em controllers.
+     * 
+     * @return mapa com estatísticas dos usuários
+     */
+    public Map<String, Object> getUserStatisticsAsMap() {
+        UserStatistics stats = getUserStatistics();
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalUsers", stats.getTotalUsers());
+        result.put("activeUsers", stats.getActiveUsers());
+        result.put("adminUsers", stats.getAdminUsers());
+        result.put("regularUsers", stats.getRegularUsers());
+        result.put("activeUserPercentage", stats.getActiveUserPercentage());
+        
+        return result;
     }
 
     /**
@@ -514,6 +542,22 @@ public class AuthService extends BaseUserService implements UserDetailsService {
             return userRepository.findById(id);
         } catch (Exception e) {
             logError("Erro ao buscar usuário por ID: " + id, e);
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Busca usuário por username.
+     * 
+     * @param username nome do usuário
+     * @return Optional com o usuário encontrado
+     */
+    public Optional<User> findByUsername(String username) {
+        try {
+            ValidationUtils.validateNotBlank(username, "Username é obrigatório");
+            return userRepository.findByUsername(username);
+        } catch (Exception e) {
+            logError("Erro ao buscar usuário por username: " + username, e);
             return Optional.empty();
         }
     }

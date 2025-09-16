@@ -188,7 +188,7 @@ class AuthServiceCookiePersistenceTest {
         
         verify(refreshTokenService).findValidRefreshToken(expiredRefreshToken);
         verify(refreshTokenService, never()).createRefreshToken(any(), any());
-        verify(jwtService, never()).generateAccessToken(any());
+        verify(jwtService, never()).generateAccessToken(any(User.class));
     }
 
     @Test
@@ -213,7 +213,7 @@ class AuthServiceCookiePersistenceTest {
         
         verify(refreshTokenService).findValidRefreshToken(refreshTokenValue);
         verify(refreshTokenService, never()).createRefreshToken(any(), any());
-        verify(jwtService, never()).generateAccessToken(any());
+        verify(jwtService, never()).generateAccessToken(any(User.class));
     }
 
     @Test

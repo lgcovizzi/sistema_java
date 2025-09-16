@@ -480,7 +480,7 @@ public class AuthController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getUserStatistics() {
         try {
-            Map<String, Object> statistics = authService.getUserStatistics();
+            Map<String, Object> statistics = authService.getUserStatisticsAsMap();
             return ResponseEntity.ok(statistics);
             
         } catch (Exception e) {

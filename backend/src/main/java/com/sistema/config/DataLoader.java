@@ -49,6 +49,7 @@ public class DataLoader implements CommandLineRunner {
             admin.setPassword(passwordEncoder.encode("admin123"));
             admin.setFirstName("Administrador");
             admin.setLastName("Sistema");
+            admin.setCpf("11144477735"); // CPF válido para usuário admin
             admin.setRoles(List.of(Role.ADMIN, Role.USER));
             admin.setEnabled(true);
             admin.setCreatedAt(LocalDateTime.now());
@@ -68,6 +69,7 @@ public class DataLoader implements CommandLineRunner {
             testUser.setPassword(passwordEncoder.encode("test123"));
             testUser.setFirstName("Usuário");
             testUser.setLastName("Teste");
+            testUser.setCpf("22255588896"); // CPF válido para usuário de teste
             testUser.setRoles(List.of(Role.USER));
             testUser.setEnabled(true);
             testUser.setCreatedAt(LocalDateTime.now());
@@ -87,6 +89,7 @@ public class DataLoader implements CommandLineRunner {
             demoUser.setPassword(passwordEncoder.encode("demo123"));
             demoUser.setFirstName("Demo");
             demoUser.setLastName("User");
+            demoUser.setCpf("33366699914"); // CPF válido para usuário demo
             demoUser.setRoles(List.of(Role.USER));
             demoUser.setEnabled(true);
             demoUser.setCreatedAt(LocalDateTime.now());

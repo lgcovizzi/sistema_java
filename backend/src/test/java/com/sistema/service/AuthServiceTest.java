@@ -184,7 +184,7 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
         // When
-        User result = authService.register("newuser", "new@example.com", "password", "New", "User");
+        User result = authService.register("newuser", "new@example.com", "password", "New", "User", "12345678901");
 
         // Then
         assertThat(result).isNotNull();
@@ -201,7 +201,7 @@ class AuthServiceTest {
         when(userRepository.existsByUsername("existinguser")).thenReturn(true);
 
         // When & Then
-        assertThatThrownBy(() -> authService.register("existinguser", "new@example.com", "password", "New", "User"))
+        assertThatThrownBy(() -> authService.register("existinguser", "new@example.com", "password", "New", "User", "12345678901"))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Username já está em uso");
     }
@@ -214,7 +214,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
 
         // When & Then
-        assertThatThrownBy(() -> authService.register("newuser", "existing@example.com", "password", "New", "User"))
+        assertThatThrownBy(() -> authService.register("newuser", "existing@example.com", "password", "New", "User", "12345678901"))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Email já está em uso");
     }
@@ -234,7 +234,7 @@ class AuthServiceTest {
         when(refreshTokenService.createRefreshToken(testUser, request)).thenReturn(testRefreshToken);
 
         // When
-        Map<String, Object> result = authService.registerAndAuthenticate("newuser", "new@example.com", "password", "New", "User", request);
+        Map<String, Object> result = authService.registerAndAuthenticate("newuser", "new@example.com", "password", "New", "User", "12345678901", request);
 
         // Then
         assertThat(result).isNotNull();
@@ -526,7 +526,7 @@ class AuthServiceTest {
         when(userRepository.countByRole(UserRole.USER)).thenReturn(95L);
 
         // When
-        Map<String, Object> result = authService.getUserStatistics();
+        Map<String, Object> result = authService.getUserStatisticsAsMap();
 
         // Then
         assertThat(result).isNotNull();

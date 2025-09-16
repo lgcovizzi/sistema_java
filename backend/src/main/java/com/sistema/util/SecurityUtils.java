@@ -72,6 +72,17 @@ public final class SecurityUtils {
     }
     
     /**
+     * Gera um hash SHA-256 da entrada fornecida.
+     * Alias para generateHash para compatibilidade.
+     * 
+     * @param input string de entrada
+     * @return hash SHA-256 em hexadecimal
+     */
+    public static String hashSHA256(String input) {
+        return generateHash(input);
+    }
+    
+    /**
      * Gera hash SHA-256 de uma string com salt.
      * 
      * @param input string a fazer hash

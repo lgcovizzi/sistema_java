@@ -350,12 +350,10 @@ public class JwtService extends BaseService implements TokenOperations {
     
     // Implementação da interface TokenOperations
     
-    @Override
     public String generateToken(String username, Map<String, Object> claims, long expirationSeconds) {
         return generateToken(claims, username, expirationSeconds);
     }
     
-    @Override
     public String generateAccessToken(String username) {
         // Para compatibilidade, criamos um User temporário
         User tempUser = new User();
@@ -363,7 +361,6 @@ public class JwtService extends BaseService implements TokenOperations {
         return generateAccessToken(tempUser);
     }
     
-    @Override
     public String generateRefreshToken(String username) {
         // Para compatibilidade, criamos um User temporário
         User tempUser = new User();
@@ -371,42 +368,34 @@ public class JwtService extends BaseService implements TokenOperations {
         return generateRefreshToken(tempUser);
     }
     
-    @Override
     public String extractSubject(String token) {
         return extractUsername(token);
     }
     
-    @Override
     public Date extractExpirationDate(String token) {
         return extractExpiration(token);
     }
     
-    @Override
     public Date extractIssuedDate(String token) {
         return extractIssuedAt(token);
     }
     
-    @Override
     public String extractTokenId(String token) {
         return extractJti(token);
     }
     
-    @Override
     public String extractType(String token) {
         return extractTokenType(token);
     }
     
-    @Override
     public java.util.List<String> extractUserRoles(String token) {
         return extractRoles(token);
     }
     
-    @Override
     public <T> T extractCustomClaim(String token, String claimName, Class<T> claimType) {
         return extractClaim(token, claims -> claims.get(claimName, claimType));
     }
     
-    @Override
     public boolean validateToken(String token) {
         try {
             extractAllClaims(token);
@@ -416,7 +405,6 @@ public class JwtService extends BaseService implements TokenOperations {
         }
     }
     
-    @Override
     public boolean validateTokenForUser(String token, String username) {
         try {
             String tokenUsername = extractUsername(token);
@@ -426,28 +414,41 @@ public class JwtService extends BaseService implements TokenOperations {
         }
     }
     
-    @Override
     public boolean isExpired(String token) {
         return isTokenExpired(token);
     }
     
-    @Override
     public boolean isAccessToken(String token) {
         return isValidAccessTokenSafe(token);
     }
     
-    @Override
     public boolean isRefreshToken(String token) {
         return isValidRefreshToken(token);
     }
     
-    @Override
     public Map<String, Object> getTokenInformation(String token) {
         return getTokenInfo(token);
     }
     
-    @Override
     public long getSecondsToExpiration(String token) {
         return getTimeToExpiration(token);
+    }
+
+    /**
+     * Retorna o tempo de expiração do access token em segundos.
+     * 
+     * @return tempo de expiração em segundos
+     */
+    public long getAccessTokenExpiration() {
+        return accessTokenExpirationSeconds;
+    }
+
+    /**
+     * Retorna o tempo de expiração do refresh token em segundos.
+     * 
+     * @return tempo de expiração em segundos
+     */
+    public long getRefreshTokenExpiration() {
+        return refreshTokenExpirationSeconds;
     }
 }

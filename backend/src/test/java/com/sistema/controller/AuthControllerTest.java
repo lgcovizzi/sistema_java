@@ -149,8 +149,9 @@ class AuthControllerTest {
         registerRequest.setPassword("password123");
         registerRequest.setFirstName("New");
         registerRequest.setLastName("User");
+        registerRequest.setCpf("12345678901");
         
-        when(authService.registerAndAuthenticate(anyString(), anyString(), anyString(), anyString(), anyString(), any(HttpServletRequest.class)))
+        when(authService.registerAndAuthenticate(anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any(HttpServletRequest.class)))
             .thenReturn(authResponse);
         
         // When & Then
@@ -163,7 +164,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.user.username").value("testuser"))
                 .andExpect(jsonPath("$.user.email").value("test@example.com"));
         
-        verify(authService).registerAndAuthenticate(eq("newuser"), eq("newuser@example.com"), eq("password123"), eq("New"), eq("User"), any(HttpServletRequest.class));
+        verify(authService).registerAndAuthenticate(eq("newuser"), eq("newuser@example.com"), eq("password123"), eq("New"), eq("User"), eq("12345678901"), any(HttpServletRequest.class));
     }
 
     @Test

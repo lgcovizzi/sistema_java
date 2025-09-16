@@ -247,6 +247,10 @@ public class User implements UserDetails {
         this.lastLogin = lastLogin;
     }
 
+    public void setLastLoginAt(LocalDateTime lastLoginAt) {
+        this.lastLogin = lastLoginAt;
+    }
+
     // Métodos de conveniência
     public String getFullName() {
         if (firstName != null && lastName != null) {

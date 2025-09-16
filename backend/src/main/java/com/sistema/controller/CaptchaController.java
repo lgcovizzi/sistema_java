@@ -33,14 +33,14 @@ public class CaptchaController {
     @GetMapping("/generate")
     public ResponseEntity<Map<String, Object>> generateCaptcha() {
         try {
-            CaptchaService.CaptchaData captchaData = captchaService.generateCaptcha();
+            Map<String, String> captchaData = captchaService.generateCaptcha();
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
-            response.put("captchaId", captchaData.getId());
-            response.put("imageDataUrl", "data:image/png;base64," + captchaData.getImageBase64());
+            response.put("captchaId", captchaData.get("id"));
+            response.put("imageDataUrl", "data:image/png;base64," + captchaData.get("imageBase64"));
             
-            logger.debug("Captcha gerado via API: {}", captchaData.getId());
+            logger.debug("Captcha gerado via API: {}", captchaData.get("id"));
             
             return ResponseEntity.ok(response);
             
@@ -63,14 +63,14 @@ public class CaptchaController {
     @GetMapping(value = "/image", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> generateCaptchaImage() {
         try {
-            CaptchaService.CaptchaData captchaData = captchaService.generateCaptcha();
+            Map<String, String> captchaData = captchaService.generateCaptcha();
             
             // Decodificar base64 para bytes
-            byte[] imageBytes = Base64.getDecoder().decode(captchaData.getImageBase64());
+            byte[] imageBytes = Base64.getDecoder().decode(captchaData.get("imageBase64"));
             
             // Adicionar ID do captcha no header para o frontend usar
             return ResponseEntity.ok()
-                .header("X-Captcha-Id", captchaData.getId())
+                .header("X-Captcha-Id", captchaData.get("id"))
                 .body(imageBytes);
             
         } catch (Exception e) {

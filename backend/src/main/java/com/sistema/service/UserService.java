@@ -86,7 +86,7 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public List<User> findActiveUsers() {
-        return userRepository.findByActiveTrue();
+        return userRepository.findByEnabledTrue();
     }
 
     /**
@@ -151,7 +151,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserStatistics getUserStatistics() {
         long totalUsers = userRepository.count();
-        long activeUsers = userRepository.countByActiveTrue();
+        long activeUsers = userRepository.countByEnabledTrue();
         long adminUsers = userRepository.countByRole(UserRole.ADMIN);
         long regularUsers = userRepository.countByRole(UserRole.USER);
         

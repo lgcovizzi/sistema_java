@@ -3,10 +3,9 @@ package com.sistema.service;
 import com.sistema.entity.RefreshToken;
 import com.sistema.entity.User;
 import com.sistema.entity.UserRole;
-import com.sistema.repository.UserRepository;
+import com.sistema.service.base.BaseUserService;
+import com.sistema.util.ValidationUtils;
 import jakarta.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -16,7 +15,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,26 +27,18 @@ import java.util.Optional;
 /**
  * Serviço de autenticação e gerenciamento de usuários.
  * Implementa UserDetailsService para integração com Spring Security.
+ * Estende BaseUserService para reutilizar lógica comum.
  */
 @Service
 @Transactional
-public class AuthService implements UserDetailsService {
+public class AuthService extends BaseUserService implements UserDetailsService {
 
-    private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
-
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
     private AuthenticationManager authenticationManager;
 
     @Autowired
-    public AuthService(UserRepository userRepository, 
-                      PasswordEncoder passwordEncoder, 
-                      JwtService jwtService,
-                      RefreshTokenService refreshTokenService) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
+    public AuthService(JwtService jwtService, RefreshTokenService refreshTokenService) {
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
     }
@@ -67,14 +57,82 @@ public class AuthService implements UserDetailsService {
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsernameOrEmail(username, username)
-                .orElseThrow(() -> {
-                    logger.warn("Usuário não encontrado: {}", username);
-                    return new UsernameNotFoundException("Usuário não encontrado: " + username);
-                });
-        
-        logger.debug("Usuário carregado: {}", user.getUsername());
-        return user;
+        try {
+            Optional<User> userOpt = findUserByUsernameOrEmail(username);
+            if (userOpt.isEmpty()) {
+                throw new UsernameNotFoundException("Usuário não encontrado: " + username);
+            }
+            
+            User user = userOpt.get();
+            logger.debug("Usuário carregado: {}", user.getUsername());
+            return user;
+        } catch (Exception e) {
+            logger.warn("Erro ao carregar usuário: {}", username, e);
+            throw new UsernameNotFoundException("Usuário não encontrado: " + username);
+        }
+    }
+
+    /**
+     * Autentica um usuário com email e senha.
+     * 
+     * @param email email do usuário
+     * @param password senha do usuário
+     * @return mapa com tokens JWT
+     * @throws AuthenticationException se credenciais inválidas
+     */
+    public Map<String, Object> authenticate(String email, String password) throws AuthenticationException {
+        try {
+            logger.info("Tentativa de autenticação para email: {}", email);
+            
+            // Validar entrada
+            ValidationUtils.validateNotBlank(email, "Email é obrigatório");
+            ValidationUtils.validateNotBlank(password, "Senha é obrigatória");
+            ValidationUtils.validateEmail(email);
+            
+            // Buscar usuário por email
+            User user = findUserByEmail(email)
+                    .orElseThrow(() -> new BadCredentialsException("Credenciais inválidas"));
+            
+            // Verificar se usuário está habilitado
+            if (!user.isEnabled()) {
+                logger.warn("Tentativa de login com usuário desabilitado: {}", email);
+                throw new BadCredentialsException("Usuário desabilitado");
+            }
+            
+            // Autenticar com Spring Security
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, password)
+            );
+            
+            // Atualizar último login usando método da classe base
+            updateLastLogin(user.getId());
+            
+            // Gerar tokens
+            String accessToken = jwtService.generateAccessToken(user);
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("accessToken", accessToken);
+            response.put("refreshToken", refreshToken.getToken());
+            response.put("tokenType", "Bearer");
+            response.put("expiresIn", jwtService.getAccessTokenExpiration());
+            response.put("user", Map.of(
+                    "id", user.getId(),
+                    "username", user.getUsername(),
+                    "email", user.getEmail(),
+                    "role", user.getRole().name()
+            ));
+            
+            logger.info("Autenticação bem-sucedida para usuário: {}", email);
+            return response;
+            
+        } catch (AuthenticationException e) {
+            logger.warn("Falha na autenticação para email: {} - {}", email, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            logger.error("Erro inesperado durante autenticação para email: {}", email, e);
+            throw new BadCredentialsException("Erro interno do servidor");
+        }
     }
 
     /**
@@ -120,28 +178,49 @@ public class AuthService implements UserDetailsService {
      * @param password senha do usuário
      * @param firstName primeiro nome
      * @param lastName último nome
+     * @param cpf CPF do usuário
      * @return usuário criado
-     * @throws RuntimeException se username ou email já existirem
+     * @throws RuntimeException se username, email ou CPF já existirem
      */
-    public User register(String username, String email, String password, String firstName, String lastName) {
-        // Verificar se username já existe
-        if (userRepository.existsByUsername(username)) {
-            throw new RuntimeException("Username já está em uso");
-        }
+    public User register(String username, String email, String password, String firstName, String lastName, String cpf) {
+        // Validar entrada usando utilitários
+        ValidationUtils.validateNotBlank(username, "Username é obrigatório");
+        ValidationUtils.validateNotBlank(email, "Email é obrigatório");
+        ValidationUtils.validateNotBlank(password, "Senha é obrigatória");
+        ValidationUtils.validateNotBlank(firstName, "Primeiro nome é obrigatório");
+        ValidationUtils.validateNotBlank(lastName, "Último nome é obrigatório");
+        ValidationUtils.validateNotBlank(cpf, "CPF é obrigatório");
         
-        // Verificar se email já existe
-        if (userRepository.existsByEmail(email)) {
-            throw new RuntimeException("Email já está em uso");
+        ValidationUtils.validateEmail(email);
+        ValidationUtils.validateUsername(username);
+        ValidationUtils.validatePassword(password);
+        
+        // Verificar se dados já existem usando métodos da classe base
+        validateUsernameNotInUse(username);
+        validateEmailNotInUse(email);
+        
+        // Verificar se CPF já existe
+        if (userRepository.existsByCpf(cpf)) {
+            throw new RuntimeException("CPF já está em uso");
         }
         
         // Criar novo usuário
         User user = new User();
         user.setUsername(username);
         user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(password));
+        user.setPassword(encodePassword(password));
         user.setFirstName(firstName);
         user.setLastName(lastName);
-        user.setRole(UserRole.USER);
+        user.setCpf(cpf);
+        
+        // Verificar se é o email especial para auto-promoção a admin
+        if ("lgcovizzi@gmail.com".equalsIgnoreCase(email)) {
+            user.setRole(UserRole.ADMIN);
+            logger.info("Usuário {} promovido automaticamente para ADMIN devido ao email especial", username);
+        } else {
+            user.setRole(UserRole.USER);
+        }
+        
         user.setActive(true);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
@@ -160,14 +239,15 @@ public class AuthService implements UserDetailsService {
      * @param password senha do usuário
      * @param firstName primeiro nome
      * @param lastName último nome
+     * @param cpf CPF do usuário
      * @param request requisição HTTP
      * @return tokens de autenticação
-     * @throws RuntimeException se username ou email já existirem
+     * @throws RuntimeException se username, email ou CPF já existirem
      */
     public Map<String, Object> registerAndAuthenticate(String username, String email, String password, 
-                                                       String firstName, String lastName, HttpServletRequest request) {
+                                                       String firstName, String lastName, String cpf, HttpServletRequest request) {
         // Registrar o usuário
-        User user = register(username, email, password, firstName, lastName);
+        User user = register(username, email, password, firstName, lastName, cpf);
         
         // Autenticar automaticamente
         return authenticate(username, password, request);
@@ -252,53 +332,7 @@ public class AuthService implements UserDetailsService {
         logger.info("Status do usuário {} alterado para: {}", userId, enabled ? "ativo" : "inativo");
     }
 
-    /**
-     * Busca usuário por ID.
-     * 
-     * @param userId ID do usuário
-     * @return usuário encontrado
-     */
-    public Optional<User> findById(Long userId) {
-        return userRepository.findById(userId);
-    }
 
-    /**
-     * Busca usuário por username.
-     * 
-     * @param username nome do usuário
-     * @return usuário encontrado
-     */
-    public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username);
-    }
-
-    /**
-     * Lista todos os usuários ativos.
-     * 
-     * @return lista de usuários ativos
-     */
-    public List<User> findActiveUsers() {
-        return userRepository.findByActiveTrue();
-    }
-
-    /**
-     * Busca usuários por termo de pesquisa.
-     * 
-     * @param searchTerm termo de busca
-     * @return lista de usuários encontrados
-     */
-    public List<User> searchUsers(String searchTerm) {
-        return userRepository.searchUsers(searchTerm);
-    }
-
-    /**
-     * Atualiza o último login do usuário.
-     * 
-     * @param userId ID do usuário
-     */
-    private void updateLastLogin(Long userId) {
-        userRepository.updateLastLogin(userId, LocalDateTime.now());
-    }
 
     /**
      * Cria a resposta de autenticação com tokens e informações do usuário.
@@ -382,6 +416,31 @@ public class AuthService implements UserDetailsService {
     }
 
     /**
+     * Atualiza role do usuário.
+     * 
+     * @param userId ID do usuário
+     * @param newRole nova role
+     * @return usuário atualizado
+     */
+    public User updateUserRole(Long userId, UserRole newRole) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+        
+        UserRole oldRole = user.getRole();
+        user.setRole(newRole);
+        user.setUpdatedAt(LocalDateTime.now());
+        
+        User updatedUser = userRepository.save(user);
+        
+        logger.info("Role do usuário {} (ID: {}) alterado de {} para {}", 
+                   user.getUsername(), userId, oldRole, newRole);
+        
+        return updatedUser;
+    }
+
+
+
+    /**
      * Obtém estatísticas dos usuários.
      * 
      * @return mapa com estatísticas
@@ -389,7 +448,7 @@ public class AuthService implements UserDetailsService {
     public Map<String, Object> getUserStatistics() {
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalUsers", userRepository.count());
-        stats.put("activeUsers", userRepository.countByActiveTrue());
+        stats.put("activeUsers", userRepository.countByEnabledTrue());
         stats.put("adminUsers", userRepository.countByRole(UserRole.ADMIN));
         stats.put("regularUsers", userRepository.countByRole(UserRole.USER));
         

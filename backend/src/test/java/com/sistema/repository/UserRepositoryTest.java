@@ -169,8 +169,8 @@ class UserRepositoryTest {
         entityManager.persistAndFlush(user3); // ativo
         
         // When
-        List<User> activeUsers = userRepository.findByActiveTrue();
-        List<User> inactiveUsers = userRepository.findByActiveFalse();
+        List<User> activeUsers = userRepository.findByEnabledTrue();
+        List<User> inactiveUsers = userRepository.findByEnabledFalse();
         
         // Then
         assertThat(activeUsers).hasSize(2);
@@ -186,7 +186,7 @@ class UserRepositoryTest {
         entityManager.persistAndFlush(user3); // ativo
         
         // When
-        long activeCount = userRepository.countByActiveTrue();
+        long activeCount = userRepository.countByEnabledTrue();
         
         // Then
         assertThat(activeCount).isEqualTo(2);

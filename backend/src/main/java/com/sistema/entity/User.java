@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import com.sistema.validation.ValidCpf;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -40,11 +41,20 @@ public class User implements UserDetails {
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(name = "first_name")
+    @NotBlank(message = "Nome é obrigatório")
+    @Size(min = 2, max = 50, message = "Nome deve ter entre 2 e 50 caracteres")
+    @Column(name = "first_name", nullable = false)
     private String firstName;
 
-    @Column(name = "last_name")
+    @NotBlank(message = "Sobrenome é obrigatório")
+    @Size(min = 2, max = 50, message = "Sobrenome deve ter entre 2 e 50 caracteres")
+    @Column(name = "last_name", nullable = false)
     private String lastName;
+
+    @NotBlank(message = "CPF é obrigatório")
+    @ValidCpf(message = "CPF inválido")
+    @Column(name = "cpf", unique = true, nullable = false)
+    private String cpf;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
@@ -91,11 +101,14 @@ public class User implements UserDetails {
         this.updatedAt = now;
     }
 
-    public User(String username, String password, String email) {
+    public User(String username, String password, String email, String firstName, String lastName, String cpf) {
         this();
         this.username = username;
         this.password = password;
         this.email = email;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.cpf = cpf;
         this.roles = List.of(Role.USER);
     }
 
@@ -176,6 +189,14 @@ public class User implements UserDetails {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
+    }
+
+    public String getCpf() {
+        return cpf;
+    }
+
+    public void setCpf(String cpf) {
+        this.cpf = cpf;
     }
 
     public List<Role> getRoles() {

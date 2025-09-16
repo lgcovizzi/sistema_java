@@ -1,14 +1,20 @@
 package com.sistema.controller;
 
 import com.sistema.entity.User;
+import com.sistema.entity.UserRole;
 import com.sistema.service.AuthService;
 import com.sistema.service.JwtService;
 import com.sistema.service.TokenBlacklistService;
+import com.sistema.service.AttemptService;
+import com.sistema.service.CaptchaService;
+import com.sistema.validation.ValidCpf;
+import com.sistema.util.EmailMaskUtil;
 import com.sistema.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,12 +45,17 @@ public class AuthController {
     private final AuthService authService;
     private final JwtService jwtService;
     private final TokenBlacklistService tokenBlacklistService;
+    private final AttemptService attemptService;
+    private final CaptchaService captchaService;
 
     @Autowired
-    public AuthController(AuthService authService, JwtService jwtService, TokenBlacklistService tokenBlacklistService) {
+    public AuthController(AuthService authService, JwtService jwtService, TokenBlacklistService tokenBlacklistService,
+                         AttemptService attemptService, CaptchaService captchaService) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.tokenBlacklistService = tokenBlacklistService;
+        this.attemptService = attemptService;
+        this.captchaService = captchaService;
     }
 
     /**
@@ -56,20 +67,60 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest httpRequest) {
+        String clientIp = getClientIpAddress(httpRequest);
+        String identifier = loginRequest.getUsernameOrEmail();
+        
         try {
+            // Verificar se captcha é necessário
+            boolean requiresCaptcha = attemptService.isCaptchaRequiredForLogin(clientIp);
+            
+            if (requiresCaptcha) {
+                // Validar captcha se fornecido
+                if (loginRequest.getCaptchaId() == null || loginRequest.getCaptchaAnswer() == null) {
+                    Map<String, Object> errorResponse = createErrorResponse(
+                        "Captcha é obrigatório após múltiplas tentativas", 
+                        "CAPTCHA_REQUIRED"
+                    );
+                    errorResponse.put("requiresCaptcha", true);
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+                }
+                
+                if (!captchaService.validateCaptcha(loginRequest.getCaptchaId(), loginRequest.getCaptchaAnswer())) {
+                    attemptService.recordLoginAttempt(clientIp);
+                    Map<String, Object> errorResponse = createErrorResponse(
+                        "Captcha inválido", 
+                        "INVALID_CAPTCHA"
+                    );
+                    errorResponse.put("requiresCaptcha", true);
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+                }
+            }
+            
             Map<String, Object> authResponse = authService.authenticate(
                     loginRequest.getUsernameOrEmail(),
                     loginRequest.getPassword(),
                     httpRequest
             );
             
+            // Login bem-sucedido - limpar tentativas
+            attemptService.clearLoginAttempts(clientIp);
+            
             logger.info("Login realizado com sucesso para: {}", loginRequest.getUsernameOrEmail());
             return ResponseEntity.ok(authResponse);
             
         } catch (Exception e) {
-            logger.warn("Falha no login para: {}", loginRequest.getUsernameOrEmail());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(createErrorResponse("Credenciais inválidas", "INVALID_CREDENTIALS"));
+            // Registrar tentativa falhada
+            attemptService.recordLoginAttempt(clientIp);
+            
+            logger.warn("Falha no login para: {} (IP: {})", loginRequest.getUsernameOrEmail(), clientIp);
+            
+            Map<String, Object> errorResponse = createErrorResponse("Credenciais inválidas", "INVALID_CREDENTIALS");
+            
+            // Verificar se captcha será necessário na próxima tentativa
+            boolean willRequireCaptcha = attemptService.isCaptchaRequiredForLogin(clientIp);
+            errorResponse.put("requiresCaptcha", willRequireCaptcha);
+            
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
         }
     }
 
@@ -89,6 +140,7 @@ public class AuthController {
                     registerRequest.getPassword(),
                     registerRequest.getFirstName(),
                     registerRequest.getLastName(),
+                    registerRequest.getCpf(),
                     httpRequest
             );
             
@@ -270,6 +322,97 @@ public class AuthController {
     }
 
     /**
+     * Endpoint para solicitar recuperação de senha.
+     * 
+     * @param forgotPasswordRequest dados para recuperação de senha
+     * @param httpRequest requisição HTTP
+     * @return confirmação do envio
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest forgotPasswordRequest, 
+                                          HttpServletRequest httpRequest) {
+        String clientIp = getClientIpAddress(httpRequest);
+        
+        try {
+            // Verificar rate limiting (1 tentativa por minuto)
+            if (attemptService.isPasswordResetRateLimited(clientIp)) {
+                long remainingSeconds = attemptService.getPasswordResetRateLimitRemainingSeconds(clientIp);
+                Map<String, Object> errorResponse = createErrorResponse(
+                    "Muitas tentativas de recuperação de senha. Tente novamente em " + remainingSeconds + " segundos.", 
+                    "RATE_LIMITED"
+                );
+                errorResponse.put("remainingSeconds", remainingSeconds);
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(errorResponse);
+            }
+            
+            // Captcha é sempre obrigatório para recuperação de senha
+            if (!captchaService.validateCaptcha(forgotPasswordRequest.getCaptchaId(), forgotPasswordRequest.getCaptchaAnswer())) {
+                attemptService.recordPasswordResetAttempt(clientIp);
+                Map<String, Object> errorResponse = createErrorResponse(
+                    "Captcha inválido", 
+                    "INVALID_CAPTCHA"
+                );
+                errorResponse.put("requiresCaptcha", true);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            }
+            
+            // Buscar usuário por CPF
+            String cpf = forgotPasswordRequest.getCpf();
+            Optional<User> userOpt = authService.findByCpf(cpf);
+            
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                String email = user.getEmail();
+                String maskedEmail = EmailMaskUtil.maskEmail(email);
+                
+                // TODO: Implementar envio de email com token de recuperação
+                logger.info("Solicitação de recuperação de senha para CPF: {} (email: {})", cpf, email);
+                
+                // Limpar tentativas após sucesso
+                attemptService.clearPasswordResetAttempts(clientIp);
+                
+                // Ativar rate limiting por 1 minuto
+                attemptService.recordPasswordResetSuccess(clientIp);
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Instruções de recuperação foram enviadas para o email cadastrado");
+                response.put("maskedEmail", maskedEmail);
+                response.put("success", true);
+                
+                return ResponseEntity.ok(response);
+            } else {
+                logger.warn("Tentativa de recuperação para CPF inexistente: {}", cpf);
+                
+                // Registrar tentativa falhada para CPF inexistente
+                attemptService.recordPasswordResetAttempt(clientIp);
+                
+                Map<String, Object> errorResponse = createErrorResponse(
+                    "CPF não encontrado no sistema", 
+                    "CPF_NOT_FOUND"
+                );
+                errorResponse.put("requiresCaptcha", true);
+                
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+            }
+            
+        } catch (Exception e) {
+            // Registrar tentativa falhada
+            attemptService.recordPasswordResetAttempt(clientIp);
+            
+            logger.error("Erro na solicitação de recuperação de senha para CPF: {} (IP: {})", 
+                        forgotPasswordRequest.getCpf(), clientIp, e);
+            
+            Map<String, Object> errorResponse = createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR");
+            
+            // Verificar se captcha será necessário na próxima tentativa
+            boolean willRequireCaptcha = attemptService.isCaptchaRequiredForPasswordReset(clientIp);
+            errorResponse.put("requiresCaptcha", willRequireCaptcha);
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    /**
      * Endpoint para validação de token.
      * 
      * @param validateTokenRequest dados do token
@@ -382,6 +525,65 @@ public class AuthController {
     }
 
     /**
+     * Endpoint administrativo para atualizar role de usuário.
+     * 
+     * @param userId ID do usuário
+     * @param updateRoleRequest dados para atualização de role
+     * @return confirmação da operação
+     */
+    @PutMapping("/users/{userId}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateUserRole(@PathVariable Long userId, 
+                                           @Valid @RequestBody UpdateRoleRequest updateRoleRequest) {
+        try {
+            Optional<User> userOpt = authService.findById(userId);
+            if (userOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(createErrorResponse("Usuário não encontrado", "USER_NOT_FOUND"));
+            }
+            
+            User updatedUser = authService.updateUserRole(userId, updateRoleRequest.getRole());
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Role do usuário atualizado com sucesso");
+            response.put("userId", userId);
+            response.put("username", updatedUser.getUsername());
+            response.put("email", updatedUser.getEmail());
+            response.put("newRole", updatedUser.getRole());
+            
+            logger.info("Role do usuário {} (ID: {}) atualizado para {} por admin", 
+                       updatedUser.getUsername(), userId, updateRoleRequest.getRole());
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("Erro ao alterar role do usuário", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
+        }
+    }
+
+    /**
+     * Obtém o endereço IP real do cliente.
+     * 
+     * @param request requisição HTTP
+     * @return endereço IP do cliente
+     */
+    private String getClientIpAddress(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty() && !"unknown".equalsIgnoreCase(xForwardedFor)) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (xRealIp != null && !xRealIp.isEmpty() && !"unknown".equalsIgnoreCase(xRealIp)) {
+            return xRealIp;
+        }
+        
+        return request.getRemoteAddr();
+    }
+
+    /**
      * Extrai o token JWT do cabeçalho Authorization da requisição.
      * 
      * @param request requisição HTTP
@@ -420,11 +622,19 @@ public class AuthController {
         @NotBlank(message = "Password é obrigatório")
         private String password;
         
+        // Campos de captcha (opcionais)
+        private String captchaId;
+        private String captchaAnswer;
+        
         // Getters e Setters
         public String getUsernameOrEmail() { return usernameOrEmail; }
         public void setUsernameOrEmail(String usernameOrEmail) { this.usernameOrEmail = usernameOrEmail; }
         public String getPassword() { return password; }
         public void setPassword(String password) { this.password = password; }
+        public String getCaptchaId() { return captchaId; }
+        public void setCaptchaId(String captchaId) { this.captchaId = captchaId; }
+        public String getCaptchaAnswer() { return captchaAnswer; }
+        public void setCaptchaAnswer(String captchaAnswer) { this.captchaAnswer = captchaAnswer; }
     }
     
     public static class RegisterRequest {
@@ -440,8 +650,17 @@ public class AuthController {
         @Size(min = 6, message = "Password deve ter pelo menos 6 caracteres")
         private String password;
         
+        @NotBlank(message = "Nome é obrigatório")
+        @Size(min = 2, max = 50, message = "Nome deve ter entre 2 e 50 caracteres")
         private String firstName;
+        
+        @NotBlank(message = "Sobrenome é obrigatório")
+        @Size(min = 2, max = 50, message = "Sobrenome deve ter entre 2 e 50 caracteres")
         private String lastName;
+        
+        @NotBlank(message = "CPF é obrigatório")
+        @ValidCpf(message = "CPF inválido")
+        private String cpf;
         
         // Getters e Setters
         public String getUsername() { return username; }
@@ -454,6 +673,8 @@ public class AuthController {
         public void setFirstName(String firstName) { this.firstName = firstName; }
         public String getLastName() { return lastName; }
         public void setLastName(String lastName) { this.lastName = lastName; }
+        public String getCpf() { return cpf; }
+        public void setCpf(String cpf) { this.cpf = cpf; }
     }
     
     public static class RefreshTokenRequest {
@@ -506,5 +727,35 @@ public class AuthController {
         // Getters e Setters
         public boolean isEnabled() { return enabled; }
         public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    }
+    
+    public static class UpdateRoleRequest {
+        @NotNull(message = "Role é obrigatório")
+        private UserRole role;
+        
+        // Getters e Setters
+        public UserRole getRole() { return role; }
+        public void setRole(UserRole role) { this.role = role; }
+    }
+    
+    public static class ForgotPasswordRequest {
+        @NotBlank(message = "CPF é obrigatório")
+        @ValidCpf(message = "CPF inválido")
+        private String cpf;
+        
+        // Campos de captcha (sempre obrigatórios para recuperação de senha)
+        @NotBlank(message = "ID do captcha é obrigatório")
+        private String captchaId;
+        
+        @NotBlank(message = "Resposta do captcha é obrigatória")
+        private String captchaAnswer;
+        
+        // Getters e Setters
+        public String getCpf() { return cpf; }
+        public void setCpf(String cpf) { this.cpf = cpf; }
+        public String getCaptchaId() { return captchaId; }
+        public void setCaptchaId(String captchaId) { this.captchaId = captchaId; }
+        public String getCaptchaAnswer() { return captchaAnswer; }
+        public void setCaptchaAnswer(String captchaAnswer) { this.captchaAnswer = captchaAnswer; }
     }
 }

@@ -370,7 +370,7 @@ class AuthServiceTest {
     void findActiveUsers_Success() {
         // Given
         List<User> activeUsers = Arrays.asList(testUser);
-        when(userRepository.findByActiveTrue()).thenReturn(activeUsers);
+        when(userRepository.findByEnabledTrue()).thenReturn(activeUsers);
 
         // When
         List<User> result = authService.findActiveUsers();
@@ -378,7 +378,7 @@ class AuthServiceTest {
         // Then
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getUsername()).isEqualTo("testuser");
-        verify(userRepository).findByActiveTrue();
+        verify(userRepository).findByEnabledTrue();
     }
 
     @Test
@@ -521,7 +521,7 @@ class AuthServiceTest {
     void getUserStatistics_Success() {
         // Given
         when(userRepository.count()).thenReturn(100L);
-        when(userRepository.countByActiveTrue()).thenReturn(85L);
+        when(userRepository.countByEnabledTrue()).thenReturn(85L);
         when(userRepository.countByRole(UserRole.ADMIN)).thenReturn(5L);
         when(userRepository.countByRole(UserRole.USER)).thenReturn(95L);
 
@@ -536,7 +536,7 @@ class AuthServiceTest {
         assertThat(result.get("regularUsers")).isEqualTo(95L);
         
         verify(userRepository).count();
-        verify(userRepository).countByActiveTrue();
+        verify(userRepository).countByEnabledTrue();
         verify(userRepository).countByRole(UserRole.ADMIN);
         verify(userRepository).countByRole(UserRole.USER);
     }

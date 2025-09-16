@@ -1,10 +1,11 @@
+version: '3.8'
+
 services:
   # Spring Boot Application
   app:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: sistema-app
     ports:
       - "8080:8080"
     environment:
@@ -14,15 +15,17 @@ services:
       - SPRING_DATASOURCE_PASSWORD=sistema_pass
       - SPRING_REDIS_HOST=redis
       - SPRING_REDIS_PORT=6379
-      - SPRING_MAIL_HOST=mailhog
-      - SPRING_MAIL_PORT=1025
+      # Mailtrap SMTP Configuration
+      - SPRING_MAIL_HOST=sandbox.smtp.mailtrap.io
+      - SPRING_MAIL_PORT=2525
+      - SPRING_MAIL_USERNAME=67af468e706c8e
+      - SPRING_MAIL_PASSWORD=c9c83240f6d045
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_SSL_ENABLE=false
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      mailhog:
-        condition: service_started
+      - postgres
+      - redis
     networks:
       - sistema-network
     restart: unless-stopped
@@ -30,7 +33,6 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: sistema-postgres
     ports:
       - "5432:5432"
     environment:
@@ -47,12 +49,10 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
 
   # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: sistema-redis
     ports:
       - "6379:6379"
     command: redis-server --appendonly yes
@@ -66,23 +66,13 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
 
-  # MailHog for Email Testing
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: sistema-mailhog
-    ports:
-      - "1025:1025"  # SMTP port
-      - "8025:8025"  # Web UI port
-    networks:
-      - sistema-network
-    restart: unless-stopped
-
+# Networks
 networks:
   sistema-network:
     driver: bridge
 
+# Volumes
 volumes:
   postgres_data:
     driver: local

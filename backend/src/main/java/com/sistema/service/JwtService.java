@@ -2,6 +2,8 @@ package com.sistema.service;
 
 import com.sistema.config.RSAKeyManager;
 import com.sistema.entity.User;
+import com.sistema.service.base.BaseService;
+import com.sistema.service.interfaces.TokenOperations;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
@@ -24,9 +26,10 @@ import java.util.stream.Collectors;
 /**
  * Serviço para geração e validação de tokens JWT usando chaves RSA.
  * Utiliza o RSAKeyManager para obter as chaves criptográficas.
+ * Implementa TokenOperations para padronizar operações de token.
  */
 @Service
-public class JwtService {
+public class JwtService extends BaseService implements TokenOperations {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtService.class);
 
@@ -343,5 +346,108 @@ public class JwtService {
         } catch (Exception e) {
             return 0;
         }
+    }
+    
+    // Implementação da interface TokenOperations
+    
+    @Override
+    public String generateToken(String username, Map<String, Object> claims, long expirationSeconds) {
+        return generateToken(claims, username, expirationSeconds);
+    }
+    
+    @Override
+    public String generateAccessToken(String username) {
+        // Para compatibilidade, criamos um User temporário
+        User tempUser = new User();
+        tempUser.setUsername(username);
+        return generateAccessToken(tempUser);
+    }
+    
+    @Override
+    public String generateRefreshToken(String username) {
+        // Para compatibilidade, criamos um User temporário
+        User tempUser = new User();
+        tempUser.setUsername(username);
+        return generateRefreshToken(tempUser);
+    }
+    
+    @Override
+    public String extractSubject(String token) {
+        return extractUsername(token);
+    }
+    
+    @Override
+    public Date extractExpirationDate(String token) {
+        return extractExpiration(token);
+    }
+    
+    @Override
+    public Date extractIssuedDate(String token) {
+        return extractIssuedAt(token);
+    }
+    
+    @Override
+    public String extractTokenId(String token) {
+        return extractJti(token);
+    }
+    
+    @Override
+    public String extractType(String token) {
+        return extractTokenType(token);
+    }
+    
+    @Override
+    public java.util.List<String> extractUserRoles(String token) {
+        return extractRoles(token);
+    }
+    
+    @Override
+    public <T> T extractCustomClaim(String token, String claimName, Class<T> claimType) {
+        return extractClaim(token, claims -> claims.get(claimName, claimType));
+    }
+    
+    @Override
+    public boolean validateToken(String token) {
+        try {
+            extractAllClaims(token);
+            return !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    @Override
+    public boolean validateTokenForUser(String token, String username) {
+        try {
+            String tokenUsername = extractUsername(token);
+            return tokenUsername.equals(username) && !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    @Override
+    public boolean isExpired(String token) {
+        return isTokenExpired(token);
+    }
+    
+    @Override
+    public boolean isAccessToken(String token) {
+        return isValidAccessTokenSafe(token);
+    }
+    
+    @Override
+    public boolean isRefreshToken(String token) {
+        return isValidRefreshToken(token);
+    }
+    
+    @Override
+    public Map<String, Object> getTokenInformation(String token) {
+        return getTokenInfo(token);
+    }
+    
+    @Override
+    public long getSecondsToExpiration(String token) {
+        return getTimeToExpiration(token);
     }
 }

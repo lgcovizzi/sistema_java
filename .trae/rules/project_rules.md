@@ -6,6 +6,87 @@ Sistema Java completo implementado com Spring Boot 3.2.0, utilizando PostgreSQL 
 
 ## Estrutura Implementada
 
+### Arquitetura de Serviços
+
+#### Extração de Lógica Comum
+
+O projeto implementa uma arquitetura baseada em classes abstratas e utilitários compartilhados para evitar duplicação de código e promover reutilização:
+
+##### Classes Base Abstratas
+
+**BaseService** (`com.sistema.service.base.BaseService`)
+- Classe abstrata fundamental para todos os serviços
+- Fornece logging padronizado com SLF4J
+- Métodos de validação comum (validateNotNull, validateNotBlank)
+- Tratamento de exceções padronizado
+- Métodos de log estruturado (logInfo, logWarn, logError, logDebug)
+
+**BaseRedisService** (`com.sistema.service.base.BaseRedisService`)
+- Estende BaseService para operações Redis
+- Operações CRUD padronizadas para cache
+- Métodos com TTL automático (storeWithTTL)
+- Operações de incremento e verificação de existência
+- Gerenciamento de chaves com padrões consistentes
+
+**BaseUserService** (`com.sistema.service.base.BaseUserService`)
+- Estende BaseService para operações de usuário
+- CRUD padronizado para entidades User
+- Validações específicas (email, username, senha)
+- Métodos de busca otimizados (por ID, email, username)
+- Codificação de senhas com BCrypt
+- Atualização de último login
+
+**BaseSecurityService** (`com.sistema.service.base.BaseSecurityService`)
+- Estende BaseService para operações de segurança
+- Validação de tokens e autenticação
+- Verificação de permissões e roles
+- Operações de autorização padronizadas
+- Validação de entrada sanitizada
+
+##### Utilitários Compartilhados
+
+**ValidationUtils** (`com.sistema.util.ValidationUtils`)
+- Validações de entrada padronizadas
+- Validação de formatos (email, telefone, CPF, CNPJ)
+- Verificação de intervalos e limites
+- Validação de senhas com critérios de segurança
+- Métodos estáticos reutilizáveis
+
+**FormatUtils** (`com.sistema.util.FormatUtils`)
+- Formatação de dados padronizada
+- Formatação de datas, moedas e números
+- Formatação de documentos (CPF, CNPJ, telefone)
+- Manipulação de strings (capitalização, remoção de acentos)
+- Mascaramento de dados sensíveis
+
+**SecurityUtils** (`com.sistema.util.SecurityUtils`)
+- Operações de segurança compartilhadas
+- Geração de tokens seguros
+- Hash SHA-256 padronizado
+- Sanitização de entrada
+- Validação de endereços IP
+- Mascaramento de dados sensíveis
+
+##### Padrões de Implementação
+
+**Herança de Serviços**
+- Todos os serviços devem estender uma classe base apropriada
+- AuthService estende BaseUserService
+- CaptchaService estende BaseRedisService
+- Novos serviços devem seguir este padrão
+
+**Uso de Utilitários**
+- Sempre usar ValidationUtils para validação de entrada
+- Usar SecurityUtils para operações criptográficas
+- Usar FormatUtils para formatação de dados
+- Evitar reimplementar lógica já disponível
+
+**Tratamento de Exceções**
+- Usar métodos de log da classe base
+- Capturar exceções específicas quando possível
+- Fornecer mensagens de erro consistentes
+- Registrar erros com contexto adequado
+
 ### Backend Spring Boot
 - **Framework**: Spring Boot 3.2.0
 - **Java**: 21
@@ -15,8 +96,13 @@ Sistema Java completo implementado com Spring Boot 3.2.0, utilizando PostgreSQL 
   - Spring Data Redis
   - Spring Boot Actuator
   - Spring Boot Starter Thymeleaf
+  - Spring Security
   - PostgreSQL Driver
   - Lettuce (Redis client)
+  - JWT (io.jsonwebtoken)
+  - SimpleCaptcha
+  - BCrypt (Spring Security)
+  - Validation API
 
 ### Controladores REST Implementados
 
@@ -29,6 +115,89 @@ Sistema Java completo implementado com Spring Boot 3.2.0, utilizando PostgreSQL 
 - **GET /**: Página inicial servindo template Thymeleaf responsivo
 - **GET /api-simple**: Redirecionamento para página principal
 - **Configuração**: Integrado com Thymeleaf para servir interface web responsiva
+
+#### 3. AuthController (`/api/auth`)
+- **POST /api/auth/register**: Registro de novos usuários
+- **POST /api/auth/login**: Autenticação com captcha após 5 tentativas
+- **POST /api/auth/refresh**: Renovação de tokens JWT
+- **POST /api/auth/logout**: Logout com invalidação de tokens
+- **GET /api/auth/me**: Informações do usuário autenticado
+- **PUT /api/auth/change-password**: Alteração de senha
+- **POST /api/auth/forgot-password**: Recuperação de senha com captcha
+- **PUT /api/auth/enable/{userId}**: Habilitação/desabilitação de usuários (ADMIN)
+- **PUT /api/auth/role/{userId}**: Alteração de roles de usuários (ADMIN)
+- **GET /api/auth/statistics**: Estatísticas de usuários (ADMIN)
+
+#### 4. CaptchaController (`/api/auth/captcha`)
+- **POST /api/auth/captcha/generate**: Geração de imagem captcha
+- **POST /api/auth/captcha/validate**: Validação de resposta captcha
+- **GET /api/auth/captcha/exists/{captchaId}**: Verificação de existência
+- **GET /api/auth/captcha/statistics**: Estatísticas de captchas
+- **DELETE /api/auth/captcha/cleanup**: Limpeza de captchas expirados
+
+## Sistema de Autenticação e Segurança
+
+### Autenticação JWT
+
+#### Características
+- **Tokens JWT**: Autenticação stateless com tokens seguros
+- **Refresh Tokens**: Sistema de renovação automática de tokens
+- **Blacklist de Tokens**: Invalidação segura de tokens no logout
+- **Expiração Configurável**: Access tokens (15min) e Refresh tokens (7 dias)
+- **Chaves RSA**: Assinatura e verificação com chaves RSA 2048 bits
+
+#### Fluxo de Autenticação
+1. **Login**: Usuário fornece credenciais (email/senha)
+2. **Validação**: Verificação de credenciais e status do usuário
+3. **Geração de Tokens**: Access token e refresh token JWT
+4. **Resposta**: Tokens retornados para o cliente
+5. **Autorização**: Access token usado em requisições subsequentes
+6. **Renovação**: Refresh token usado para obter novos access tokens
+
+#### Configuração de Segurança
+- **JWT Service**: Geração, validação e parsing de tokens
+- **Security Filter**: Interceptação e validação de requisições
+- **CORS Configuration**: Configuração para requisições cross-origin
+- **Password Encoding**: BCrypt para hash de senhas
+- **Role-based Access**: Controle de acesso baseado em roles (USER/ADMIN)
+
+### Sistema de Controle de Tentativas
+
+#### AttemptService
+- **Rastreamento por IP**: Controle de tentativas por endereço IP
+- **Limite Configurável**: 5 tentativas antes de exigir captcha
+- **Armazenamento Redis**: Cache distribuído para tentativas
+- **TTL Automático**: Expiração automática após 15 minutos
+- **Limpeza Automática**: Remoção de tentativas expiradas
+
+#### Funcionalidades
+- **Registro de Tentativas**: Incremento automático por IP
+- **Verificação de Limite**: Validação se captcha é necessário
+- **Reset de Tentativas**: Limpeza após login bem-sucedido
+- **Estatísticas**: Métricas de tentativas por IP
+- **Bloqueio Temporário**: Proteção contra ataques de força bruta
+
+### Sistema de Captcha
+
+#### SimpleCaptcha Integration
+- **Geração de Imagens**: Captchas visuais com texto aleatório
+- **Configuração Customizada**: Tamanho, cores e fontes personalizáveis
+- **Armazenamento Seguro**: Respostas armazenadas no Redis com hash
+- **Expiração Automática**: TTL de 5 minutos para captchas
+- **Validação Única**: Captchas invalidados após uso
+
+#### CaptchaService
+- **Geração**: Criação de imagens captcha em base64
+- **Validação**: Verificação case-insensitive de respostas
+- **Gerenciamento**: Controle de ciclo de vida dos captchas
+- **Estatísticas**: Métricas de geração e validação
+- **Limpeza**: Remoção automática de captchas expirados
+
+#### Integração com Autenticação
+- **Login Protegido**: Captcha obrigatório após 5 tentativas falhadas
+- **Recuperação de Senha**: Captcha sempre obrigatório
+- **Validação Integrada**: Verificação automática no fluxo de autenticação
+- **Feedback ao Cliente**: Informação sobre necessidade de captcha
 
 ### Configurações Implementadas
 
@@ -53,6 +222,78 @@ Sistema Java completo implementado com Spring Boot 3.2.0, utilizando PostgreSQL 
 - Configuração do diretório de chaves via `app.rsa.keys.directory`
 - Logs detalhados para monitoramento do processo
 - Regeneração automática de chaves inválidas ou corrompidas
+
+#### SecurityConfig
+- Configuração de segurança Spring Security
+- Filtros JWT para autenticação stateless
+- Configuração CORS para requisições cross-origin
+- Endpoints públicos e protegidos definidos
+- Password encoder BCrypt configurado
+- Desabilitação de CSRF para APIs REST
+
+#### JwtAuthenticationFilter
+- Filtro personalizado para interceptação de requisições
+- Extração e validação de tokens JWT do header Authorization
+- Configuração do contexto de segurança Spring
+- Tratamento de exceções de autenticação
+- Integração com UserDetailsService
+
+### Serviços Implementados
+
+#### AuthService
+- **Registro de Usuários**: Criação de novos usuários com validação
+- **Autenticação**: Verificação de credenciais e geração de tokens
+- **Gerenciamento de Usuários**: CRUD completo de usuários
+- **Controle de Roles**: Alteração de permissões (USER/ADMIN)
+- **Estatísticas**: Métricas de usuários do sistema
+- **Validação de Tokens**: Verificação de tokens JWT
+- **Busca por Email**: Localização de usuários por email
+
+#### JwtService
+- **Geração de Tokens**: Criação de access e refresh tokens
+- **Validação**: Verificação de assinatura e expiração
+- **Parsing**: Extração de claims dos tokens
+- **Chaves RSA**: Uso de chaves assimétricas para segurança
+- **Configuração Flexível**: TTL configurável para diferentes tipos de token
+
+#### TokenBlacklistService
+- **Invalidação de Tokens**: Adição de tokens à blacklist
+- **Verificação**: Validação se token está na blacklist
+- **Armazenamento Redis**: Cache distribuído para blacklist
+- **TTL Automático**: Expiração automática baseada no token
+- **Limpeza**: Remoção de tokens expirados
+
+#### AttemptService
+- **Controle de Tentativas**: Rastreamento por endereço IP
+- **Limite Configurável**: Proteção contra força bruta
+- **Armazenamento Redis**: Persistência distribuída
+- **Reset Automático**: Limpeza após sucesso
+- **Estatísticas**: Métricas de tentativas por IP
+
+#### CaptchaService
+- **Geração de Captchas**: Imagens com SimpleCaptcha
+- **Validação Segura**: Verificação com hash SHA-256
+- **Gerenciamento de Ciclo**: TTL e limpeza automática
+- **Configuração Customizada**: Tamanho e aparência personalizáveis
+- **Estatísticas**: Métricas de uso e validação
+
+### Entidades e Repositórios
+
+#### User Entity
+- **Campos**: id, username, email, password, role, enabled, timestamps
+- **Validações**: Email único, senha forte, campos obrigatórios
+- **Relacionamentos**: Configurado para extensões futuras
+- **Auditoria**: Timestamps de criação e atualização
+
+#### UserRepository
+- **Busca por Email**: Método findByEmail para autenticação
+- **Contagem por Role**: Estatísticas de usuários por tipo
+- **Usuários Ativos**: Contagem de usuários habilitados
+- **Queries Customizadas**: Métodos específicos do domínio
+
+#### Enums
+- **UserRole**: USER, ADMIN para controle de acesso
+- **Extensibilidade**: Preparado para novos roles
 
 ### Interface Thymeleaf Implementada
 
@@ -203,6 +444,13 @@ O projeto utiliza Docker Compose com os seguintes serviços:
 - **http://localhost:8080/api/info**: Informações do sistema
 - **http://localhost:8080/api/redis-test**: Teste do Redis
 - **http://localhost:8080/actuator**: Endpoints do Actuator
+- **http://localhost:8080/api/auth/register**: Registro de usuários
+- **http://localhost:8080/api/auth/login**: Login com controle de tentativas
+- **http://localhost:8080/api/auth/refresh**: Renovação de tokens JWT
+- **http://localhost:8080/api/auth/logout**: Logout com invalidação de tokens
+- **http://localhost:8080/api/auth/me**: Informações do usuário autenticado
+- **http://localhost:8080/api/auth/captcha/generate**: Geração de captcha
+- **http://localhost:8080/api/auth/captcha/validate**: Validação de captcha
 - **http://localhost:8025**: Interface web do MailHog
 
 **Nota**: A aplicação está configurada para rodar na porta 8080 através do Docker Compose. Para desenvolvimento local, a aplicação pode ser executada na porta 8082 via Maven (`mvn spring-boot:run`) para evitar conflitos de porta.
@@ -270,6 +518,13 @@ O projeto possui uma estrutura completa de documentação na pasta `docs/`:
 - ✅ **Design Responsivo**: CSS mobile-first com breakpoints adaptativos
 - ✅ **HomeController**: Configurado para servir templates Thymeleaf
 - ✅ **Template Engine**: Thymeleaf integrado ao Spring Boot
+- ✅ **Sistema de Autenticação**: JWT implementado com Spring Security
+- ✅ **Controle de Tentativas**: Sistema anti-brute force configurado
+- ✅ **Sistema de Captcha**: SimpleCaptcha integrado com Redis
+- ✅ **Segurança**: BCrypt para senhas e blacklist de tokens
+- ✅ **Autorização**: Sistema de roles (USER, ADMIN) implementado
+- ✅ **Validação**: Bean Validation configurado para DTOs
+- ✅ **Recuperação de Senha**: Endpoint com captcha obrigatório
 
 ### Arquivos de Documentação Detalhados
 
@@ -344,11 +599,53 @@ O projeto possui uma estrutura completa de documentação na pasta `docs/`:
   - Configuração automática via Spring Boot
   - CSS responsivo integrado nos templates
   - Expressões Thymeleaf para dados dinâmicos
+- **Autenticação e Segurança**:
+  - JWT tokens com chaves RSA para assinatura
+  - Sistema de blacklist de tokens no Redis
+  - Controle de tentativas de login por IP
+  - Captcha obrigatório após 5 tentativas falhadas
+  - BCrypt para hash de senhas
+  - Roles de usuário (USER, ADMIN)
+  - Endpoints protegidos com Spring Security
+- **Testes de Autenticação**:
+  - Usar endpoints `/api/auth/register` e `/api/auth/login` para testes
+  - Captcha disponível em `/api/auth/captcha/generate`
+  - Tokens JWT válidos por 24 horas
+  - Refresh tokens válidos por 7 dias
 
 ### Segurança
 - Não expor portas desnecessárias
 - Usar secrets para senhas em produção
 - Configurar redes isoladas quando necessário
+
+#### Sistema de Autenticação JWT
+- **Algoritmo**: RS256 (RSA com SHA-256)
+- **Chaves**: Par RSA 2048 bits gerado automaticamente
+- **Access Token**: Válido por 24 horas
+- **Refresh Token**: Válido por 7 dias
+- **Blacklist**: Tokens invalidados armazenados no Redis
+- **Headers**: Authorization Bearer token obrigatório
+
+#### Controle de Tentativas (Anti-Brute Force)
+- **Limite**: 5 tentativas por IP em 15 minutos
+- **Bloqueio**: IP bloqueado por 30 minutos após exceder limite
+- **Captcha**: Obrigatório após 5 tentativas falhadas
+- **Armazenamento**: Contadores mantidos no Redis
+- **Endpoints Protegidos**: Login e recuperação de senha
+
+#### Sistema de Captcha
+- **Biblioteca**: SimpleCaptcha
+- **Armazenamento**: Redis com TTL de 5 minutos
+- **Formato**: Imagem PNG base64
+- **Validação**: Case-insensitive
+- **Limpeza**: Automática via TTL do Redis
+- **Estatísticas**: Contadores de geração e validação
+
+#### Criptografia de Senhas
+- **Algoritmo**: BCrypt com salt automático
+- **Strength**: 12 rounds (configurável)
+- **Validação**: Comparação segura via BCrypt
+- **Política**: Senhas devem ter mínimo 8 caracteres
 
 #### Gerenciamento de Chaves RSA
 - **Inicialização Automática**: Par de chaves RSA gerado automaticamente na primeira execução

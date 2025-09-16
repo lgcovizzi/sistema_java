@@ -1,9 +1,8 @@
 package com.sistema.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.sistema.service.base.BaseRedisService;
+import com.sistema.service.interfaces.SecurityOperations;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -14,9 +13,10 @@ import java.util.concurrent.TimeUnit;
 /**
  * Serviço responsável por gerenciar a blacklist de tokens JWT revogados.
  * Utiliza Redis para armazenar tokens revogados com TTL baseado na expiração do token.
+ * Implementa SecurityOperations para padronizar operações de segurança.
  */
 @Service
-public class TokenBlacklistService {
+public class TokenBlacklistService extends BaseRedisService implements SecurityOperations {
     
     private static final Logger logger = LoggerFactory.getLogger(TokenBlacklistService.class);
     private static final String BLACKLIST_PREFIX = "jwt:blacklist:";
@@ -232,5 +232,60 @@ public class TokenBlacklistService {
         }
         
         return Duration.between(now, expirationInstant).getSeconds();
+    }
+    
+    // Implementação da interface SecurityOperations
+    
+    @Override
+    public boolean authenticateUser(String username, String password) {
+        // TokenBlacklistService não lida com autenticação direta
+        // Este método deve ser implementado por um serviço de autenticação
+        throw new UnsupportedOperationException("Autenticação não é responsabilidade do TokenBlacklistService");
+    }
+    
+    @Override
+    public boolean validateTokenSecurity(String token) {
+        return !isTokenRevoked(token);
+    }
+    
+    @Override
+    public boolean revokeTokenSecurity(String token) {
+        return revokeToken(token);
+    }
+    
+    @Override
+    public boolean revokeAllUserTokensSecurity(String username) {
+        return revokeAllUserTokens(username);
+    }
+    
+    @Override
+    public boolean hasPermission(String username, String permission) {
+        // TokenBlacklistService não lida com permissões
+        // Este método deve ser implementado por um serviço de autorização
+        throw new UnsupportedOperationException("Verificação de permissões não é responsabilidade do TokenBlacklistService");
+    }
+    
+    @Override
+    public boolean hasRole(String username, String role) {
+        // TokenBlacklistService não lida com roles
+        // Este método deve ser implementado por um serviço de autorização
+        throw new UnsupportedOperationException("Verificação de roles não é responsabilidade do TokenBlacklistService");
+    }
+    
+    @Override
+    public boolean hasAnyRole(String username, String... roles) {
+        // TokenBlacklistService não lida com roles
+        // Este método deve ser implementado por um serviço de autorização
+        throw new UnsupportedOperationException("Verificação de roles não é responsabilidade do TokenBlacklistService");
+    }
+    
+    @Override
+    public void logSecurityEvent(String event, String username, String details) {
+        logInfo("Evento de segurança: {} - Usuário: {} - Detalhes: {}", event, username, details);
+    }
+    
+    @Override
+    public void logSecurityEvent(String event, String username) {
+        logSecurityEvent(event, username, "");
     }
 }

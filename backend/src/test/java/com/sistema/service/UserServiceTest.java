@@ -177,7 +177,7 @@ class UserServiceTest {
     void shouldFindActiveUsers() {
         // Given
         List<User> activeUsers = Arrays.asList(testUser);
-        when(userRepository.findByActiveTrue()).thenReturn(activeUsers);
+        when(userRepository.findByEnabledTrue()).thenReturn(activeUsers);
 
         // When
         List<User> result = userService.findActiveUsers();
@@ -185,7 +185,7 @@ class UserServiceTest {
         // Then
         assertThat(result).hasSize(1);
         assertThat(result.get(0).isActive()).isTrue();
-        verify(userRepository).findByActiveTrue();
+        verify(userRepository).findByEnabledTrue();
     }
 
     @Test
@@ -281,7 +281,7 @@ class UserServiceTest {
     void shouldGetUserStatistics() {
         // Given
         when(userRepository.count()).thenReturn(10L);
-        when(userRepository.countByActiveTrue()).thenReturn(8L);
+        when(userRepository.countByEnabledTrue()).thenReturn(8L);
         when(userRepository.countByRole(UserRole.ADMIN)).thenReturn(2L);
         when(userRepository.countByRole(UserRole.USER)).thenReturn(8L);
 
@@ -295,5 +295,6 @@ class UserServiceTest {
         assertThat(stats.getRegularUsers()).isEqualTo(8L);
         assertThat(stats.getInactiveUsers()).isEqualTo(2L);
         assertThat(stats.getActiveUserPercentage()).isEqualTo(80.0);
+        verify(userRepository).countByEnabledTrue();
     }
 }

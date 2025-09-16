@@ -38,6 +38,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
     /**
+     * Busca usuário por CPF.
+     * Usado para recuperação de senha e validações.
+     * 
+     * @param cpf o CPF do usuário
+     * @return Optional contendo o usuário se encontrado
+     */
+    Optional<User> findByCpf(String cpf);
+
+    /**
      * Busca usuário por username ou email.
      * Útil para login flexível.
      * 
@@ -64,6 +73,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
 
     /**
+     * Verifica se existe usuário com o CPF.
+     * 
+     * @param cpf o CPF
+     * @return true se existir
+     */
+    boolean existsByCpf(String cpf);
+
+    /**
      * Busca usuários por role específico.
      * 
      * @param role o papel do usuário
@@ -76,14 +93,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * 
      * @return lista de usuários ativos
      */
-    List<User> findByActiveTrue();
+    List<User> findByEnabledTrue();
 
     /**
      * Busca usuários inativos (enabled = false).
      * 
      * @return lista de usuários inativos
      */
-    List<User> findByActiveFalse();
+    List<User> findByEnabledFalse();
 
     /**
      * Busca usuários criados após uma data específica.
@@ -118,8 +135,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param active true para ativar, false para desativar
      */
     @Modifying
-    @Query("UPDATE User u SET u.active = :active WHERE u.id = :userId")
-    void updateUserStatus(@Param("userId") Long userId, @Param("active") boolean active);
+    @Query("UPDATE User u SET u.enabled = :enabled WHERE u.id = :userId")
+    void updateUserStatus(@Param("userId") Long userId, @Param("enabled") boolean enabled);
 
     /**
      * Conta usuários por role.
@@ -134,7 +151,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * 
      * @return número de usuários ativos
      */
-    long countByActiveTrue();
+    long countByEnabledTrue();
 
     /**
      * Verifica se é o primeiro usuário (banco vazio).

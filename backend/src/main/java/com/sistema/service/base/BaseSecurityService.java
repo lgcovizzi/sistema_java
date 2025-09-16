@@ -2,6 +2,7 @@ package com.sistema.service.base;
 
 import com.sistema.entity.User;
 import com.sistema.entity.UserRole;
+import com.sistema.util.ValidationUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -135,7 +136,7 @@ public abstract class BaseSecurityService extends BaseService {
      * @return token em base64
      */
     protected String generateSecureToken(int length) {
-        validatePositive(length, "length");
+        ValidationUtils.validatePositive(length, "length");
         
         byte[] randomBytes = new byte[length];
         secureRandom.nextBytes(randomBytes);

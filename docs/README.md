@@ -2,16 +2,15 @@
 
 ## Visão Geral
 
-Sistema Java completo implementado com Spring Boot 3.2.0, utilizando PostgreSQL como banco de dados principal, Redis para cache, e MailHog para testes de email. O projeto está totalmente containerizado com Docker Compose.
+Sistema Java completo implementado com Spring Boot 3.2.0, utilizando H2 como banco de dados em memória para desenvolvimento local e Redis embarcado para cache.
 
 ## Tecnologias Utilizadas
 
 - **Backend**: Spring Boot 3.2.0
-- **Java**: 17
-- **Banco de Dados**: PostgreSQL 15
-- **Cache**: Redis 7
-- **Email Testing**: MailHog
-- **Containerização**: Docker & Docker Compose
+- **Java**: 21
+- **Banco de Dados**: H2 (em memória para desenvolvimento)
+- **Cache**: Redis (embarcado para desenvolvimento local)
+- **Email Testing**: Mailtrap
 - **Build Tool**: Maven 3.9.6
 
 ## Estrutura do Projeto
@@ -25,33 +24,29 @@ sistema_java/
 │   │   │   ├── controller/
 │   │   │   └── config/
 │   │   └── main/resources/
-│   ├── Dockerfile
+│   │       ├── application.yml
+│   │       └── templates/
 │   └── pom.xml
 ├── docs/                    # Documentação do projeto
-├── docker-compose.yml       # Configuração dos serviços
 └── .trae/rules/            # Regras do projeto
 ```
 
-## Serviços Disponíveis
+## Aplicação
 
 ### Aplicação Principal
 - **URL**: http://localhost:8080
 - **Porta**: 8080
 - **Descrição**: API REST com Spring Boot
 
-### PostgreSQL
-- **Porta**: 5432
-- **Database**: sistema_db
-- **Usuário**: sistema_user
+### Banco de Dados H2
+- **Console**: http://localhost:8080/h2-console
+- **JDBC URL**: jdbc:h2:mem:sistema_db
+- **Usuário**: sa
+- **Senha**: (vazio)
 
-### Redis
-- **Porta**: 6379
-- **Descrição**: Cache e sessões
-
-### MailHog
-- **SMTP**: localhost:1025
-- **Web UI**: http://localhost:8025
-- **Descrição**: Servidor de email para testes
+### Cache Redis
+- **Porta**: 6379 (embarcado)
+- **Descrição**: Cache em memória para desenvolvimento
 
 ## Endpoints Disponíveis
 
@@ -69,35 +64,36 @@ sistema_java/
 ## Quick Start
 
 ### Pré-requisitos
-- Docker
-- Docker Compose
+- Java 21
+- Maven 3.9.6 (ou usar o wrapper incluído)
 
 ### Executando o Projeto
 
 1. Clone o repositório
-2. Execute o comando:
+2. Navegue até o diretório backend:
    ```bash
-   docker compose up -d
+   cd backend
    ```
-3. Acesse a aplicação em http://localhost:8080
+3. Execute a aplicação:
+   ```bash
+   ./mvnw spring-boot:run
+   ```
+4. Acesse a aplicação em http://localhost:8080
 
-### Parando os Serviços
+### Parando a Aplicação
 
-```bash
-docker compose down
-```
+Pressione `Ctrl+C` no terminal onde a aplicação está rodando.
 
 ## Documentação Adicional
 
 - [Guia de Instalação](./installation.md)
 - [Documentação da API](./api.md)
-- [Configuração Docker](./docker.md)
 
 ## Status do Projeto
 
-✅ **Aplicação funcionando**: Todos os serviços rodando  
-✅ **Conectividade PostgreSQL**: Configurada e testada  
-✅ **Conectividade Redis**: Configurada e testada  
+✅ **Aplicação funcionando**: Spring Boot rodando localmente  
+✅ **Banco H2**: Configurado e funcionando em memória  
+✅ **Cache Redis**: Configurado para desenvolvimento local  
 ✅ **MailHog**: Disponível para testes de email  
 ✅ **Endpoints REST**: Implementados e funcionais  
 ✅ **Docker Compose**: Totalmente operacional  

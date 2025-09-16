@@ -2,7 +2,10 @@ package com.sistema.service;
 
 import com.sistema.service.base.BaseRedisService;
 import com.sistema.service.interfaces.SecurityOperations;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;

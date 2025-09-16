@@ -329,4 +329,98 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
         public long getPasswordResetRateLimitRemaining() { return passwordResetRateLimitRemaining; }
         public int getMaxAttemptsBeforeCaptcha() { return maxAttemptsBeforeCaptcha; }
     }
+    
+    // ========================================
+    // Implementação da Interface AttemptControlOperations
+    // ========================================
+    
+    @Override
+    public int recordAttemptControl(String identifier, String type) {
+        switch (type.toLowerCase()) {
+            case "login":
+                return recordLoginAttempt(identifier);
+            case "password_reset":
+                return recordPasswordResetAttempt(identifier);
+            default:
+                logWarn("Tipo de tentativa desconhecido: {}", type);
+                return 0;
+        }
+    }
+    
+    @Override
+    public boolean isCaptchaRequiredControl(String identifier, String type) {
+        switch (type.toLowerCase()) {
+            case "login":
+                return isCaptchaRequiredForLogin(identifier);
+            case "password_reset":
+                return isCaptchaRequiredForPasswordReset(identifier);
+            default:
+                logWarn("Tipo de verificação de captcha desconhecido: {}", type);
+                return false;
+        }
+    }
+    
+    @Override
+    public void clearAttemptsControl(String identifier, String type) {
+        switch (type.toLowerCase()) {
+            case "login":
+                clearLoginAttempts(identifier);
+                break;
+            case "password_reset":
+                clearPasswordResetAttempts(identifier);
+                break;
+            default:
+                logWarn("Tipo de limpeza de tentativas desconhecido: {}", type);
+        }
+    }
+    
+    @Override
+    public int getAttemptsControl(String identifier, String type) {
+        switch (type.toLowerCase()) {
+            case "login":
+                return getLoginAttempts(identifier);
+            case "password_reset":
+                return getPasswordResetAttempts(identifier);
+            default:
+                logWarn("Tipo de obtenção de tentativas desconhecido: {}", type);
+                return 0;
+        }
+    }
+    
+    @Override
+    public boolean isRateLimitedControl(String identifier, String type) {
+        if ("password_reset".equalsIgnoreCase(type)) {
+            return isPasswordResetRateLimited(identifier);
+        }
+        // Para outros tipos, não há rate limiting implementado
+        return false;
+    }
+    
+    @Override
+    public void recordSuccessControl(String identifier, String type) {
+        switch (type.toLowerCase()) {
+            case "login":
+                clearLoginAttempts(identifier);
+                break;
+            case "password_reset":
+                recordPasswordResetSuccess(identifier);
+                break;
+            default:
+                logWarn("Tipo de registro de sucesso desconhecido: {}", type);
+        }
+    }
+    
+    @Override
+    public long getRateLimitRemainingSecondsControl(String identifier, String type) {
+        if ("password_reset".equalsIgnoreCase(type)) {
+            return getPasswordResetRateLimitRemainingSeconds(identifier);
+        }
+        // Para outros tipos, não há rate limiting
+        return 0;
+    }
+    
+    @Override
+    public String createIdentifierControl(String ipAddress, String email) {
+        return createIdentifier(ipAddress, email);
+    }
 }

@@ -67,13 +67,51 @@ O projeto implementa uma arquitetura baseada em classes abstratas e utilitários
 - Validação de endereços IP
 - Mascaramento de dados sensíveis
 
+##### Interfaces Padronizadas
+
+O projeto implementa interfaces específicas para padronizar operações dos serviços:
+
+**TokenOperations** (`com.sistema.service.interfaces.TokenOperations`)
+- Interface para operações de token JWT
+- Métodos: generateToken, generateAccessToken, extractSubject, validateToken
+- Implementada por: JwtService
+- Padroniza geração, validação e extração de dados de tokens
+
+**SecurityOperations** (`com.sistema.service.interfaces.SecurityOperations`)
+- Interface para operações de segurança
+- Métodos: authenticateUser, validateTokenSecurity, revokeTokenSecurity, hasPermission, hasRole
+- Implementada por: TokenBlacklistService
+- Padroniza operações de autenticação e autorização
+
+**CaptchaOperations** (`com.sistema.service.interfaces.CaptchaOperations`)
+- Interface para operações de captcha
+- Métodos: createCaptcha, verifyCaptcha, isCaptchaValid, getCaptchaConfiguration
+- Implementada por: CaptchaService
+- Padroniza geração e validação de captchas
+
+**AttemptControlOperations** (`com.sistema.service.interfaces.AttemptControlOperations`)
+- Interface para controle de tentativas
+- Métodos: recordAttemptControl, isCaptchaRequiredControl, clearAttemptsControl
+- Implementada por: AttemptService
+- Padroniza controle de tentativas e rate limiting
+
 ##### Padrões de Implementação
 
 **Herança de Serviços**
 - Todos os serviços devem estender uma classe base apropriada
 - AuthService estende BaseUserService
 - CaptchaService estende BaseRedisService
+- AttemptService estende BaseRedisService
+- TokenBlacklistService estende BaseRedisService
 - Novos serviços devem seguir este padrão
+
+**Implementação de Interfaces**
+- Serviços devem implementar interfaces específicas do domínio
+- JwtService implementa TokenOperations
+- CaptchaService implementa CaptchaOperations
+- AttemptService implementa AttemptControlOperations
+- TokenBlacklistService implementa SecurityOperations
+- Interfaces garantem contratos consistentes entre serviços
 
 **Uso de Utilitários**
 - Sempre usar ValidationUtils para validação de entrada
@@ -241,6 +279,7 @@ O projeto implementa uma arquitetura baseada em classes abstratas e utilitários
 ### Serviços Implementados
 
 #### AuthService
+- **Herança**: Estende BaseUserService
 - **Registro de Usuários**: Criação de novos usuários com validação
 - **Autenticação**: Verificação de credenciais e geração de tokens
 - **Gerenciamento de Usuários**: CRUD completo de usuários
@@ -250,32 +289,44 @@ O projeto implementa uma arquitetura baseada em classes abstratas e utilitários
 - **Busca por Email**: Localização de usuários por email
 
 #### JwtService
+- **Herança**: Estende BaseService
+- **Interface**: Implementa TokenOperations
 - **Geração de Tokens**: Criação de access e refresh tokens
 - **Validação**: Verificação de assinatura e expiração
 - **Parsing**: Extração de claims dos tokens
 - **Chaves RSA**: Uso de chaves assimétricas para segurança
 - **Configuração Flexível**: TTL configurável para diferentes tipos de token
+- **Métodos da Interface**: generateToken, generateAccessToken, extractSubject, validateToken
 
 #### TokenBlacklistService
+- **Herança**: Estende BaseRedisService
+- **Interface**: Implementa SecurityOperations
 - **Invalidação de Tokens**: Adição de tokens à blacklist
 - **Verificação**: Validação se token está na blacklist
 - **Armazenamento Redis**: Cache distribuído para blacklist
 - **TTL Automático**: Expiração automática baseada no token
 - **Limpeza**: Remoção de tokens expirados
+- **Métodos da Interface**: authenticateUser, validateTokenSecurity, revokeTokenSecurity, hasPermission, hasRole
 
 #### AttemptService
+- **Herança**: Estende BaseRedisService
+- **Interface**: Implementa AttemptControlOperations
 - **Controle de Tentativas**: Rastreamento por endereço IP
 - **Limite Configurável**: Proteção contra força bruta
 - **Armazenamento Redis**: Persistência distribuída
 - **Reset Automático**: Limpeza após sucesso
 - **Estatísticas**: Métricas de tentativas por IP
+- **Métodos da Interface**: recordAttemptControl, isCaptchaRequiredControl, clearAttemptsControl
 
 #### CaptchaService
+- **Herança**: Estende BaseRedisService
+- **Interface**: Implementa CaptchaOperations
 - **Geração de Captchas**: Imagens com SimpleCaptcha
 - **Validação Segura**: Verificação com hash SHA-256
 - **Gerenciamento de Ciclo**: TTL e limpeza automática
 - **Configuração Customizada**: Tamanho e aparência personalizáveis
 - **Estatísticas**: Métricas de uso e validação
+- **Métodos da Interface**: createCaptcha, verifyCaptcha, isCaptchaValid, getCaptchaConfiguration
 
 ### Entidades e Repositórios
 

@@ -43,7 +43,6 @@ class UserServiceTest {
         testUser.setFirstName("João");
         testUser.setLastName("Silva");
         testUser.setEmail("joao@email.com");
-        testUser.setUsername("joao");
         testUser.setPassword("encodedPassword");
         testUser.setRole(UserRole.USER);
         testUser.setActive(true);
@@ -55,7 +54,6 @@ class UserServiceTest {
     void shouldCreateFirstUserAsAdmin() {
         // Given
         when(userRepository.existsByEmail("admin@email.com")).thenReturn(false);
-        when(userRepository.existsByUsername("admin")).thenReturn(false);
         when(userRepository.isFirstUser()).thenReturn(true);
         when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
         
@@ -64,7 +62,7 @@ class UserServiceTest {
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
         // When
-        User result = userService.createUser("Admin", "User", "admin@email.com", "admin", "password123");
+        User result = userService.createUser("Admin", "User", "admin@email.com", "password123");
 
         // Then
         assertThat(result.getRole()).isEqualTo(UserRole.ADMIN);
@@ -77,7 +75,6 @@ class UserServiceTest {
     void shouldCreateRegularUserWhenNotFirst() {
         // Given
         when(userRepository.existsByEmail("user@email.com")).thenReturn(false);
-        when(userRepository.existsByUsername("user")).thenReturn(false);
         when(userRepository.isFirstUser()).thenReturn(false);
         when(passwordEncoder.encode("password123")).thenReturn("encodedPassword");
         
@@ -86,7 +83,7 @@ class UserServiceTest {
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
         // When
-        User result = userService.createUser("Regular", "User", "user@email.com", "user", "password123");
+        User result = userService.createUser("Regular", "User", "user@email.com", "password123");
 
         // Then
         assertThat(result.getRole()).isEqualTo(UserRole.USER);
@@ -102,7 +99,7 @@ class UserServiceTest {
 
         // When & Then
         assertThatThrownBy(() -> 
-            userService.createUser("Test", "User", "existing@email.com", "testuser", "password123")
+            userService.createUser("Test", "User", "existing@email.com", "password123")
         )
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Email já está em uso");
@@ -110,37 +107,7 @@ class UserServiceTest {
         verify(userRepository, never()).save(any(User.class));
     }
 
-    @Test
-    @DisplayName("Deve lançar exceção quando username já existe")
-    void shouldThrowExceptionWhenUsernameExists() {
-        // Given
-        when(userRepository.existsByEmail("test@email.com")).thenReturn(false);
-        when(userRepository.existsByUsername("existinguser")).thenReturn(true);
 
-        // When & Then
-        assertThatThrownBy(() -> 
-            userService.createUser("Test", "User", "test@email.com", "existinguser", "password123")
-        )
-        .isInstanceOf(IllegalArgumentException.class)
-        .hasMessage("Username já está em uso");
-        
-        verify(userRepository, never()).save(any(User.class));
-    }
-
-    @Test
-    @DisplayName("Deve buscar usuário por username")
-    void shouldFindUserByUsername() {
-        // Given
-        when(userRepository.findByUsername("joao")).thenReturn(Optional.of(testUser));
-
-        // When
-        Optional<User> result = userService.findByUsername("joao");
-
-        // Then
-        assertThat(result).isPresent();
-        assertThat(result.get().getUsername()).isEqualTo("joao");
-        verify(userRepository).findByUsername("joao");
-    }
 
     @Test
     @DisplayName("Deve buscar usuário por email")
@@ -157,20 +124,7 @@ class UserServiceTest {
         verify(userRepository).findByEmail("joao@email.com");
     }
 
-    @Test
-    @DisplayName("Deve buscar usuário por username ou email")
-    void shouldFindUserByUsernameOrEmail() {
-        // Given
-        when(userRepository.findByUsernameOrEmail("joao", "joao")).thenReturn(Optional.of(testUser));
 
-        // When
-        Optional<User> result = userService.findByUsernameOrEmail("joao");
-
-        // Then
-        assertThat(result).isPresent();
-        assertThat(result.get().getUsername()).isEqualTo("joao");
-        verify(userRepository).findByUsernameOrEmail("joao", "joao");
-    }
 
     @Test
     @DisplayName("Deve listar usuários ativos")
@@ -252,13 +206,13 @@ class UserServiceTest {
     @DisplayName("Deve atualizar último login")
     void shouldUpdateLastLogin() {
         // Given
-        when(userRepository.findByUsername("joao")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmail("joao@email.com")).thenReturn(Optional.of(testUser));
         
         // When
-        userService.updateLastLogin("joao");
+        userService.updateLastLogin("joao@email.com");
 
         // Then
-        verify(userRepository).findByUsername("joao");
+        verify(userRepository).findByEmail("joao@email.com");
         verify(userRepository).updateLastLogin(eq(1L), any(LocalDateTime.class));
     }
 

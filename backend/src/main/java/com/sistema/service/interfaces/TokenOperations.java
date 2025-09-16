@@ -28,12 +28,12 @@ public interface TokenOperations {
     String generateRefreshToken(User user);
     
     /**
-     * Extrai o username do token.
+     * Extrai o subject (email) do token.
      * 
      * @param token token JWT
-     * @return username
+     * @return email do usuário
      */
-    String extractUsername(String token);
+    String extractSubject(String token);
     
     /**
      * Extrai a data de expiração do token.

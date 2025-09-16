@@ -61,7 +61,6 @@ class LoginFlowIntegrationTest {
         
         // Create test user
         testUser = new User();
-        testUser.setUsername("testuser");
         testUser.setEmail("test@example.com");
         testUser.setPassword(passwordEncoder.encode(testUserPassword));
         testUser.setRole(UserRole.USER);
@@ -84,7 +83,7 @@ class LoginFlowIntegrationTest {
             String password = testUserPassword;
 
             // When - Authenticate user
-            Map<String, Object> authResult = authService.authenticate(email, password, testClientIp, null, null);
+            Map<String, Object> authResult = authService.authenticate(email, password);
 
             // Then - Verify authentication result
             assertNotNull(authResult);
@@ -102,7 +101,7 @@ class LoginFlowIntegrationTest {
 
             // Verify user information
             assertEquals(testUser.getEmail(), userInfo.get("email"));
-            assertEquals(testUser.getUsername(), userInfo.get("username"));
+            assertEquals(testUser.getEmail(), userInfo.get("email"));
             assertEquals(testUser.getRole().toString(), userInfo.get("role"));
 
             // Verify token is not blacklisted
@@ -117,7 +116,7 @@ class LoginFlowIntegrationTest {
         void shouldExtractCorrectUserInformationFromTokens() {
             // Given
             Map<String, Object> authResult = authService.authenticate(
-                testUser.getEmail(), testUserPassword, testClientIp, null, null);
+                testUser.getEmail(), testUserPassword);
             String accessToken = (String) authResult.get("accessToken");
             String refreshToken = (String) authResult.get("refreshToken");
 
@@ -163,7 +162,7 @@ class LoginFlowIntegrationTest {
         void shouldLogoutAndInvalidateTokensSuccessfully() {
             // Given - Login first
             Map<String, Object> authResult = authService.authenticate(
-                testUser.getEmail(), testUserPassword, testClientIp, null, null);
+                testUser.getEmail(), testUserPassword);
             String accessToken = (String) authResult.get("accessToken");
             String refreshToken = (String) authResult.get("refreshToken");
 
@@ -172,7 +171,7 @@ class LoginFlowIntegrationTest {
             assertFalse(tokenBlacklistService.isTokenRevoked(refreshToken));
 
             // When - Logout
-            authService.logout(accessToken, refreshToken);
+            authService.logout(refreshToken, false);
 
             // Then - Verify tokens are blacklisted
             assertTrue(tokenBlacklistService.isTokenRevoked(accessToken));
@@ -193,7 +192,7 @@ class LoginFlowIntegrationTest {
 
             // When & Then
             assertThrows(BadCredentialsException.class, () -> {
-                authService.authenticate(email, wrongPassword, testClientIp, null, null);
+                authService.authenticate(email, wrongPassword, null);
             });
 
             // Verify attempt was recorded
@@ -209,7 +208,7 @@ class LoginFlowIntegrationTest {
 
             // When & Then
             assertThrows(DisabledException.class, () -> {
-                authService.authenticate(testUser.getEmail(), testUserPassword, testClientIp, null, null);
+                authService.authenticate(testUser.getEmail(), testUserPassword, null);
             });
         }
 
@@ -222,7 +221,7 @@ class LoginFlowIntegrationTest {
 
             // When & Then
             assertThrows(BadCredentialsException.class, () -> {
-                authService.authenticate(nonExistentEmail, password, testClientIp, null, null);
+                authService.authenticate(nonExistentEmail, password, null);
             });
         }
 
@@ -234,7 +233,7 @@ class LoginFlowIntegrationTest {
 
             // When & Then
             assertThrows(RuntimeException.class, () -> {
-                authService.refreshAccessToken(invalidRefreshToken);
+                authService.refreshAccessToken(invalidRefreshToken, null);
             });
         }
 
@@ -243,14 +242,14 @@ class LoginFlowIntegrationTest {
         void shouldHandleBlacklistedRefreshToken() {
             // Given - Login and logout to blacklist tokens
             Map<String, Object> authResult = authService.authenticate(
-                testUser.getEmail(), testUserPassword, testClientIp, null, null);
+                testUser.getEmail(), testUserPassword, null);
             String refreshToken = (String) authResult.get("refreshToken");
             
-            authService.logout((String) authResult.get("accessToken"), refreshToken);
+            authService.logout(refreshToken, false);
 
             // When & Then - Try to use blacklisted refresh token
             assertThrows(RuntimeException.class, () -> {
-                authService.refreshAccessToken(refreshToken);
+                authService.refreshAccessToken(refreshToken, null);
             });
         }
     }
@@ -264,11 +263,11 @@ class LoginFlowIntegrationTest {
         void shouldRequireCaptchaAfterMultipleFailedAttempts() {
             // Given - Record multiple failed attempts
             for (int i = 0; i < 5; i++) {
-                attemptService.recordAttempt(testClientIp);
+                attemptService.recordLoginAttempt(testClientIp);
             }
 
             // When - Check if captcha is required
-            boolean captchaRequired = attemptService.isCaptchaRequired(testClientIp);
+            boolean captchaRequired = attemptService.isCaptchaRequiredForLogin(testClientIp);
 
             // Then
             assertTrue(captchaRequired);
@@ -284,12 +283,12 @@ class LoginFlowIntegrationTest {
         void shouldLoginSuccessfullyWithValidCaptchaAfterFailedAttempts() {
             // Given - Record multiple failed attempts
             for (int i = 0; i < 5; i++) {
-                attemptService.recordAttempt(testClientIp);
+                attemptService.recordLoginAttempt(testClientIp);
             }
 
             // Create captcha
-            Map<String, Object> captchaResponse = captchaService.createCaptcha();
-            String captchaId = (String) captchaResponse.get("captchaId");
+            Map<String, String> captchaResponse = captchaService.generateCaptcha();
+            String captchaId = captchaResponse.get("captchaId");
             
             // For testing, we need to know the captcha answer
             // This would typically be handled differently in a real test environment
@@ -298,7 +297,7 @@ class LoginFlowIntegrationTest {
 
             // When - Login with captcha (this might fail if captcha validation is strict)
             // The actual implementation would need to be tested with a real captcha answer
-            boolean captchaValid = captchaService.verifyCaptcha(captchaId, captchaAnswer);
+            boolean captchaValid = captchaService.validateCaptcha(captchaId, captchaAnswer);
             
             // Then - Verify captcha validation works (even if it fails, the mechanism should work)
             // This test verifies the captcha integration exists
@@ -311,18 +310,18 @@ class LoginFlowIntegrationTest {
         void shouldClearAttemptsAfterSuccessfulLogin() {
             // Given - Record some failed attempts
             for (int i = 0; i < 3; i++) {
-                attemptService.recordAttempt(testClientIp);
+                attemptService.recordLoginAttempt(testClientIp);
             }
 
             // Verify attempts are recorded
-            assertTrue(attemptService.getAttemptCount(testClientIp) > 0);
+            assertTrue(attemptService.getLoginAttempts(testClientIp) > 0);
 
             // When - Successful login
-            authService.authenticate(testUser.getEmail(), testUserPassword, testClientIp, null, null);
+            authService.authenticate(testUser.getEmail(), testUserPassword);
 
             // Then - Attempts should be cleared
-            assertEquals(0, attemptService.getAttemptCount(testClientIp));
-            assertFalse(attemptService.isCaptchaRequired(testClientIp));
+            assertEquals(0, attemptService.getLoginAttempts(testClientIp));
+            assertFalse(attemptService.isCaptchaRequiredForLogin(testClientIp));
         }
     }
 
@@ -335,11 +334,11 @@ class LoginFlowIntegrationTest {
         void shouldValidateTokenSecurityProperly() {
             // Given - Login to get tokens
             Map<String, Object> authResult = authService.authenticate(
-                testUser.getEmail(), testUserPassword, testClientIp, null, null);
+                testUser.getEmail(), testUserPassword);
             String accessToken = (String) authResult.get("accessToken");
 
             // When - Validate token security
-            boolean isSecure = tokenBlacklistService.validateTokenSecurity(accessToken);
+            boolean isSecure = tokenBlacklistService.isTokenValidForUser(accessToken, testUser.getUsername());
 
             // Then
             assertTrue(isSecure);
@@ -350,14 +349,14 @@ class LoginFlowIntegrationTest {
         void shouldHandleTokenRevocationProperly() {
             // Given - Login to get tokens
             Map<String, Object> authResult = authService.authenticate(
-                testUser.getEmail(), testUserPassword, testClientIp, null, null);
+                testUser.getEmail(), testUserPassword);
             String accessToken = (String) authResult.get("accessToken");
 
             // Verify token is initially valid
             assertFalse(tokenBlacklistService.isTokenRevoked(accessToken));
 
             // When - Revoke token
-            tokenBlacklistService.revokeTokenSecurity(accessToken);
+            tokenBlacklistService.revokeToken(accessToken);
 
             // Then - Token should be revoked
             assertTrue(tokenBlacklistService.isTokenRevoked(accessToken));
@@ -371,10 +370,11 @@ class LoginFlowIntegrationTest {
             String password = testUserPassword;
 
             // When - Authenticate through security operations
-            boolean authenticated = tokenBlacklistService.authenticateUser(email, password);
+            Map<String, Object> authResult = tokenBlacklistService.authenticate(email, password, null);
 
             // Then
-            assertTrue(authenticated);
+            assertNotNull(authResult);
+            assertNotNull(authResult.get("accessToken"));
         }
 
         @Test
@@ -382,13 +382,13 @@ class LoginFlowIntegrationTest {
         void shouldCheckUserPermissionsAndRoles() {
             // Given - Login to get user context
             Map<String, Object> authResult = authService.authenticate(
-                testUser.getEmail(), testUserPassword, testClientIp, null, null);
+                testUser.getEmail(), testUserPassword);
             String accessToken = (String) authResult.get("accessToken");
 
             // When - Check permissions and roles
-            boolean hasUserRole = tokenBlacklistService.hasRole(testUser.getEmail(), "USER");
-            boolean hasAdminRole = tokenBlacklistService.hasRole(testUser.getEmail(), "ADMIN");
-            boolean hasPermission = tokenBlacklistService.hasPermission(testUser.getEmail(), "READ");
+            boolean hasUserRole = tokenBlacklistService.hasRole(testUser, "USER");
+            boolean hasAdminRole = tokenBlacklistService.hasRole(testUser, "ADMIN");
+            boolean hasPermission = tokenBlacklistService.hasPermission(testUser, "READ", "USER");
 
             // Then
             assertTrue(hasUserRole);
@@ -409,13 +409,13 @@ class LoginFlowIntegrationTest {
             String newUserEmail = "newuser@example.com";
             String newUserPassword = "NewPassword123!";
             
-            User newUser = authService.register("newuser", newUserEmail, newUserPassword);
+            User newUser = authService.register(newUserEmail, newUserPassword, "New", "User", "98765432100");
             assertNotNull(newUser);
             assertEquals(newUserEmail, newUser.getEmail());
 
             // When - Login with new user
             Map<String, Object> authResult = authService.authenticate(
-                newUserEmail, newUserPassword, testClientIp, null, null);
+                newUserEmail, newUserPassword);
 
             // Then - Verify login successful
             assertNotNull(authResult);
@@ -427,22 +427,22 @@ class LoginFlowIntegrationTest {
             assertTrue(jwtService.validateToken(refreshToken));
 
             // Change password
-            authService.changePassword(newUser.getId(), newUserPassword, "ChangedPassword123!");
+            authService.changePassword(newUserEmail, newUserPassword, "ChangedPassword123!");
 
             // Verify old password no longer works
             assertThrows(BadCredentialsException.class, () -> {
-                authService.authenticate(newUserEmail, newUserPassword, testClientIp, null, null);
+                authService.authenticate(newUserEmail, newUserPassword);
             });
 
             // Verify new password works
             Map<String, Object> newAuthResult = authService.authenticate(
-                newUserEmail, "ChangedPassword123!", testClientIp, null, null);
+                newUserEmail, "ChangedPassword123!");
             assertNotNull(newAuthResult);
 
             // Logout
             String newAccessToken = (String) newAuthResult.get("accessToken");
             String newRefreshToken = (String) newAuthResult.get("refreshToken");
-            authService.logout(newAccessToken, newRefreshToken);
+            authService.logout(newRefreshToken, false);
 
             // Verify tokens are blacklisted
             assertTrue(tokenBlacklistService.isTokenRevoked(newAccessToken));
@@ -453,33 +453,33 @@ class LoginFlowIntegrationTest {
         @DisplayName("Should handle admin operations flow")
         void shouldHandleAdminOperationsFlow() {
             // Given - Create admin user
-            User adminUser = authService.register("admin", "admin@example.com", "AdminPassword123!");
+            User adminUser = authService.register("admin@example.com", "AdminPassword123!", "Admin", "User", "12345678901");
             adminUser.setRole(UserRole.ADMIN);
             userRepository.save(adminUser);
 
             // Login as admin
             Map<String, Object> adminAuth = authService.authenticate(
-                "admin@example.com", "AdminPassword123!", testClientIp, null, null);
+                "admin@example.com", "AdminPassword123!");
             assertNotNull(adminAuth);
 
             // When - Perform admin operations
             // Enable/disable user
-            authService.enableUser(testUser.getId(), false);
+            authService.setUserEnabled(testUser.getId(), false);
             User disabledUser = userRepository.findById(testUser.getId()).orElse(null);
             assertNotNull(disabledUser);
             assertFalse(disabledUser.isEnabled());
 
             // Change user role
-            authService.changeUserRole(testUser.getId(), UserRole.ADMIN);
+            authService.updateUserRole(testUser.getId(), UserRole.ADMIN);
             User promotedUser = userRepository.findById(testUser.getId()).orElse(null);
             assertNotNull(promotedUser);
             assertEquals(UserRole.ADMIN, promotedUser.getRole());
 
             // Get statistics
-            Map<String, Object> stats = authService.getUserStatistics();
+            Map<String, Object> stats = authService.getUserStatisticsAsMap();
             assertNotNull(stats);
             assertTrue(stats.containsKey("totalUsers"));
-            assertTrue(stats.containsKey("enabledUsers"));
+            assertTrue(stats.containsKey("activeUsers"));
             assertTrue(stats.containsKey("adminUsers"));
         }
 
@@ -493,13 +493,13 @@ class LoginFlowIntegrationTest {
             // When - Perform multiple concurrent operations
             // This is a basic test - in a real scenario, you'd use threads
             for (int i = 0; i < 5; i++) {
-                Map<String, Object> authResult = authService.authenticate(email, password, testClientIp + i, null, null);
+                Map<String, Object> authResult = authService.authenticate(email, password);
                 assertNotNull(authResult);
                 
                 // Logout immediately
                 authService.logout(
-                    (String) authResult.get("accessToken"),
-                    (String) authResult.get("refreshToken")
+                    (String) authResult.get("refreshToken"),
+                    false
                 );
             }
 

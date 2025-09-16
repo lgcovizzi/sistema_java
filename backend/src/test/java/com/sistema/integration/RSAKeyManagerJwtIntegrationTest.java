@@ -52,7 +52,6 @@ class RSAKeyManagerJwtIntegrationTest {
         
         // Criar usuário de teste
         testUser = new User();
-        testUser.setUsername("testuser");
         testUser.setEmail("test@example.com");
         testUser.setFirstName("Test");
         testUser.setLastName("User");

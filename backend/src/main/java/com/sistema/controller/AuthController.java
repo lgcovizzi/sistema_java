@@ -68,7 +68,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest httpRequest) {
         String clientIp = getClientIpAddress(httpRequest);
-        String identifier = loginRequest.getUsernameOrEmail();
+        String identifier = loginRequest.getEmail();
         
         try {
             // Verificar se captcha é necessário
@@ -97,7 +97,7 @@ public class AuthController {
             }
             
             Map<String, Object> authResponse = authService.authenticate(
-                    loginRequest.getUsernameOrEmail(),
+                    loginRequest.getEmail(),
                     loginRequest.getPassword(),
                     httpRequest
             );
@@ -105,14 +105,14 @@ public class AuthController {
             // Login bem-sucedido - limpar tentativas
             attemptService.clearLoginAttempts(clientIp);
             
-            logger.info("Login realizado com sucesso para: {}", loginRequest.getUsernameOrEmail());
+            logger.info("Login realizado com sucesso para: {}", loginRequest.getEmail());
             return ResponseEntity.ok(authResponse);
             
         } catch (Exception e) {
             // Registrar tentativa falhada
             attemptService.recordLoginAttempt(clientIp);
             
-            logger.warn("Falha no login para: {} (IP: {})", loginRequest.getUsernameOrEmail(), clientIp);
+            logger.warn("Falha no login para: {} (IP: {})", loginRequest.getEmail(), clientIp);
             
             Map<String, Object> errorResponse = createErrorResponse("Credenciais inválidas", "INVALID_CREDENTIALS");
             
@@ -135,7 +135,6 @@ public class AuthController {
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest, HttpServletRequest httpRequest) {
         try {
             Map<String, Object> authResponse = authService.registerAndAuthenticate(
-                    registerRequest.getUsername(),
                     registerRequest.getEmail(),
                     registerRequest.getPassword(),
                     registerRequest.getFirstName(),
@@ -144,7 +143,7 @@ public class AuthController {
                     httpRequest
             );
             
-            logger.info("Usuário registrado com sucesso: {}", registerRequest.getUsername());
+            logger.info("Usuário registrado com sucesso: {}", registerRequest.getEmail());
             return ResponseEntity.status(HttpStatus.CREATED).body(authResponse);
             
         } catch (IllegalArgumentException e) {
@@ -201,14 +200,14 @@ public class AuthController {
             
             // Extrai o token de acesso atual da requisição
             String currentAccessToken = extractTokenFromRequest(httpRequest);
-            String username = null;
+            String email = null;
             
             if (currentAccessToken != null) {
                 try {
-                    username = jwtService.extractUsername(currentAccessToken);
+                    email = jwtService.extractSubject(currentAccessToken);
                     // Revoga o token de acesso atual
                     tokenBlacklistService.revokeToken(currentAccessToken);
-                    logger.info("Token de acesso atual revogado para usuário: {}", username);
+                    logger.info("Token de acesso atual revogado para usuário: {}", email);
                 } catch (Exception e) {
                     logger.warn("Erro ao revogar token de acesso atual: {}", e.getMessage());
                 }
@@ -227,15 +226,15 @@ public class AuthController {
             }
             
             // Se solicitado, revoga todos os tokens do usuário
-            if (revokeAll && username != null) {
-                tokenBlacklistService.revokeAllUserTokens(username);
-                logger.info("Todos os tokens do usuário {} foram revogados", username);
+            if (revokeAll && email != null) {
+                tokenBlacklistService.revokeAllUserTokens(email);
+                logger.info("Todos os tokens do usuário {} foram revogados", email);
             }
             
             // Chama o logout do AuthService para limpeza adicional
             authService.logout(refreshToken, revokeAll);
             
-            logger.info("Logout realizado com sucesso para usuário: {}", username);
+            logger.info("Logout realizado com sucesso para usuário: {}", email);
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Logout realizado com sucesso");
@@ -268,7 +267,7 @@ public class AuthController {
             
             Map<String, Object> userInfo = new HashMap<>();
             userInfo.put("id", user.getId());
-            userInfo.put("username", user.getUsername());
+            userInfo.put("username", user.getEmail());
             userInfo.put("email", user.getEmail());
             userInfo.put("fullName", user.getFullName());
             userInfo.put("roles", user.getRoles());
@@ -547,12 +546,12 @@ public class AuthController {
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Role do usuário atualizado com sucesso");
             response.put("userId", userId);
-            response.put("username", updatedUser.getUsername());
+            response.put("username", updatedUser.getEmail());
             response.put("email", updatedUser.getEmail());
             response.put("newRole", updatedUser.getRole());
             
             logger.info("Role do usuário {} (ID: {}) atualizado para {} por admin", 
-                       updatedUser.getUsername(), userId, updateRoleRequest.getRole());
+                       updatedUser.getEmail(), userId, updateRoleRequest.getRole());
             
             return ResponseEntity.ok(response);
             
@@ -616,8 +615,9 @@ public class AuthController {
     // Classes de Request DTOs
     
     public static class LoginRequest {
-        @NotBlank(message = "Username ou email é obrigatório")
-        private String usernameOrEmail;
+        @NotBlank(message = "Email é obrigatório")
+        @Email(message = "Email deve ser válido")
+        private String email;
         
         @NotBlank(message = "Password é obrigatório")
         private String password;
@@ -627,8 +627,8 @@ public class AuthController {
         private String captchaAnswer;
         
         // Getters e Setters
-        public String getUsernameOrEmail() { return usernameOrEmail; }
-        public void setUsernameOrEmail(String usernameOrEmail) { this.usernameOrEmail = usernameOrEmail; }
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
         public String getPassword() { return password; }
         public void setPassword(String password) { this.password = password; }
         public String getCaptchaId() { return captchaId; }
@@ -638,10 +638,6 @@ public class AuthController {
     }
     
     public static class RegisterRequest {
-        @NotBlank(message = "Username é obrigatório")
-        @Size(min = 3, max = 50, message = "Username deve ter entre 3 e 50 caracteres")
-        private String username;
-        
         @NotBlank(message = "Email é obrigatório")
         @Email(message = "Email deve ser válido")
         private String email;
@@ -663,8 +659,6 @@ public class AuthController {
         private String cpf;
         
         // Getters e Setters
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
         public String getPassword() { return password; }

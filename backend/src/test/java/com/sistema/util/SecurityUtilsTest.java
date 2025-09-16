@@ -575,7 +575,7 @@ class SecurityUtilsTest {
             // When & Then - Should complete quickly
             assertThatCode(() -> {
                 for (int i = 0; i < 1000; i++) {
-                    SecurityUtils.generateSHA256Hash(testData);
+                    SecurityUtils.hashSHA256(testData);
                     SecurityUtils.sanitizeInput(testData);
                     SecurityUtils.isValidIpAddress("192.168.1.1");
                 }
@@ -595,7 +595,7 @@ class SecurityUtilsTest {
                     threads[i] = new Thread(() -> {
                         for (int j = 0; j < 100; j++) {
                             SecurityUtils.generateSecureToken();
-                            SecurityUtils.generateSHA256Hash(testData + j);
+                            SecurityUtils.hashSHA256(testData + j);
                         }
                     });
                     threads[i].start();

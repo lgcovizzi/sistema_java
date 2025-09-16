@@ -274,7 +274,7 @@ public class TokenBlacklistService extends BaseRedisService implements SecurityO
     
     @Override
     public void logSecurityEvent(String event, com.sistema.entity.User user, String details, jakarta.servlet.http.HttpServletRequest request) {
-        logInfo("Evento de segurança: " + event + " - Usuário: " + user.getUsername() + " - Detalhes: " + details);
+        logInfo("Evento de segurança: " + event + " - Usuário: " + user.getEmail() + " - Detalhes: " + details);
     }
     
     @Override
@@ -295,5 +295,47 @@ public class TokenBlacklistService extends BaseRedisService implements SecurityO
     
     public void logSecurityEvent(String event, String username) {
         logSecurityEvent(event, username, "");
+    }
+    
+    /**
+     * Obtém estatísticas da blacklist de tokens
+     * @return Map com estatísticas da blacklist
+     */
+    public java.util.Map<String, Object> getBlacklistStatistics() {
+        try {
+            java.util.Set<String> blacklistedKeys = redisTemplate.keys(BLACKLIST_PREFIX + "*");
+            if (blacklistedKeys == null) {
+                blacklistedKeys = java.util.Set.of();
+            }
+            
+            int totalBlacklisted = blacklistedKeys.size();
+            int activeBlacklisted = 0;
+            int expiredBlacklisted = 0;
+            
+            for (String key : blacklistedKeys) {
+                Long ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS);
+                if (ttl != null && ttl > 0) {
+                    activeBlacklisted++;
+                } else {
+                    expiredBlacklisted++;
+                }
+            }
+            
+            java.util.Map<String, Object> stats = new java.util.HashMap<>();
+            stats.put("totalBlacklisted", totalBlacklisted);
+            stats.put("activeBlacklisted", activeBlacklisted);
+            stats.put("expiredBlacklisted", expiredBlacklisted);
+            stats.put("timestamp", java.time.LocalDateTime.now());
+            
+            return stats;
+        } catch (Exception e) {
+            logError("Erro ao obter estatísticas da blacklist", e);
+            return java.util.Map.of(
+                "totalBlacklisted", 0,
+                "activeBlacklisted", 0,
+                "expiredBlacklisted", 0,
+                "error", "Erro ao obter estatísticas"
+            );
+        }
     }
 }

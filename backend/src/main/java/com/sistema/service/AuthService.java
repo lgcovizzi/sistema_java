@@ -129,7 +129,6 @@ public class AuthService extends BaseUserService implements UserDetailsService {
             response.put("expiresIn", jwtService.getAccessTokenExpiration());
             response.put("user", Map.of(
                     "id", user.getId(),
-                    "username", user.getUsername(),
                     "email", user.getEmail(),
                     "role", user.getRole().name()
             ));

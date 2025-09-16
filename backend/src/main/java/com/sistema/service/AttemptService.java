@@ -365,4 +365,33 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
     public int getMaxAttemptsBeforeCaptcha() {
         return MAX_ATTEMPTS_BEFORE_CAPTCHA;
     }
+    
+    /**
+     * Obtém o número de tentativas restantes antes de exigir captcha.
+     * 
+     * @param identifier identificador único
+     * @return número de tentativas restantes
+     */
+    public int getRemainingAttempts(String identifier) {
+        int currentAttempts = getLoginAttempts(identifier);
+        int remaining = MAX_ATTEMPTS_BEFORE_CAPTCHA - currentAttempts;
+        return Math.max(0, remaining);
+    }
+    
+    /**
+     * Limpa tentativas expiradas do Redis.
+     * Este método é chamado periodicamente para manutenção.
+     */
+    public void cleanupExpiredAttempts() {
+        try {
+            logInfo("Iniciando limpeza de tentativas expiradas");
+            
+            // O Redis já remove automaticamente as chaves expiradas
+            // Este método pode ser usado para limpeza adicional se necessário
+            
+            logInfo("Limpeza de tentativas expiradas concluída");
+        } catch (Exception e) {
+            logError("Erro durante limpeza de tentativas expiradas", e);
+        }
+    }
 }

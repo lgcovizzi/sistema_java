@@ -14,10 +14,6 @@ public final class ValidationUtils {
         "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
     );
     
-    private static final Pattern USERNAME_PATTERN = Pattern.compile(
-        "^[a-zA-Z0-9._-]{3,20}$"
-    );
-    
     private static final Pattern PHONE_PATTERN = Pattern.compile(
         "^\\+?[1-9]\\d{1,14}$"
     );
@@ -186,21 +182,6 @@ public final class ValidationUtils {
     }
     
     /**
-     * Valida formato de username.
-     * 
-     * @param username username a validar
-     * @throws IllegalArgumentException se formato inválido
-     */
-    public static void validateUsername(String username) {
-        validateNotEmpty(username, "username");
-        if (!USERNAME_PATTERN.matcher(username).matches()) {
-            throw new IllegalArgumentException(
-                "Username deve ter 3-20 caracteres e conter apenas letras, números, pontos, hífens e underscores"
-            );
-        }
-    }
-    
-    /**
      * Valida formato de telefone.
      * 
      * @param phone telefone a validar
@@ -292,16 +273,6 @@ public final class ValidationUtils {
     }
     
     /**
-     * Verifica se uma string é um username válido.
-     * 
-     * @param username username a verificar
-     * @return true se é válido
-     */
-    public static boolean isValidUsername(String username) {
-        return username != null && USERNAME_PATTERN.matcher(username).matches();
-    }
-    
-    /**
      * Verifica se uma string é um telefone válido.
      * 
      * @param phone telefone a verificar
@@ -319,5 +290,130 @@ public final class ValidationUtils {
      */
     public static boolean isValidPassword(String password) {
         return password != null && password.length() >= 8 && PASSWORD_PATTERN.matcher(password).matches();
+    }
+    
+    /**
+     * Verifica se um CPF é válido.
+     * 
+     * @param cpf CPF a verificar
+     * @return true se válido, false caso contrário
+     */
+    public static boolean isValidCpf(String cpf) {
+        if (cpf == null || cpf.trim().isEmpty()) {
+            return false;
+        }
+        
+        // Remove formatação
+        String cleanCpf = cpf.replaceAll("[^0-9]", "");
+        
+        // Verifica se tem 11 dígitos
+        if (cleanCpf.length() != 11) {
+            return false;
+        }
+        
+        // Verifica se todos os dígitos são iguais
+        if (cleanCpf.matches("(\\d)\\1{10}")) {
+            return false;
+        }
+        
+        // Calcula primeiro dígito verificador
+        int sum = 0;
+        for (int i = 0; i < 9; i++) {
+            sum += Character.getNumericValue(cleanCpf.charAt(i)) * (10 - i);
+        }
+        int firstDigit = 11 - (sum % 11);
+        if (firstDigit >= 10) {
+            firstDigit = 0;
+        }
+        
+        // Calcula segundo dígito verificador
+        sum = 0;
+        for (int i = 0; i < 10; i++) {
+            sum += Character.getNumericValue(cleanCpf.charAt(i)) * (11 - i);
+        }
+        int secondDigit = 11 - (sum % 11);
+        if (secondDigit >= 10) {
+            secondDigit = 0;
+        }
+        
+        // Verifica se os dígitos calculados conferem
+        return Character.getNumericValue(cleanCpf.charAt(9)) == firstDigit &&
+               Character.getNumericValue(cleanCpf.charAt(10)) == secondDigit;
+    }
+    
+    /**
+     * Verifica se uma string não é nula nem vazia nem contém apenas espaços.
+     * 
+     * @param value string a verificar
+     * @return true se não é blank, false caso contrário
+     */
+    public static boolean isNotBlank(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+    
+    /**
+     * Verifica se uma string tem comprimento válido.
+     * 
+     * @param value string a verificar
+     * @param minLength comprimento mínimo
+     * @param maxLength comprimento máximo
+     * @return true se comprimento é válido, false caso contrário
+     */
+    public static boolean isValidLength(String value, int minLength, int maxLength) {
+        if (value == null) {
+            return false;
+        }
+        int length = value.length();
+        return length >= minLength && length <= maxLength;
+    }
+    
+    /**
+     * Verifica se uma string contém apenas números.
+     * 
+     * @param value string a verificar
+     * @return true se contém apenas números
+     */
+    public static boolean isNumeric(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return false;
+        }
+        try {
+            Double.parseDouble(value);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Verifica se um valor está dentro de um intervalo.
+     * 
+     * @param value valor a verificar
+     * @param min valor mínimo
+     * @param max valor máximo
+     * @return true se está no intervalo
+     */
+    public static boolean isInRange(int value, int min, int max) {
+        return value >= min && value <= max;
+    }
+    
+    /**
+     * Verifica se uma URL é válida.
+     * 
+     * @param url URL a verificar
+     * @return true se é uma URL válida
+     */
+    public static boolean isValidUrl(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return false;
+        }
+        
+        try {
+            java.net.URL urlObj = new java.net.URL(url);
+            urlObj.toURI();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

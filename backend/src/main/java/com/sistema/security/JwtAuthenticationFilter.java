@@ -101,20 +101,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            String username = jwtService.extractUsername(jwt);
-            if (username == null) {
-                logger.debug("Username não encontrado no token JWT");
+            String email = jwtService.extractSubject(jwt);
+            if (email == null) {
+                logger.debug("Email não encontrado no token JWT");
                 return;
             }
 
             // Verifica se todos os tokens do usuário foram revogados
-            if (tokenBlacklistService.isTokenGloballyRevoked(jwt, username)) {
-                logger.debug("Token JWT foi revogado globalmente para o usuário: {}", username);
+            if (tokenBlacklistService.isTokenGloballyRevoked(jwt, email)) {
+                logger.debug("Token JWT foi revogado globalmente para o usuário: {}", email);
                 return;
             }
 
             // Carrega os detalhes do usuário
-            UserDetails userDetails = authService.loadUserByUsername(username);
+            UserDetails userDetails = authService.loadUserByUsername(email);
             
             // Cria o objeto de autenticação
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -129,7 +129,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Define a autenticação no contexto de segurança
             SecurityContextHolder.getContext().setAuthentication(authToken);
             
-            logger.debug("Usuário autenticado com sucesso: {}", username);
+            logger.debug("Usuário autenticado com sucesso: {}", email);
             
         } catch (Exception e) {
             logger.error("Erro ao autenticar usuário: {}", e.getMessage());

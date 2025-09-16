@@ -42,9 +42,8 @@ public class DataLoader implements CommandLineRunner {
      */
     private void createDefaultUsers() {
         // Criar usuário admin se não existir
-        if (!userRepository.existsByUsername("admin")) {
+        if (!userRepository.existsByEmail("admin@sistema.com")) {
             User admin = new User();
-            admin.setUsername("admin");
             admin.setEmail("admin@sistema.com");
             admin.setPassword(passwordEncoder.encode("admin123"));
             admin.setFirstName("Administrador");
@@ -56,15 +55,14 @@ public class DataLoader implements CommandLineRunner {
             admin.setUpdatedAt(LocalDateTime.now());
             
             userRepository.save(admin);
-            logger.info("Usuário admin criado com sucesso");
+            logger.info("Usuário admin criado com sucesso: {}", admin.getEmail());
         } else {
-            logger.info("Usuário admin já existe");
+            logger.info("Usuário admin já existe: admin@sistema.com");
         }
 
         // Criar usuário de teste se não existir
-        if (!userRepository.existsByUsername("testuser")) {
+        if (!userRepository.existsByEmail("test@sistema.com")) {
             User testUser = new User();
-            testUser.setUsername("testuser");
             testUser.setEmail("test@sistema.com");
             testUser.setPassword(passwordEncoder.encode("test123"));
             testUser.setFirstName("Usuário");
@@ -76,15 +74,14 @@ public class DataLoader implements CommandLineRunner {
             testUser.setUpdatedAt(LocalDateTime.now());
             
             userRepository.save(testUser);
-            logger.info("Usuário testuser criado com sucesso");
+            logger.info("Usuário test@sistema.com criado com sucesso");
         } else {
-            logger.info("Usuário testuser já existe");
+            logger.info("Usuário test@sistema.com já existe");
         }
 
         // Criar usuário demo se não existir
-        if (!userRepository.existsByUsername("demo")) {
+        if (!userRepository.existsByEmail("demo@sistema.com")) {
             User demoUser = new User();
-            demoUser.setUsername("demo");
             demoUser.setEmail("demo@sistema.com");
             demoUser.setPassword(passwordEncoder.encode("demo123"));
             demoUser.setFirstName("Demo");
@@ -96,7 +93,7 @@ public class DataLoader implements CommandLineRunner {
             demoUser.setUpdatedAt(LocalDateTime.now());
             
             userRepository.save(demoUser);
-            logger.info("Usuário demo criado com sucesso");
+            logger.info("Usuário demo@sistema.com criado com sucesso");
         } else {
             logger.info("Usuário demo já existe");
         }

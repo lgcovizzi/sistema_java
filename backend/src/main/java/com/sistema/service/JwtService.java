@@ -118,10 +118,21 @@ public class JwtService extends BaseService implements TokenOperations {
     /**
      * Extrai o email do token JWT.
      * 
-     * @param token o token JWT
-     * @return email
+     * @param token token JWT
+     * @return email do usuário
      */
     public String extractEmail(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
+
+    /**
+     * Extrai o username do token JWT.
+     * Para compatibilidade, retorna o subject (email) do token.
+     * 
+     * @param token token JWT
+     * @return username do usuário
+     */
+    public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 

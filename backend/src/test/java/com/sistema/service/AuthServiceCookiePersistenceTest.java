@@ -66,7 +66,6 @@ class AuthServiceCookiePersistenceTest {
         // Configurar usuário de teste
         testUser = new User();
         testUser.setId(1L);
-        testUser.setUsername("testuser");
         testUser.setEmail("test@example.com");
         testUser.setPassword("encodedPassword");
         testUser.setEnabled(true);

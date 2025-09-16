@@ -484,13 +484,12 @@ class TokenBlacklistServiceTest {
             SecurityOperations operations = tokenBlacklistService;
             when(jwtService.extractJti(testToken)).thenReturn(testJti);
             when(redisTemplate.hasKey("jwt:blacklist:" + testJti)).thenReturn(false);
-            when(jwtService.validateToken(testToken)).thenReturn(true);
 
             // When
-            boolean isValid = operations.validateTokenSecurity(testToken);
+            boolean isRevoked = operations.isTokenRevoked(testToken);
 
             // Then
-            assertThat(isValid).isTrue();
+            assertThat(isRevoked).isFalse();
         }
 
         @Test
@@ -502,10 +501,10 @@ class TokenBlacklistServiceTest {
             when(redisTemplate.hasKey("jwt:blacklist:" + testJti)).thenReturn(true);
 
             // When
-            boolean isValid = operations.validateTokenSecurity(testToken);
+            boolean isRevoked = operations.isTokenRevoked(testToken);
 
             // Then
-            assertThat(isValid).isFalse();
+            assertThat(isRevoked).isTrue();
         }
 
         @Test
@@ -516,10 +515,9 @@ class TokenBlacklistServiceTest {
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
             when(jwtService.extractJti(testToken)).thenReturn(testJti);
             when(jwtService.extractExpiration(testToken)).thenReturn(futureExpiration);
-            when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
 
             // When
-            boolean result = operations.revokeTokenSecurity(testToken);
+            boolean result = operations.revokeToken(testToken);
 
             // Then
             assertThat(result).isTrue();
@@ -530,9 +528,11 @@ class TokenBlacklistServiceTest {
         void shouldCheckUserPermissions() {
             // Given
             SecurityOperations operations = tokenBlacklistService;
+            com.sistema.entity.User testUser = new com.sistema.entity.User();
+            testUser.setUsername(testUsername);
 
             // When
-            boolean hasPermission = operations.hasPermission(testUsername, "READ");
+            boolean hasPermission = operations.hasPermission(testUser, "resource", "READ");
 
             // Then
             assertThat(hasPermission).isTrue(); // Default implementation
@@ -543,9 +543,11 @@ class TokenBlacklistServiceTest {
         void shouldCheckUserRoles() {
             // Given
             SecurityOperations operations = tokenBlacklistService;
+            com.sistema.entity.User testUser = new com.sistema.entity.User();
+            testUser.setUsername(testUsername);
 
             // When
-            boolean hasRole = operations.hasRole(testUsername, "USER");
+            boolean hasRole = operations.hasRole(testUser, "USER");
 
             // Then
             assertThat(hasRole).isTrue(); // Default implementation

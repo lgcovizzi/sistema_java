@@ -182,7 +182,7 @@ public abstract class BaseUserService extends BaseService {
         validateNotNull(user, "user");
         
         if (!user.isEnabled()) {
-            String message = String.format("Usuário está inativo: %s", user.getUsername());
+            String message = String.format("Usuário está inativo: %s", user.getEmail());
             logger.warn(message);
             throw new RuntimeException(message);
         }

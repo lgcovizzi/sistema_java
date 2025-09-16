@@ -190,9 +190,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findAllByOrderByCreatedAtDesc();
 
     /**
-     * Busca usuários ordenados por último login (mais recentes primeiro).
+     * Busca todos os usuários ordenados por último login (mais recente primeiro).
      * 
-     * @return lista de usuários ordenada por último login
+     * @return lista de usuários ordenados por último login
      */
     List<User> findAllByOrderByLastLoginDesc();
+
+    /**
+     * Busca usuários por username ou email contendo o termo (case insensitive).
+     * 
+     * @param username termo para buscar no username
+     * @param email termo para buscar no email
+     * @return lista de usuários encontrados
+     */
+    List<User> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(String username, String email);
 }

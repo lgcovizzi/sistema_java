@@ -68,7 +68,7 @@ class LoginFlowIntegrationTest {
         testUser = userRepository.save(testUser);
 
         // Clear any existing attempts for test IP
-        attemptService.clearAttempts(testClientIp);
+        attemptService.clearLoginAttempts(testClientIp);
     }
 
     @Nested
@@ -108,7 +108,7 @@ class LoginFlowIntegrationTest {
             assertFalse(tokenBlacklistService.isTokenRevoked(accessToken));
 
             // Verify attempts are cleared after successful login
-            assertFalse(attemptService.isCaptchaRequired(testClientIp));
+            assertFalse(attemptService.isCaptchaRequiredForLogin(testClientIp));
         }
 
         @Test
@@ -134,11 +134,11 @@ class LoginFlowIntegrationTest {
         void shouldRefreshTokensSuccessfully() {
             // Given - Initial login
             Map<String, Object> authResult = authService.authenticate(
-                testUser.getEmail(), testUserPassword, testClientIp, null, null);
+                testUser.getEmail(), testUserPassword);
             String originalRefreshToken = (String) authResult.get("refreshToken");
 
             // When - Refresh tokens
-            Map<String, Object> refreshResult = authService.refreshAccessToken(originalRefreshToken);
+            Map<String, Object> refreshResult = authService.refreshAccessToken(originalRefreshToken, null);
 
             // Then - Verify refresh result
             assertNotNull(refreshResult);
@@ -269,12 +269,12 @@ class LoginFlowIntegrationTest {
             // When - Check if captcha is required
             boolean captchaRequired = attemptService.isCaptchaRequiredForLogin(testClientIp);
 
-            // Then
+            // Then - Verify captcha is required
             assertTrue(captchaRequired);
 
             // When - Try to login without captcha
             assertThrows(RuntimeException.class, () -> {
-                authService.authenticate(testUser.getEmail(), testUserPassword, testClientIp, null, null);
+                authService.authenticate(testUser.getEmail(), testUserPassword);
             });
         }
 

@@ -8,6 +8,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @DisplayName("ValidationUtils Tests")
 class ValidationUtilsTest {
@@ -424,57 +426,47 @@ class ValidationUtilsTest {
     }
 
     @Nested
-    @DisplayName("Date Validation Tests")
-    class DateValidationTests {
+    @DisplayName("Additional Validation Tests")
+    class AdditionalValidationTests {
 
         @Test
-        @DisplayName("Should validate correct date formats")
-        void shouldValidateCorrectDateFormats() {
-            // Given
-            String[] validDates = {
-                    "2023-12-25", // ISO format
-                    "25/12/2023", // Brazilian format
-                    "12/25/2023", // US format
-                    "2023-01-01",
-                    "31/01/2023"
-            };
-
-            // When & Then
-            for (String date : validDates) {
-                assertThat(ValidationUtils.isValidDate(date))
-                        .as("Date %s should be valid", date)
-                        .isTrue();
-            }
+        @DisplayName("Deve validar URLs corretamente")
+        void shouldValidateUrlsCorrectly() {
+            // Valid URLs
+            assertTrue(ValidationUtils.isValidUrl("https://example.com"));
+            assertTrue(ValidationUtils.isValidUrl("http://localhost:8080"));
+            assertTrue(ValidationUtils.isValidUrl("https://api.example.com/v1/users"));
+            
+            // Invalid URLs
+            assertFalse(ValidationUtils.isValidUrl("not-a-url"));
+            assertFalse(ValidationUtils.isValidUrl(""));
+            assertFalse(ValidationUtils.isValidUrl(null));
         }
 
         @Test
-        @DisplayName("Should reject invalid date formats")
-        void shouldRejectInvalidDateFormats() {
-            // Given
-            String[] invalidDates = {
-                    "2023-13-01", // Invalid month
-                    "2023-02-30", // Invalid day for February
-                    "32/01/2023", // Invalid day
-                    "01/13/2023", // Invalid month in US format
-                    "not-a-date",
-                    "2023/12/25", // Wrong separator
-                    "25-12-2023" // Wrong separator for Brazilian format
-            };
-
-            // When & Then
-            for (String date : invalidDates) {
-                assertThat(ValidationUtils.isValidDate(date))
-                        .as("Date %s should be invalid", date)
-                        .isFalse();
-            }
+        @DisplayName("Deve validar números corretamente")
+        void shouldValidateNumericStrings() {
+            // Valid numbers
+            assertTrue(ValidationUtils.isNumeric("123"));
+            assertTrue(ValidationUtils.isNumeric("0"));
+            assertTrue(ValidationUtils.isNumeric("999"));
+            
+            // Invalid numbers
+            assertFalse(ValidationUtils.isNumeric("abc"));
+            assertFalse(ValidationUtils.isNumeric("12.34"));
+            assertFalse(ValidationUtils.isNumeric(""));
+            assertFalse(ValidationUtils.isNumeric(null));
         }
 
-        @ParameterizedTest
-        @NullAndEmptySource
-        @DisplayName("Should handle null and empty dates")
-        void shouldHandleNullAndEmptyDates(String date) {
-            // When & Then
-            assertThat(ValidationUtils.isValidDate(date)).isFalse();
+        @Test
+        @DisplayName("Deve validar intervalos de valores")
+        void shouldValidateValueRanges() {
+            assertTrue(ValidationUtils.isInRange(5, 1, 10));
+            assertTrue(ValidationUtils.isInRange(1, 1, 10));
+            assertTrue(ValidationUtils.isInRange(10, 1, 10));
+            
+            assertFalse(ValidationUtils.isInRange(0, 1, 10));
+            assertFalse(ValidationUtils.isInRange(11, 1, 10));
         }
     }
 

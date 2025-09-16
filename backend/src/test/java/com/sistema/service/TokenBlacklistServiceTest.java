@@ -529,7 +529,8 @@ class TokenBlacklistServiceTest {
             // Given
             SecurityOperations operations = tokenBlacklistService;
             com.sistema.entity.User testUser = new com.sistema.entity.User();
-            testUser.setUsername(testUsername);
+            testUser.setId(1L);
+            testUser.setEmail("test@example.com");
 
             // When
             boolean hasPermission = operations.hasPermission(testUser, "resource", "READ");
@@ -544,7 +545,8 @@ class TokenBlacklistServiceTest {
             // Given
             SecurityOperations operations = tokenBlacklistService;
             com.sistema.entity.User testUser = new com.sistema.entity.User();
-            testUser.setUsername(testUsername);
+            testUser.setId(1L);
+            testUser.setEmail("test@example.com");
 
             // When
             boolean hasRole = operations.hasRole(testUser, "USER");

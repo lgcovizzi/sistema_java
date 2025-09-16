@@ -24,6 +24,7 @@ import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -63,7 +64,6 @@ class JwtServiceTest {
         // Setup test user
         testUser = new User();
         testUser.setId(1L);
-        testUser.setUsername("testuser");
         testUser.setEmail("test@example.com");
         testUser.setPassword("encodedPassword");
         testUser.setRoles(List.of(Role.USER, Role.ADMIN));
@@ -382,16 +382,19 @@ class JwtServiceTest {
             // When & Then - Não deve lançar exceções para métodos da interface
             assertThat(operations).isNotNull();
             
-            String token = operations.generateToken("test@example.com", claims, 15);
-            assertThat(token).isNotNull();
+            User testUser = new User();
+            testUser.setEmail("test@example.com");
             
-            String accessToken = operations.generateAccessToken("test@example.com", claims);
+            String accessToken = operations.generateAccessToken(testUser);
             assertThat(accessToken).isNotNull();
             
-            String subject = operations.extractSubject(token);
+            String refreshToken = operations.generateRefreshToken(testUser);
+            assertThat(refreshToken).isNotNull();
+            
+            String subject = operations.extractSubject(accessToken);
             assertThat(subject).isEqualTo("test@example.com");
             
-            boolean isValid = operations.validateToken(token);
+            boolean isValid = operations.isTokenValid(accessToken, testUser);
             assertThat(isValid).isTrue();
         }
     }
@@ -553,12 +556,13 @@ class JwtServiceTest {
             String token = jwtService.generateAccessToken(testUser);
 
             // When
-            Claims claims = jwtService.extractAllClaims(token);
+            Date issuedAt = jwtService.extractIssuedAt(token);
+            Date expiration = jwtService.extractExpiration(token);
 
             // Then
-            assertThat(claims.getIssuedAt()).isNotNull();
-            assertThat(claims.getExpiration()).isNotNull();
-            assertThat(claims.getExpiration()).isAfter(claims.getIssuedAt());
+            assertThat(issuedAt).isNotNull();
+            assertThat(expiration).isNotNull();
+            assertThat(expiration).isAfter(issuedAt);
         }
 
         @Test

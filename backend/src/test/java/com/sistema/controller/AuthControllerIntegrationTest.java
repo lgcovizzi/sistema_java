@@ -75,7 +75,9 @@ class AuthControllerIntegrationTest {
         
         // Create test user
         testUser = new User();
-        testUser.setUsername("testuser");
+        testUser.setFirstName("Test");
+        testUser.setLastName("User");
+        testUser.setCpf("12345678901");
         testUser.setEmail("test@example.com");
         testUser.setPassword(passwordEncoder.encode(testUserPassword));
         testUser.setRole(UserRole.USER);
@@ -235,7 +237,7 @@ class AuthControllerIntegrationTest {
             // Given - Simulate multiple failed attempts
             String clientIp = "127.0.0.1";
             for (int i = 0; i < 5; i++) {
-                attemptService.recordAttempt(clientIp);
+                attemptService.recordLoginAttempt(clientIp);
             }
 
             Map<String, String> loginData = new HashMap<>();
@@ -260,12 +262,12 @@ class AuthControllerIntegrationTest {
             // Given - Simulate multiple failed attempts
             String clientIp = "127.0.0.1";
             for (int i = 0; i < 5; i++) {
-                attemptService.recordAttempt(clientIp);
+                attemptService.recordLoginAttempt(clientIp);
             }
 
             // Create captcha
-            Map<String, Object> captchaResponse = captchaService.createCaptcha();
-            String captchaId = (String) captchaResponse.get("captchaId");
+            Map<String, String> captchaResponse = captchaService.generateCaptcha();
+            String captchaId = captchaResponse.get("id");
             String captchaAnswer = "test"; // Assuming we can set a known answer for testing
 
             Map<String, String> loginData = new HashMap<>();
@@ -462,7 +464,9 @@ class AuthControllerIntegrationTest {
         void setUpAdmin() throws Exception {
             // Create admin user
             adminUser = new User();
-            adminUser.setUsername("admin");
+            adminUser.setFirstName("Admin");
+            adminUser.setLastName("User");
+            adminUser.setCpf("98765432100");
             adminUser.setEmail("admin@example.com");
             adminUser.setPassword(passwordEncoder.encode("AdminPassword123!"));
             adminUser.setRole(UserRole.ADMIN);

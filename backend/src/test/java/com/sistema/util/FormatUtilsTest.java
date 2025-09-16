@@ -341,9 +341,9 @@ class FormatUtilsTest {
         @DisplayName("Should handle null dates")
         void shouldHandleNullDates() {
             // When & Then
-            assertThat(FormatUtils.formatDate(null)).isEmpty();
+            assertThat(FormatUtils.formatDate((LocalDate) null)).isEmpty();
             assertThat(FormatUtils.formatDateTime(null)).isEmpty();
-            assertThat(FormatUtils.formatDate(null, "yyyy-MM-dd")).isEmpty();
+            assertThat(FormatUtils.formatDate((LocalDate) null, "yyyy-MM-dd")).isEmpty();
         }
 
         @Test

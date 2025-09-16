@@ -4,18 +4,22 @@ import com.sistema.entity.RefreshToken;
 import com.sistema.entity.User;
 import com.sistema.entity.UserRole;
 import com.sistema.repository.UserRepository;
+import com.sistema.service.base.BaseUserService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -539,5 +543,299 @@ class AuthServiceTest {
         verify(userRepository).countByEnabledTrue();
         verify(userRepository).countByRole(UserRole.ADMIN);
         verify(userRepository).countByRole(UserRole.USER);
+    }
+
+    @Nested
+    @DisplayName("CPF Operations Tests")
+    class CpfOperationsTests {
+
+        @Test
+        @DisplayName("Should find user by CPF successfully")
+        void findByCpf_Success() {
+            // Given
+            String cpf = "12345678909";
+            when(userRepository.findByCpf(cpf)).thenReturn(Optional.of(testUser));
+
+            // When
+            Optional<User> result = authService.findByCpf(cpf);
+
+            // Then
+            assertThat(result).isPresent();
+            assertThat(result.get()).isEqualTo(testUser);
+            verify(userRepository).findByCpf(cpf);
+        }
+
+        @Test
+        @DisplayName("Should return empty when CPF not found")
+        void findByCpf_NotFound() {
+            // Given
+            String cpf = "99999999999";
+            when(userRepository.findByCpf(cpf)).thenReturn(Optional.empty());
+
+            // When
+            Optional<User> result = authService.findByCpf(cpf);
+
+            // Then
+            assertThat(result).isEmpty();
+            verify(userRepository).findByCpf(cpf);
+        }
+
+        @Test
+        @DisplayName("Should register user with valid CPF")
+        void register_WithValidCpf_Success() {
+            // Given
+            String username = "newuser";
+            String email = "new@test.com";
+            String password = "password123";
+            String firstName = "New";
+            String lastName = "User";
+            String cpf = "12345678909";
+
+            when(userRepository.existsByUsername(username)).thenReturn(false);
+            when(userRepository.existsByEmail(email)).thenReturn(false);
+            when(userRepository.existsByCpf(cpf)).thenReturn(false);
+            when(passwordEncoder.encode(password)).thenReturn("encodedPassword");
+            when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+            // When
+            User result = authService.register(username, email, password, firstName, lastName, cpf);
+
+            // Then
+            assertThat(result).isNotNull();
+            verify(userRepository).existsByUsername(username);
+            verify(userRepository).existsByEmail(email);
+            verify(userRepository).existsByCpf(cpf);
+            verify(userRepository).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Should throw exception when CPF already exists")
+        void register_CpfExists_ThrowsException() {
+            // Given
+            String username = "newuser";
+            String email = "new@test.com";
+            String password = "password123";
+            String firstName = "New";
+            String lastName = "User";
+            String cpf = "12345678909";
+
+            when(userRepository.existsByUsername(username)).thenReturn(false);
+            when(userRepository.existsByEmail(email)).thenReturn(false);
+            when(userRepository.existsByCpf(cpf)).thenReturn(true);
+
+            // When & Then
+            assertThatThrownBy(() -> authService.register(username, email, password, firstName, lastName, cpf))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("CPF já está em uso");
+        }
+    }
+
+    @Nested
+    @DisplayName("User Role Management Tests")
+    class UserRoleManagementTests {
+
+        @Test
+        @DisplayName("Should update user role successfully")
+        void updateUserRole_Success() {
+            // Given
+            Long userId = 1L;
+            UserRole newRole = UserRole.ADMIN;
+            when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+            when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+            // When
+            User result = authService.updateUserRole(userId, newRole);
+
+            // Then
+            assertThat(result).isNotNull();
+            verify(userRepository).findById(userId);
+            verify(userRepository).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Should throw exception when user not found for role update")
+        void updateUserRole_UserNotFound() {
+            // Given
+            Long userId = 999L;
+            UserRole newRole = UserRole.ADMIN;
+            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+            // When & Then
+            assertThatThrownBy(() -> authService.updateUserRole(userId, newRole))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Usuário não encontrado");
+        }
+    }
+
+    @Nested
+    @DisplayName("Search and Filter Tests")
+    class SearchAndFilterTests {
+
+        @Test
+        @DisplayName("Should search users by username")
+        void searchUsers_ByUsername_Success() {
+            // Given
+            String searchTerm = "test";
+            List<User> expectedUsers = Arrays.asList(testUser);
+            when(userRepository.searchUsers(searchTerm)).thenReturn(expectedUsers);
+
+            // When
+            List<User> result = authService.searchUsers(searchTerm);
+
+            // Then
+            assertThat(result).hasSize(1);
+            assertThat(result).contains(testUser);
+        }
+
+        @Test
+        @DisplayName("Should return empty list when no users match search")
+        void searchUsers_NoMatches_ReturnsEmptyList() {
+            // Given
+            String searchTerm = "nonexistent";
+            when(userRepository.searchUsers(searchTerm)).thenReturn(Collections.emptyList());
+
+            // When
+            List<User> result = authService.searchUsers(searchTerm);
+
+            // Then
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Should find active users only")
+        void findActiveUsers_Success() {
+            // Given
+            List<User> activeUsers = Arrays.asList(testUser);
+            when(userRepository.findByEnabledTrue()).thenReturn(activeUsers);
+
+            // When
+            List<User> result = authService.findActiveUsers();
+
+            // Then
+            assertThat(result).hasSize(1);
+            assertThat(result).contains(testUser);
+            verify(userRepository).findByEnabledTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("Authentication Edge Cases Tests")
+    class AuthenticationEdgeCasesTests {
+
+        @Test
+        @DisplayName("Should handle authentication with disabled user")
+        void authenticate_DisabledUser_ThrowsException() {
+            // Given
+            String email = "test@test.com";
+            String password = "password";
+            testUser.setEnabled(false);
+
+            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                    .thenThrow(new DisabledException("User account is disabled"));
+
+            // When & Then
+            assertThatThrownBy(() -> authService.authenticate(email, password, request))
+                    .isInstanceOf(DisabledException.class)
+                    .hasMessageContaining("disabled");
+        }
+
+        @Test
+        @DisplayName("Should handle null or empty credentials")
+        void authenticate_NullCredentials_ThrowsException() {
+            // When & Then
+            assertThatThrownBy(() -> authService.authenticate(null, "password", request))
+                    .isInstanceOf(IllegalArgumentException.class);
+
+            assertThatThrownBy(() -> authService.authenticate("email", null, request))
+                    .isInstanceOf(IllegalArgumentException.class);
+
+            assertThatThrownBy(() -> authService.authenticate("", "password", request))
+                    .isInstanceOf(IllegalArgumentException.class);
+
+            assertThatThrownBy(() -> authService.authenticate("email", "", request))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Token Validation Tests")
+    class TokenValidationTests {
+
+        @Test
+        @DisplayName("Should validate token for enabled user")
+        void isTokenValidForUser_EnabledUser_ReturnsTrue() {
+            // Given
+            String token = "valid.jwt.token";
+            String username = "testuser";
+            testUser.setEnabled(true);
+
+            when(userRepository.findByUsername(username)).thenReturn(Optional.of(testUser));
+            when(jwtService.isTokenValid(token, testUser)).thenReturn(true);
+
+            // When
+            boolean result = authService.isTokenValidForUser(token, username);
+
+            // Then
+            assertThat(result).isTrue();
+        }
+
+        @Test
+        @DisplayName("Should return false for token with disabled user")
+        void isTokenValidForUser_DisabledUser_ReturnsFalse() {
+            // Given
+            String token = "valid.jwt.token";
+            String username = "testuser";
+            testUser.setEnabled(false);
+
+            when(userRepository.findByUsername(username)).thenReturn(Optional.of(testUser));
+
+            // When
+            boolean result = authService.isTokenValidForUser(token, username);
+
+            // Then
+            assertThat(result).isFalse();
+        }
+
+        @Test
+        @DisplayName("Should return false for invalid token")
+        void isTokenValidForUser_InvalidToken_ReturnsFalse() {
+            // Given
+            String token = "invalid.jwt.token";
+            String username = "testuser";
+
+            when(userRepository.findByUsername(username)).thenReturn(Optional.of(testUser));
+            when(jwtService.isTokenValid(token, testUser)).thenReturn(false);
+
+            // When
+            boolean result = authService.isTokenValidForUser(token, username);
+
+            // Then
+            assertThat(result).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("Statistics Tests")
+    class StatisticsTests {
+
+        @Test
+        @DisplayName("Should get user statistics as map")
+        void getUserStatisticsAsMap_Success() {
+            // Given
+            when(userRepository.count()).thenReturn(100L);
+            when(userRepository.countByEnabledTrue()).thenReturn(85L);
+            when(userRepository.countByRole(UserRole.ADMIN)).thenReturn(5L);
+            when(userRepository.countByRole(UserRole.USER)).thenReturn(95L);
+
+            // When
+            Map<String, Object> result = authService.getUserStatisticsAsMap();
+
+            // Then
+            assertThat(result).containsEntry("totalUsers", 100L);
+            assertThat(result).containsEntry("activeUsers", 85L);
+            assertThat(result).containsEntry("adminUsers", 5L);
+            assertThat(result).containsEntry("regularUsers", 95L);
+            assertThat(result).containsKey("lastUpdated");
+        }
     }
 }

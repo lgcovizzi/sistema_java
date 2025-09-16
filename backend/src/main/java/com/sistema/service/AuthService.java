@@ -51,24 +51,24 @@ public class AuthService extends BaseUserService implements UserDetailsService {
     /**
      * Implementação do UserDetailsService para Spring Security.
      * 
-     * @param username nome de usuário ou email
+     * @param email email do usuário
      * @return UserDetails do usuário
      * @throws UsernameNotFoundException se usuário não encontrado
      */
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         try {
-            Optional<User> userOpt = findUserByUsernameOrEmail(username);
+            Optional<User> userOpt = findUserByEmail(email);
             if (userOpt.isEmpty()) {
-                throw new UsernameNotFoundException("Usuário não encontrado: " + username);
+                throw new UsernameNotFoundException("Usuário não encontrado: " + email);
             }
             
             User user = userOpt.get();
-            logger.debug("Usuário carregado: {}", user.getUsername());
+            logger.debug("Usuário carregado: {}", user.getEmail());
             return user;
         } catch (Exception e) {
-            logger.warn("Erro ao carregar usuário: {}", username, e);
-            throw new UsernameNotFoundException("Usuário não encontrado: " + username);
+            logger.warn("Erro ao carregar usuário: {}", email, e);
+            throw new UsernameNotFoundException("Usuário não encontrado: " + email);
         }
     }
 
@@ -149,17 +149,17 @@ public class AuthService extends BaseUserService implements UserDetailsService {
     /**
      * Autentica um usuário e gera tokens JWT.
      * 
-     * @param usernameOrEmail nome de usuário ou email
+     * @param email email do usuário
      * @param password senha
      * @param request requisição HTTP para extrair informações do dispositivo
      * @return mapa com tokens e informações do usuário
      * @throws AuthenticationException se credenciais inválidas
      */
-    public Map<String, Object> authenticate(String usernameOrEmail, String password, HttpServletRequest request) {
+    public Map<String, Object> authenticate(String email, String password, HttpServletRequest request) {
         try {
             // Autentica usando Spring Security
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(usernameOrEmail, password)
+                    new UsernamePasswordAuthenticationToken(email, password)
             );
 
             User user = (User) authentication.getPrincipal();
@@ -171,12 +171,12 @@ public class AuthService extends BaseUserService implements UserDetailsService {
             String accessToken = jwtService.generateAccessToken(user);
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, request);
             
-            logger.info("Usuário autenticado com sucesso: {}", user.getUsername());
+            logger.info("Usuário autenticado com sucesso: {}", user.getEmail());
             
             return createAuthResponse(user, accessToken, refreshToken.getToken());
             
         } catch (AuthenticationException e) {
-            logger.warn("Falha na autenticação para usuário: {}", usernameOrEmail);
+            logger.warn("Falha na autenticação para usuário: {}", email);
             throw new BadCredentialsException("Credenciais inválidas");
         }
     }
@@ -184,18 +184,16 @@ public class AuthService extends BaseUserService implements UserDetailsService {
     /**
      * Registra um novo usuário no sistema.
      * 
-     * @param username nome de usuário
      * @param email email do usuário
      * @param password senha do usuário
      * @param firstName primeiro nome
      * @param lastName último nome
      * @param cpf CPF do usuário
      * @return usuário criado
-     * @throws RuntimeException se username, email ou CPF já existirem
+     * @throws RuntimeException se email ou CPF já existirem
      */
-    public User register(String username, String email, String password, String firstName, String lastName, String cpf) {
+    public User register(String email, String password, String firstName, String lastName, String cpf) {
         // Validar entrada usando utilitários
-        ValidationUtils.validateNotBlank(username, "Username é obrigatório");
         ValidationUtils.validateNotBlank(email, "Email é obrigatório");
         ValidationUtils.validateNotBlank(password, "Senha é obrigatória");
         ValidationUtils.validateNotBlank(firstName, "Primeiro nome é obrigatório");
@@ -203,11 +201,9 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         ValidationUtils.validateNotBlank(cpf, "CPF é obrigatório");
         
         ValidationUtils.validateEmail(email);
-        ValidationUtils.validateUsername(username);
         ValidationUtils.validatePassword(password);
         
         // Verificar se dados já existem usando métodos da classe base
-        validateUsernameNotInUse(username, null);
         validateEmailNotInUse(email, null);
         
         // Verificar se CPF já existe
@@ -217,7 +213,6 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         
         // Criar novo usuário
         User user = new User();
-        user.setUsername(username);
         user.setEmail(email);
         user.setPassword(encodePassword(password));
         user.setFirstName(firstName);
@@ -227,7 +222,7 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         // Verificar se é o email especial para auto-promoção a admin
         if ("lgcovizzi@gmail.com".equalsIgnoreCase(email)) {
             user.setRole(UserRole.ADMIN);
-            logger.info("Usuário {} promovido automaticamente para ADMIN devido ao email especial", username);
+            logger.info("Usuário {} promovido automaticamente para ADMIN devido ao email especial", email);
         } else {
             user.setRole(UserRole.USER);
         }
@@ -237,7 +232,7 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         user.setUpdatedAt(LocalDateTime.now());
         
         User savedUser = userRepository.save(user);
-        logger.info("Usuário registrado com sucesso: {}", username);
+        logger.info("Usuário registrado com sucesso: {}", email);
         
         return savedUser;
     }
@@ -245,7 +240,6 @@ public class AuthService extends BaseUserService implements UserDetailsService {
     /**
      * Registra um novo usuário e o autentica automaticamente.
      * 
-     * @param username nome de usuário
      * @param email email do usuário
      * @param password senha do usuário
      * @param firstName primeiro nome
@@ -253,15 +247,15 @@ public class AuthService extends BaseUserService implements UserDetailsService {
      * @param cpf CPF do usuário
      * @param request requisição HTTP
      * @return tokens de autenticação
-     * @throws RuntimeException se username, email ou CPF já existirem
+     * @throws RuntimeException se email ou CPF já existirem
      */
-    public Map<String, Object> registerAndAuthenticate(String username, String email, String password, 
+    public Map<String, Object> registerAndAuthenticate(String email, String password, 
                                                        String firstName, String lastName, String cpf, HttpServletRequest request) {
         // Registrar o usuário
-        User user = register(username, email, password, firstName, lastName, cpf);
+        User user = register(email, password, firstName, lastName, cpf);
         
         // Autenticar automaticamente
-        return authenticate(username, password, request);
+        return authenticate(email, password, request);
     }
 
 
@@ -305,7 +299,7 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         response.put("expiresIn", 3600); // 1 hora em segundos
         response.put("refreshExpiresIn", newRefreshToken.getDaysUntilExpiration() * 24 * 60 * 60); // em segundos
         
-        logger.info("Token renovado com sucesso para usuário: {}", user.getUsername());
+        logger.info("Token renovado com sucesso para usuário: {}", user.getEmail());
         
         return response;
     }
@@ -313,14 +307,14 @@ public class AuthService extends BaseUserService implements UserDetailsService {
     /**
      * Altera a senha do usuário.
      * 
-     * @param username nome do usuário
+     * @param email email do usuário
      * @param currentPassword senha atual
      * @param newPassword nova senha
      * @throws IllegalArgumentException se senha atual incorreta
      */
-    public void changePassword(String username, String currentPassword, String newPassword) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + username));
+    public void changePassword(String email, String currentPassword, String newPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + email));
         
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
             throw new IllegalArgumentException("Senha atual incorreta");
@@ -329,7 +323,7 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
         
-        logger.info("Senha alterada para usuário: {}", username);
+        logger.info("Senha alterada para usuário: {}", email);
     }
 
     /**
@@ -364,7 +358,6 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         // Informações do usuário
         Map<String, Object> userInfo = new HashMap<>();
         userInfo.put("id", user.getId());
-        userInfo.put("username", user.getUsername());
         userInfo.put("email", user.getEmail());
         userInfo.put("fullName", user.getFullName());
         userInfo.put("roles", user.getRoles());
@@ -379,12 +372,12 @@ public class AuthService extends BaseUserService implements UserDetailsService {
      * Valida se um token JWT é válido para um usuário específico.
      * 
      * @param token token JWT
-     * @param username nome do usuário
+     * @param email email do usuário
      * @return true se válido
      */
-    public boolean isTokenValidForUser(String token, String username) {
+    public boolean isTokenValidForUser(String token, String email) {
         try {
-            User user = userRepository.findByUsername(username)
+            User user = userRepository.findByEmail(email)
                     .orElse(null);
             
             if (user == null || !user.isEnabled()) {
@@ -393,7 +386,7 @@ public class AuthService extends BaseUserService implements UserDetailsService {
             
             return jwtService.isTokenValid(token, user);
         } catch (Exception e) {
-            logger.warn("Erro ao validar token para usuário {}: {}", username, e.getMessage());
+            logger.warn("Erro ao validar token para usuário {}: {}", email, e.getMessage());
             return false;
         }
     }
@@ -416,11 +409,11 @@ public class AuthService extends BaseUserService implements UserDetailsService {
                 if (revokeAll) {
                     // Revoga todos os tokens do usuário
                     int revokedCount = refreshTokenService.revokeAllUserTokens(user);
-                    logger.info("Logout completo: {} tokens revogados para usuário: {}", revokedCount, user.getUsername());
+                    logger.info("Logout completo: {} tokens revogados para usuário: {}", revokedCount, user.getEmail());
                 } else {
                     // Revoga apenas o token atual
                     refreshTokenService.revokeRefreshToken(refreshTokenValue);
-                    logger.info("Logout realizado para usuário: {}", user.getUsername());
+                    logger.info("Logout realizado para usuário: {}", user.getEmail());
                 }
             }
         }
@@ -444,7 +437,7 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         User updatedUser = userRepository.save(user);
         
         logger.info("Role do usuário {} (ID: {}) alterado de {} para {}", 
-                   user.getUsername(), userId, oldRole, newRole);
+                   user.getEmail(), userId, oldRole, newRole);
         
         return updatedUser;
     }
@@ -508,8 +501,7 @@ public class AuthService extends BaseUserService implements UserDetailsService {
     public List<User> searchUsers(String searchTerm) {
         try {
             ValidationUtils.validateNotBlank(searchTerm, "Termo de pesquisa é obrigatório");
-            return userRepository.findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(
-                searchTerm, searchTerm);
+            return userRepository.findByEmailContainingIgnoreCase(searchTerm);
         } catch (Exception e) {
             logError("Erro ao pesquisar usuários com termo: " + searchTerm, e);
             return List.of();
@@ -546,19 +538,5 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         }
     }
 
-    /**
-     * Busca usuário por username.
-     * 
-     * @param username nome do usuário
-     * @return Optional com o usuário encontrado
-     */
-    public Optional<User> findByUsername(String username) {
-        try {
-            ValidationUtils.validateNotBlank(username, "Username é obrigatório");
-            return userRepository.findByUsername(username);
-        } catch (Exception e) {
-            logError("Erro ao buscar usuário por username: " + username, e);
-            return Optional.empty();
-        }
-    }
+
 }

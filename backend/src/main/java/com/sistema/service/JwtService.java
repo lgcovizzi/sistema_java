@@ -66,7 +66,7 @@ public class JwtService extends BaseService implements TokenOperations {
         extraClaims.put("email", user.getEmail());
         extraClaims.put("fullName", user.getFullName());
         
-        return generateToken(extraClaims, user.getUsername(), accessTokenExpirationSeconds);
+        return generateToken(extraClaims, user.getEmail(), accessTokenExpirationSeconds);
     }
 
     /**
@@ -79,18 +79,18 @@ public class JwtService extends BaseService implements TokenOperations {
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("type", "refresh");
         
-        return generateToken(extraClaims, user.getUsername(), refreshTokenExpirationSeconds);
+        return generateToken(extraClaims, user.getEmail(), refreshTokenExpirationSeconds);
     }
 
     /**
      * Gera um token JWT com claims personalizados.
      * 
      * @param extraClaims claims adicionais
-     * @param username nome do usuário
+     * @param email email do usuário
      * @param expirationSeconds tempo de expiração em segundos
      * @return token JWT
      */
-    private String generateToken(Map<String, Object> extraClaims, String username, long expirationSeconds) {
+    private String generateToken(Map<String, Object> extraClaims, String email, long expirationSeconds) {
         try {
             PrivateKey privateKey = rsaKeyManager.getPrivateKey();
             
@@ -99,29 +99,29 @@ public class JwtService extends BaseService implements TokenOperations {
             
             String token = Jwts.builder()
                     .claims(extraClaims)
-                    .subject(username)
+                    .subject(email)
                     .issuer(issuer)
                     .issuedAt(Date.from(now))
                     .expiration(Date.from(expiration))
                     .signWith(privateKey, Jwts.SIG.RS256)
                     .compact();
             
-            logger.debug("Token JWT gerado para usuário: {}", username);
+            logger.debug("Token JWT gerado para usuário: {}", email);
             return token;
             
         } catch (Exception e) {
-            logger.error("Erro ao gerar token JWT para usuário: {}", username, e);
+            logger.error("Erro ao gerar token JWT para usuário: {}", email, e);
             throw new RuntimeException("Erro ao gerar token JWT", e);
         }
     }
 
     /**
-     * Extrai o username do token JWT.
+     * Extrai o email do token JWT.
      * 
      * @param token o token JWT
-     * @return username
+     * @return email
      */
-    public String extractUsername(String token) {
+    public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
@@ -252,10 +252,10 @@ public class JwtService extends BaseService implements TokenOperations {
      */
     public boolean isTokenValid(String token, User user) {
         try {
-            final String username = extractUsername(token);
-            return (username.equals(user.getUsername()) && !isTokenExpired(token));
+            final String email = extractEmail(token);
+            return (email.equals(user.getEmail()) && !isTokenExpired(token));
         } catch (Exception e) {
-            logger.warn("Token inválido para usuário {}: {}", user.getUsername(), e.getMessage());
+            logger.warn("Token inválido para usuário {}: {}", user.getEmail(), e.getMessage());
             return false;
         }
     }
@@ -316,7 +316,7 @@ public class JwtService extends BaseService implements TokenOperations {
         try {
             Claims claims = extractAllClaims(token);
             Map<String, Object> info = new HashMap<>();
-            info.put("username", claims.getSubject());
+            info.put("email", claims.getSubject());
             info.put("userId", claims.get("userId"));
             info.put("email", claims.get("email"));
             info.put("roles", claims.get("roles"));
@@ -350,26 +350,26 @@ public class JwtService extends BaseService implements TokenOperations {
     
     // Implementação da interface TokenOperations
     
-    public String generateToken(String username, Map<String, Object> claims, long expirationSeconds) {
-        return generateToken(claims, username, expirationSeconds);
+    public String generateToken(String email, Map<String, Object> claims, long expirationSeconds) {
+        return generateToken(claims, email, expirationSeconds);
     }
     
-    public String generateAccessToken(String username) {
+    public String generateAccessToken(String email) {
         // Para compatibilidade, criamos um User temporário
         User tempUser = new User();
-        tempUser.setUsername(username);
+        tempUser.setEmail(email);
         return generateAccessToken(tempUser);
     }
     
-    public String generateRefreshToken(String username) {
+    public String generateRefreshToken(String email) {
         // Para compatibilidade, criamos um User temporário
         User tempUser = new User();
-        tempUser.setUsername(username);
+        tempUser.setEmail(email);
         return generateRefreshToken(tempUser);
     }
     
     public String extractSubject(String token) {
-        return extractUsername(token);
+        return extractEmail(token);
     }
     
     public Date extractExpirationDate(String token) {
@@ -405,10 +405,10 @@ public class JwtService extends BaseService implements TokenOperations {
         }
     }
     
-    public boolean validateTokenForUser(String token, String username) {
+    public boolean validateTokenForUser(String token, String email) {
         try {
-            String tokenUsername = extractUsername(token);
-            return tokenUsername.equals(username) && !isTokenExpired(token);
+            String tokenEmail = extractEmail(token);
+            return tokenEmail.equals(email) && !isTokenExpired(token);
         } catch (Exception e) {
             return false;
         }

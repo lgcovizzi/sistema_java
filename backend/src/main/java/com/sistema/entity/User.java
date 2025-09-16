@@ -26,10 +26,7 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Username é obrigatório")
-    @Size(min = 3, max = 50, message = "Username deve ter entre 3 e 50 caracteres")
-    @Column(unique = true, nullable = false)
-    private String username;
+
 
     @NotBlank(message = "Password é obrigatório")
     @Size(min = 6, message = "Password deve ter pelo menos 6 caracteres")
@@ -101,9 +98,8 @@ public class User implements UserDetails {
         this.updatedAt = now;
     }
 
-    public User(String username, String password, String email, String firstName, String lastName, String cpf) {
+    public User(String password, String email, String firstName, String lastName, String cpf) {
         this();
-        this.username = username;
         this.password = password;
         this.email = email;
         this.firstName = firstName;
@@ -127,7 +123,7 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return username;
+        return email;
     }
 
     @Override
@@ -159,9 +155,7 @@ public class User implements UserDetails {
         this.id = id;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
+
 
     public void setPassword(String password) {
         this.password = password;
@@ -260,7 +254,7 @@ public class User implements UserDetails {
         } else if (lastName != null) {
             return lastName;
         }
-        return username;
+        return email;
     }
 
     public boolean hasRole(Role role) {
@@ -303,7 +297,6 @@ public class User implements UserDetails {
     public String toString() {
         return "User{" +
                 "id=" + id +
-                ", username=" + username +
                 ", email=" + email +
                 ", role=" + role +
                 ", active=" + enabled +

@@ -16,7 +16,6 @@ import org.junit.jupiter.api.Order;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -46,26 +45,23 @@ class UserRegistrationFlowIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
-    private String testEmail;
-    private String testPassword;
-    private String testCpf;
-    private String testFirstName;
-    private String testLastName;
+    // Dados estáticos compartilhados entre os testes
+    private static final String testEmail = "integration.test@example.com";
+    private static final String testPassword = "TestPassword123!";
+    private static final String testCpf = "11144477735"; // CPF válido para testes
+    private static final String testFirstName = "João";
+    private static final String testLastName = "Silva";
+    
     private User createdUser;
     private String verificationToken;
 
     @BeforeEach
     void setUp() {
-        // Gerar dados únicos para cada teste
-        testEmail = "testuser" + System.currentTimeMillis() + "@example.com";
-        testPassword = "TestPassword123!";
-        testCpf = CpfGenerator.generateCpf();
-        testFirstName = "João";
-        testLastName = "Silva";
-        
-        // Limpar dados de teste anteriores se existirem
-        userRepository.findByEmail(testEmail).ifPresent(user -> userRepository.delete(user));
-        userRepository.findByCpf(testCpf).ifPresent(user -> userRepository.delete(user));
+        // Buscar usuário existente se já foi criado
+        Optional<User> existingUser = userRepository.findByEmail(testEmail);
+        if (existingUser.isPresent()) {
+            createdUser = existingUser.get();
+        }
     }
 
     @Test

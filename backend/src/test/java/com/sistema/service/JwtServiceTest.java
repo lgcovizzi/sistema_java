@@ -375,7 +375,7 @@ class JwtServiceTest {
         void shouldProvideAllInterfaceMethods() {
             // Given
             TokenOperations operations = jwtService;
-            Map<String, Object> claims = Map.of("username", "test@example.com");
+            Map<String, Object> claims = Map.of("username", "testuser");
 
             // When & Then - Não deve lançar exceções para métodos da interface
             assertThat(operations).isNotNull();
@@ -449,7 +449,7 @@ class JwtServiceTest {
         void shouldHandleSpecialCharactersInSubject() {
             // Given
             String specialSubject = "user@domain.com!@#$%^&*()";
-            Map<String, Object> claims = Map.of("username", "test@example.com");
+            Map<String, Object> claims = Map.of("username", "testuser");
 
             // When
             String token = jwtService.generateToken(specialSubject, claims, 15);
@@ -478,7 +478,7 @@ class JwtServiceTest {
         @DisplayName("Deve lidar com TTL zero")
         void shouldHandleZeroTTL() {
             // Given
-            Map<String, Object> claims = Map.of("username", "test@example.com");
+            Map<String, Object> claims = Map.of("username", "testuser");
 
             // When & Then
             assertThatThrownBy(() -> jwtService.generateToken("test@example.com", claims, 0))
@@ -489,7 +489,7 @@ class JwtServiceTest {
         @DisplayName("Deve lidar com TTL negativo")
         void shouldHandleNegativeTTL() {
             // Given
-            Map<String, Object> claims = Map.of("username", "test@example.com");
+            Map<String, Object> claims = Map.of("username", "testuser");
 
             // When & Then
             assertThatThrownBy(() -> jwtService.generateToken("test@example.com", claims, -1))
@@ -505,7 +505,7 @@ class JwtServiceTest {
         @DisplayName("Deve gerar múltiplos tokens eficientemente")
         void shouldGenerateMultipleTokensEfficiently() {
             // Given
-            Map<String, Object> claims = Map.of("username", "test@example.com");
+            Map<String, Object> claims = Map.of("username", "testuser");
 
             // When & Then
             for (int i = 0; i < 100; i++) {
@@ -536,7 +536,7 @@ class JwtServiceTest {
         @DisplayName("Deve gerar tokens únicos para cada chamada")
         void shouldGenerateUniqueTokensForEachCall() {
             // Given
-            Map<String, Object> claims = Map.of("username", "test@example.com");
+            Map<String, Object> claims = Map.of("username", "testuser");
 
             // When
             String token1 = jwtService.generateToken("test@example.com", claims, 15);

@@ -176,6 +176,12 @@ public final class ValidationUtils {
      */
     public static void validateEmail(String email) {
         validateNotEmpty(email, "email");
+        
+        // Rejeita pontos consecutivos
+        if (email.contains("..")) {
+            throw new IllegalArgumentException("Formato de email inválido");
+        }
+        
         if (!EMAIL_PATTERN.matcher(email).matches()) {
             throw new IllegalArgumentException("Formato de email inválido");
         }

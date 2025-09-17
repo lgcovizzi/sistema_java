@@ -1,7 +1,5 @@
 # Configurações para ambiente de teste
 spring:
-  profiles:
-    active: test
     
   # Configuração do banco H2 para testes
   datasource:

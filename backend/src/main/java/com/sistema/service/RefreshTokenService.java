@@ -225,6 +225,10 @@ public class RefreshTokenService {
      * @return Informações do dispositivo
      */
     private String extractDeviceInfo(HttpServletRequest request) {
+        if (request == null) {
+            return "Unknown Device";
+        }
+        
         String userAgent = request.getHeader("User-Agent");
         if (userAgent == null) {
             return "Unknown Device";
@@ -251,6 +255,10 @@ public class RefreshTokenService {
      * @return Endereço IP
      */
     private String extractIpAddress(HttpServletRequest request) {
+        if (request == null) {
+            return "Unknown IP";
+        }
+        
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
             return xForwardedFor.split(",")[0].trim();
@@ -271,6 +279,10 @@ public class RefreshTokenService {
      * @return User-Agent
      */
     private String extractUserAgent(HttpServletRequest request) {
+        if (request == null) {
+            return "Unknown";
+        }
+        
         String userAgent = request.getHeader("User-Agent");
         return userAgent != null ? userAgent : "Unknown";
     }

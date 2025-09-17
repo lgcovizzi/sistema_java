@@ -3,6 +3,7 @@ package com.sistema.integration;
 import com.sistema.entity.User;
 import com.sistema.entity.UserRole;
 import com.sistema.repository.UserRepository;
+import com.sistema.repository.RefreshTokenRepository;
 import com.sistema.service.AuthService;
 import com.sistema.service.EmailVerificationService;
 import com.sistema.service.EmailService;
@@ -45,10 +46,13 @@ class UserRegistrationFlowIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+
     // Dados estáticos compartilhados entre os testes
     private static final String testEmail = "integration.test@example.com";
     private static final String testPassword = "TestPassword123!";
-    private static final String testCpf = "11144477735"; // CPF válido para testes
+    private static final String testCpf = CpfGenerator.generateCpf(); // CPF válido único para testes
     private static final String testFirstName = "João";
     private static final String testLastName = "Silva";
     
@@ -194,9 +198,14 @@ class UserRegistrationFlowIntegrationTest {
 
         // Then - Login deve ser bem-sucedido
         assertThat(authResponse).isNotNull();
-        assertThat(authResponse.get("email")).isEqualTo(testEmail);
         assertThat(authResponse.get("accessToken")).isNotNull();
         assertThat(authResponse.get("refreshToken")).isNotNull();
+        
+        // Verificar dados do usuário na resposta
+        @SuppressWarnings("unchecked")
+        Map<String, Object> userInfo = (Map<String, Object>) authResponse.get("user");
+        assertThat(userInfo).isNotNull();
+        assertThat(userInfo.get("email")).isEqualTo(testEmail);
         
         // Verificar se último login foi atualizado
         User updatedUser = userRepository.findById(verifiedUser.getId()).orElseThrow();
@@ -292,10 +301,21 @@ class UserRegistrationFlowIntegrationTest {
         // 4. Fazer login
         Map<String, Object> authResponse = authService.authenticate(dynamicEmail, testPassword);
         assertThat(authResponse).isNotNull();
-        assertThat(authResponse.get("email")).isEqualTo(dynamicEmail);
         assertThat(authResponse.get("accessToken")).isNotNull();
+        
+        // Verificar dados do usuário na resposta
+        @SuppressWarnings("unchecked")
+        Map<String, Object> userInfo = (Map<String, Object>) authResponse.get("user");
+        assertThat(userInfo).isNotNull();
+        assertThat(userInfo.get("email")).isEqualTo(dynamicEmail);
 
         // Limpar dados de teste
-        userRepository.findByEmail(dynamicEmail).ifPresent(testUser -> userRepository.delete(testUser));
+        userRepository.findByEmail(dynamicEmail).ifPresent(testUser -> {
+            // Primeiro deletar fisicamente todos os refresh tokens associados ao usuário
+            refreshTokenRepository.deleteAll(refreshTokenRepository.findByUser(testUser));
+            
+            // Depois deletar o usuário
+            userRepository.delete(testUser);
+        });
     }
 }

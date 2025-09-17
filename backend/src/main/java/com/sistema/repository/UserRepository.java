@@ -19,14 +19,7 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    /**
-     * Busca usuário por username.
-     * Usado para autenticação.
-     * 
-     * @param username o nome de usuário
-     * @return Optional contendo o usuário se encontrado
-     */
-    Optional<User> findByUsername(String username);
+
 
     /**
      * Busca usuário por email.
@@ -46,23 +39,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     Optional<User> findByCpf(String cpf);
 
-    /**
-     * Busca usuário por username ou email.
-     * Útil para login flexível.
-     * 
-     * @param username o nome de usuário
-     * @param email o email
-     * @return Optional contendo o usuário se encontrado
-     */
-    Optional<User> findByUsernameOrEmail(String username, String email);
 
-    /**
-     * Verifica se existe usuário com o username.
-     * 
-     * @param username o nome de usuário
-     * @return true se existir
-     */
-    boolean existsByUsername(String username);
+
+
 
     /**
      * Verifica se existe usuário com o email.
@@ -176,7 +155,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return lista de usuários que correspondem ao termo
      */
     @Query("SELECT u FROM User u WHERE " +
-           "LOWER(u.username) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
            "LOWER(u.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
            "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
@@ -197,11 +175,55 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findAllByOrderByLastLoginDesc();
 
     /**
-     * Busca usuários por username ou email contendo o termo (case insensitive).
+     * Busca usuários por email contendo o termo (case insensitive).
      * 
-     * @param username termo para buscar no username
      * @param email termo para buscar no email
      * @return lista de usuários encontrados
      */
-    List<User> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(String username, String email);
+    List<User> findByEmailContainingIgnoreCase(String email);
+
+    /**
+     * Busca usuário por token de verificação.
+     * 
+     * @param verificationToken o token de verificação
+     * @return Optional contendo o usuário se encontrado
+     */
+    Optional<User> findByVerificationToken(String verificationToken);
+
+    /**
+     * Busca usuários com email não verificado.
+     * 
+     * @return lista de usuários com email não verificado
+     */
+    List<User> findByEmailVerifiedFalse();
+
+    /**
+     * Busca usuários com email verificado.
+     * 
+     * @return lista de usuários com email verificado
+     */
+    List<User> findByEmailVerifiedTrue();
+
+    /**
+     * Conta usuários com email verificado.
+     * 
+     * @return número de usuários com email verificado
+     */
+    long countByEmailVerifiedTrue();
+
+    /**
+     * Conta usuários com email não verificado.
+     * 
+     * @return número de usuários com email não verificado
+     */
+    long countByEmailVerifiedFalse();
+
+    /**
+     * Busca usuários com tokens de verificação expirados.
+     * 
+     * @param now data/hora atual para comparação
+     * @return lista de usuários com tokens expirados
+     */
+    @Query("SELECT u FROM User u WHERE u.verificationTokenExpiresAt < :now AND u.emailVerified = false")
+    List<User> findUsersWithExpiredVerificationTokens(@Param("now") LocalDateTime now);
 }

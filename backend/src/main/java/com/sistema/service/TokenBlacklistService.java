@@ -237,58 +237,105 @@ public class TokenBlacklistService extends BaseRedisService implements SecurityO
         return Duration.between(now, expirationInstant).getSeconds();
     }
     
-    // Implementação da interface SecurityOperations
+    // Métodos não implementados - TokenBlacklistService foca apenas em blacklist de tokens
     
     @Override
-    public boolean authenticateUser(String username, String password) {
-        // TokenBlacklistService não lida com autenticação direta
-        // Este método deve ser implementado por um serviço de autenticação
+    public java.util.Map<String, Object> authenticate(String usernameOrEmail, String password, jakarta.servlet.http.HttpServletRequest request) {
         throw new UnsupportedOperationException("Autenticação não é responsabilidade do TokenBlacklistService");
     }
     
     @Override
-    public boolean validateTokenSecurity(String token) {
+    public boolean isTokenValidForUser(String token, String username) {
         return !isTokenRevoked(token);
     }
     
-    @Override
-    public boolean revokeTokenSecurity(String token) {
-        return revokeToken(token);
-    }
+    // Os métodos revokeToken, isTokenRevoked, revokeAllUserTokens e isTokenGloballyRevoked
+    // já estão implementados acima como métodos públicos da classe
     
     @Override
-    public boolean revokeAllUserTokensSecurity(String username) {
-        return revokeAllUserTokens(username);
-    }
-    
-    @Override
-    public boolean hasPermission(String username, String permission) {
-        // TokenBlacklistService não lida com permissões
-        // Este método deve ser implementado por um serviço de autorização
+    public boolean hasPermission(com.sistema.entity.User user, String resource, String action) {
         throw new UnsupportedOperationException("Verificação de permissões não é responsabilidade do TokenBlacklistService");
     }
     
     @Override
-    public boolean hasRole(String username, String role) {
-        // TokenBlacklistService não lida com roles
-        // Este método deve ser implementado por um serviço de autorização
+    public boolean hasRole(com.sistema.entity.User user, String role) {
         throw new UnsupportedOperationException("Verificação de roles não é responsabilidade do TokenBlacklistService");
     }
     
     @Override
-    public boolean hasAnyRole(String username, String... roles) {
-        // TokenBlacklistService não lida com roles
-        // Este método deve ser implementado por um serviço de autorização
-        throw new UnsupportedOperationException("Verificação de roles não é responsabilidade do TokenBlacklistService");
+    public boolean isUserActive(com.sistema.entity.User user) {
+        return user.isEnabled();
     }
     
     @Override
+    public java.util.Map<String, Object> getUserSecurityInfo(com.sistema.entity.User user) {
+        throw new UnsupportedOperationException("Informações de segurança não são responsabilidade do TokenBlacklistService");
+    }
+    
+    @Override
+    public void logSecurityEvent(String event, com.sistema.entity.User user, String details, jakarta.servlet.http.HttpServletRequest request) {
+        logInfo("Evento de segurança: " + event + " - Usuário: " + user.getEmail() + " - Detalhes: " + details);
+    }
+    
+    @Override
+    public boolean isPasswordStrong(String password) {
+        throw new UnsupportedOperationException("Validação de senha não é responsabilidade do TokenBlacklistService");
+    }
+    
+    @Override
+    public String generateAttemptIdentifier(jakarta.servlet.http.HttpServletRequest request, String additionalInfo) {
+        String ip = request.getRemoteAddr();
+        String userAgent = request.getHeader("User-Agent");
+        return ip + ":" + (userAgent != null ? userAgent.hashCode() : "unknown") + ":" + additionalInfo;
+    }
+    
     public void logSecurityEvent(String event, String username, String details) {
-        logInfo("Evento de segurança: {} - Usuário: {} - Detalhes: {}", event, username, details);
+        logInfo("Evento de segurança: " + event + " - Usuário: " + username + " - Detalhes: " + details);
     }
     
-    @Override
     public void logSecurityEvent(String event, String username) {
         logSecurityEvent(event, username, "");
+    }
+    
+    /**
+     * Obtém estatísticas da blacklist de tokens
+     * @return Map com estatísticas da blacklist
+     */
+    public java.util.Map<String, Object> getBlacklistStatistics() {
+        try {
+            java.util.Set<String> blacklistedKeys = redisTemplate.keys(BLACKLIST_PREFIX + "*");
+            if (blacklistedKeys == null) {
+                blacklistedKeys = java.util.Set.of();
+            }
+            
+            int totalBlacklisted = blacklistedKeys.size();
+            int activeBlacklisted = 0;
+            int expiredBlacklisted = 0;
+            
+            for (String key : blacklistedKeys) {
+                Long ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS);
+                if (ttl != null && ttl > 0) {
+                    activeBlacklisted++;
+                } else {
+                    expiredBlacklisted++;
+                }
+            }
+            
+            java.util.Map<String, Object> stats = new java.util.HashMap<>();
+            stats.put("totalBlacklisted", totalBlacklisted);
+            stats.put("activeBlacklisted", activeBlacklisted);
+            stats.put("expiredBlacklisted", expiredBlacklisted);
+            stats.put("timestamp", java.time.LocalDateTime.now());
+            
+            return stats;
+        } catch (Exception e) {
+            logError("Erro ao obter estatísticas da blacklist", e);
+            return java.util.Map.of(
+                "totalBlacklisted", 0,
+                "activeBlacklisted", 0,
+                "expiredBlacklisted", 0,
+                "error", "Erro ao obter estatísticas"
+            );
+        }
     }
 }

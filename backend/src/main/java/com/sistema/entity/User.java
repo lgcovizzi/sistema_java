@@ -26,10 +26,7 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Username é obrigatório")
-    @Size(min = 3, max = 50, message = "Username deve ter entre 3 e 50 caracteres")
-    @Column(unique = true, nullable = false)
-    private String username;
+
 
     @NotBlank(message = "Password é obrigatório")
     @Size(min = 6, message = "Password deve ter pelo menos 6 caracteres")
@@ -56,13 +53,10 @@ public class User implements UserDetails {
     @Column(name = "cpf", unique = true, nullable = false)
     private String cpf;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @Enumerated(EnumType.STRING)
-    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "role")
-    private List<Role> roles;
+    @Size(min = 10, max = 15, message = "Telefone deve ter entre 10 e 15 caracteres")
+    @Column(name = "phone", nullable = true)
+    private String phone;
 
-    // Campo adicional para compatibilidade com UserRole enum
     @Enumerated(EnumType.STRING)
     @Column(name = "user_role")
     private UserRole role = UserRole.USER;
@@ -78,6 +72,15 @@ public class User implements UserDetails {
 
     @Column(name = "enabled")
     private boolean enabled = true;
+
+    @Column(name = "email_verified")
+    private boolean emailVerified = false;
+
+    @Column(name = "verification_token")
+    private String verificationToken;
+
+    @Column(name = "verification_token_expires_at")
+    private LocalDateTime verificationTokenExpiresAt;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -101,23 +104,31 @@ public class User implements UserDetails {
         this.updatedAt = now;
     }
 
-    public User(String username, String password, String email, String firstName, String lastName, String cpf) {
+    public User(String password, String email, String firstName, String lastName, String cpf) {
         this();
-        this.username = username;
         this.password = password;
         this.email = email;
         this.firstName = firstName;
         this.lastName = lastName;
         this.cpf = cpf;
-        this.roles = List.of(Role.USER);
+        this.role = UserRole.USER;
+    }
+
+    public User(String password, String email, String firstName, String lastName, String cpf, String phone) {
+        this();
+        this.password = password;
+        this.email = email;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.cpf = cpf;
+        this.phone = phone;
+        this.role = UserRole.USER;
     }
 
     // Métodos do UserDetails
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return roles.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.name()))
-                .collect(Collectors.toList());
+        return List.of(new SimpleGrantedAuthority(role.getAuthority()));
     }
 
     @Override
@@ -127,8 +138,10 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() {
-        return username;
+        return email;
     }
+
+
 
     @Override
     public boolean isAccountNonExpired() {
@@ -159,9 +172,9 @@ public class User implements UserDetails {
         this.id = id;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
+
+
+
 
     public void setPassword(String password) {
         this.password = password;
@@ -199,13 +212,15 @@ public class User implements UserDetails {
         this.cpf = cpf;
     }
 
-    public List<Role> getRoles() {
-        return roles;
+    public String getPhone() {
+        return phone;
     }
 
-    public void setRoles(List<Role> roles) {
-        this.roles = roles;
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
+
+
 
     public void setAccountNonExpired(boolean accountNonExpired) {
         this.accountNonExpired = accountNonExpired;
@@ -247,6 +262,34 @@ public class User implements UserDetails {
         this.lastLogin = lastLogin;
     }
 
+    public void setLastLoginAt(LocalDateTime lastLoginAt) {
+        this.lastLogin = lastLoginAt;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
+
+    public String getVerificationToken() {
+        return verificationToken;
+    }
+
+    public void setVerificationToken(String verificationToken) {
+        this.verificationToken = verificationToken;
+    }
+
+    public LocalDateTime getVerificationTokenExpiresAt() {
+        return verificationTokenExpiresAt;
+    }
+
+    public void setVerificationTokenExpiresAt(LocalDateTime verificationTokenExpiresAt) {
+        this.verificationTokenExpiresAt = verificationTokenExpiresAt;
+    }
+
     // Métodos de conveniência
     public String getFullName() {
         if (firstName != null && lastName != null) {
@@ -256,18 +299,10 @@ public class User implements UserDetails {
         } else if (lastName != null) {
             return lastName;
         }
-        return username;
+        return email;
     }
 
-    public boolean hasRole(Role role) {
-        return roles != null && roles.contains(role);
-    }
 
-    public void addRole(Role role) {
-        if (roles != null && !roles.contains(role)) {
-            roles.add(role);
-        }
-    }
 
     // Métodos para compatibilidade com UserRole
     public UserRole getRole() {
@@ -279,7 +314,7 @@ public class User implements UserDetails {
     }
 
     public boolean isAdmin() {
-        return this.role == UserRole.ADMIN || (this.roles != null && this.roles.contains(Role.ADMIN));
+        return this.role == UserRole.ADMIN;
     }
 
     public boolean isActive() {
@@ -288,6 +323,23 @@ public class User implements UserDetails {
 
     public void setActive(boolean active) {
         this.enabled = active;
+    }
+
+    // Métodos de conveniência para verificação de email
+    public boolean isVerificationTokenExpired() {
+        return verificationTokenExpiresAt != null && 
+               LocalDateTime.now().isAfter(verificationTokenExpiresAt);
+    }
+
+    public boolean hasValidVerificationToken(String token) {
+        return verificationToken != null && 
+               verificationToken.equals(token) && 
+               !isVerificationTokenExpired();
+    }
+
+    public void clearVerificationToken() {
+        this.verificationToken = null;
+        this.verificationTokenExpiresAt = null;
     }
 
     @PreUpdate
@@ -299,7 +351,6 @@ public class User implements UserDetails {
     public String toString() {
         return "User{" +
                 "id=" + id +
-                ", username=" + username +
                 ", email=" + email +
                 ", role=" + role +
                 ", active=" + enabled +

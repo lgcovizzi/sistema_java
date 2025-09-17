@@ -57,6 +57,9 @@ spring:
             enable: true
           ssl:
             enable: false
+        transport:
+          protocol: smtp
+    default-encoding: UTF-8
   
   cache:
     type: redis
@@ -68,9 +71,63 @@ app:
   rsa:
     keys:
       directory: ./keys
+  
+  # Configurações SMTP específicas
+  smtp:
+    # Configurações de retry
+    retry:
+      max-attempts: 3
+      delay-ms: 1000
+      backoff-multiplier: 2.0
+    
+    # Configurações de timeout
+    timeout:
+      connection-ms: 5000
+      read-ms: 10000
+      write-ms: 10000
+    
+    # Pool de conexões
+    pool:
+      max-connections: 10
+      min-connections: 2
+      idle-timeout-ms: 300000
+    
+    # Configurações de email
+    email:
+      from: noreply@sistema.com
+      reply-to: support@sistema.com
+      bounce-address: bounce@sistema.com
+    
+    # Configurações por provedor
+    providers:
+      mailtrap:
+        enabled: true
+        host: sandbox.smtp.mailtrap.io
+        port: 2525
+        username: 67af468e706c8e
+        password: c9c83240f6d045
+        auth: true
+        starttls: true
+        ssl: false
+      
+      gmail:
+        enabled: false
+        host: smtp.gmail.com
+        port: 587
+        auth: true
+        starttls: true
+        ssl: false
+      
+      outlook:
+        enabled: false
+        host: smtp-mail.outlook.com
+        port: 587
+        auth: true
+        starttls: true
+        ssl: false
 
 server:
-  port: 8083
+  port: 8080
   servlet:
     context-path: /
 

@@ -1,7 +1,7 @@
 package com.sistema.controller;
 
 import com.sistema.entity.User;
-import com.sistema.entity.Role;
+import com.sistema.entity.UserRole;
 import com.sistema.service.AuthService;
 import com.sistema.service.JwtService;
 import com.sistema.service.TokenBlacklistService;
@@ -73,10 +73,9 @@ class AuthControllerTest {
         // Setup test user
         testUser = new User();
         testUser.setId(1L);
-        testUser.setUsername("testuser");
         testUser.setEmail("test@example.com");
         testUser.setPassword("encodedPassword");
-        testUser.setRoles(List.of(Role.USER));
+        testUser.setRole(UserRole.USER);
         testUser.setEnabled(true);
         testUser.setCreatedAt(LocalDateTime.now());
         
@@ -99,7 +98,7 @@ class AuthControllerTest {
     void shouldLoginSuccessfullyWhenCredentialsAreValid() throws Exception {
         // Given
         AuthController.LoginRequest loginRequest = new AuthController.LoginRequest();
-        loginRequest.setUsernameOrEmail("testuser");
+        loginRequest.setEmail("test@example.com");
         loginRequest.setPassword("password123");
         
         when(authService.authenticate(anyString(), anyString(), any(HttpServletRequest.class)))
@@ -123,7 +122,7 @@ class AuthControllerTest {
     void shouldReturn401WhenCredentialsAreInvalid() throws Exception {
         // Given
         AuthController.LoginRequest loginRequest = new AuthController.LoginRequest();
-        loginRequest.setUsernameOrEmail("testuser");
+        loginRequest.setEmail("testuser@example.com");
         loginRequest.setPassword("wrongpassword");
         
         when(authService.authenticate(anyString(), anyString(), any(HttpServletRequest.class)))
@@ -144,11 +143,11 @@ class AuthControllerTest {
     void shouldRegisterUserSuccessfullyWhenDataIsValid() throws Exception {
         // Given
         AuthController.RegisterRequest registerRequest = new AuthController.RegisterRequest();
-        registerRequest.setUsername("newuser");
         registerRequest.setEmail("newuser@example.com");
         registerRequest.setPassword("password123");
         registerRequest.setFirstName("New");
         registerRequest.setLastName("User");
+        registerRequest.setCpf("12345678901");
         
         when(authService.registerAndAuthenticate(anyString(), anyString(), anyString(), anyString(), anyString(), any(HttpServletRequest.class)))
             .thenReturn(authResponse);
@@ -163,7 +162,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.user.username").value("testuser"))
                 .andExpect(jsonPath("$.user.email").value("test@example.com"));
         
-        verify(authService).registerAndAuthenticate(eq("newuser"), eq("newuser@example.com"), eq("password123"), eq("New"), eq("User"), any(HttpServletRequest.class));
+        verify(authService).registerAndAuthenticate(eq("newuser@example.com"), eq("password123"), eq("New"), eq("User"), eq("12345678901"), any(HttpServletRequest.class));
     }
 
     @Test
@@ -171,9 +170,11 @@ class AuthControllerTest {
     void shouldReturn400WhenRegistrationDataIsInvalid() throws Exception {
         // Given
         AuthController.RegisterRequest registerRequest = new AuthController.RegisterRequest();
-        registerRequest.setUsername(""); // Invalid username
         registerRequest.setEmail("invalid-email"); // Invalid email
         registerRequest.setPassword("123"); // Too short password
+        registerRequest.setFirstName(""); // Invalid firstName
+        registerRequest.setLastName(""); // Invalid lastName
+        registerRequest.setCpf("invalid-cpf"); // Invalid CPF
         
         // When & Then
         mockMvc.perform(post("/api/auth/register")

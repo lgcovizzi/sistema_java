@@ -66,7 +66,7 @@ public class JwtService extends BaseService implements TokenOperations {
         extraClaims.put("email", user.getEmail());
         extraClaims.put("fullName", user.getFullName());
         
-        return generateToken(extraClaims, user.getUsername(), accessTokenExpirationSeconds);
+        return generateToken(extraClaims, user.getEmail(), accessTokenExpirationSeconds);
     }
 
     /**
@@ -79,18 +79,23 @@ public class JwtService extends BaseService implements TokenOperations {
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("type", "refresh");
         
-        return generateToken(extraClaims, user.getUsername(), refreshTokenExpirationSeconds);
+        return generateToken(extraClaims, user.getEmail(), refreshTokenExpirationSeconds);
     }
 
     /**
      * Gera um token JWT com claims personalizados.
      * 
      * @param extraClaims claims adicionais
-     * @param username nome do usuário
+     * @param email email do usuário
      * @param expirationSeconds tempo de expiração em segundos
      * @return token JWT
      */
-    private String generateToken(Map<String, Object> extraClaims, String username, long expirationSeconds) {
+    private String generateToken(Map<String, Object> extraClaims, String email, long expirationSeconds) {
+        // Validar TTL
+        if (expirationSeconds <= 0) {
+            throw new IllegalArgumentException("TTL deve ser maior que zero");
+        }
+        
         try {
             PrivateKey privateKey = rsaKeyManager.getPrivateKey();
             
@@ -99,27 +104,38 @@ public class JwtService extends BaseService implements TokenOperations {
             
             String token = Jwts.builder()
                     .claims(extraClaims)
-                    .subject(username)
+                    .subject(email)
                     .issuer(issuer)
                     .issuedAt(Date.from(now))
                     .expiration(Date.from(expiration))
                     .signWith(privateKey, Jwts.SIG.RS256)
                     .compact();
             
-            logger.debug("Token JWT gerado para usuário: {}", username);
+            logger.debug("Token JWT gerado para usuário: {}", email);
             return token;
             
         } catch (Exception e) {
-            logger.error("Erro ao gerar token JWT para usuário: {}", username, e);
+            logger.error("Erro ao gerar token JWT para usuário: {}", email, e);
             throw new RuntimeException("Erro ao gerar token JWT", e);
         }
     }
 
     /**
-     * Extrai o username do token JWT.
+     * Extrai o email do token JWT.
      * 
-     * @param token o token JWT
-     * @return username
+     * @param token token JWT
+     * @return email do usuário
+     */
+    public String extractEmail(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
+
+    /**
+     * Extrai o username do token JWT.
+     * Para compatibilidade, retorna o subject (email) do token.
+     * 
+     * @param token token JWT
+     * @return username do usuário
      */
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -252,10 +268,10 @@ public class JwtService extends BaseService implements TokenOperations {
      */
     public boolean isTokenValid(String token, User user) {
         try {
-            final String username = extractUsername(token);
-            return (username.equals(user.getUsername()) && !isTokenExpired(token));
+            final String email = extractEmail(token);
+            return (email.equals(user.getEmail()) && !isTokenExpired(token));
         } catch (Exception e) {
-            logger.warn("Token inválido para usuário {}: {}", user.getUsername(), e.getMessage());
+            logger.warn("Token inválido para usuário {}: {}", user.getEmail(), e.getMessage());
             return false;
         }
     }
@@ -316,7 +332,7 @@ public class JwtService extends BaseService implements TokenOperations {
         try {
             Claims claims = extractAllClaims(token);
             Map<String, Object> info = new HashMap<>();
-            info.put("username", claims.getSubject());
+            info.put("email", claims.getSubject());
             info.put("userId", claims.get("userId"));
             info.put("email", claims.get("email"));
             info.put("roles", claims.get("roles"));
@@ -350,63 +366,52 @@ public class JwtService extends BaseService implements TokenOperations {
     
     // Implementação da interface TokenOperations
     
-    @Override
-    public String generateToken(String username, Map<String, Object> claims, long expirationSeconds) {
-        return generateToken(claims, username, expirationSeconds);
+    public String generateToken(String email, Map<String, Object> claims, long expirationSeconds) {
+        return generateToken(claims, email, expirationSeconds);
     }
     
-    @Override
-    public String generateAccessToken(String username) {
+    public String generateAccessToken(String email) {
         // Para compatibilidade, criamos um User temporário
         User tempUser = new User();
-        tempUser.setUsername(username);
+        tempUser.setEmail(email);
         return generateAccessToken(tempUser);
     }
     
-    @Override
-    public String generateRefreshToken(String username) {
+    public String generateRefreshToken(String email) {
         // Para compatibilidade, criamos um User temporário
         User tempUser = new User();
-        tempUser.setUsername(username);
+        tempUser.setEmail(email);
         return generateRefreshToken(tempUser);
     }
     
-    @Override
     public String extractSubject(String token) {
-        return extractUsername(token);
+        return extractEmail(token);
     }
     
-    @Override
     public Date extractExpirationDate(String token) {
         return extractExpiration(token);
     }
     
-    @Override
     public Date extractIssuedDate(String token) {
         return extractIssuedAt(token);
     }
     
-    @Override
     public String extractTokenId(String token) {
         return extractJti(token);
     }
     
-    @Override
     public String extractType(String token) {
         return extractTokenType(token);
     }
     
-    @Override
     public java.util.List<String> extractUserRoles(String token) {
         return extractRoles(token);
     }
     
-    @Override
     public <T> T extractCustomClaim(String token, String claimName, Class<T> claimType) {
         return extractClaim(token, claims -> claims.get(claimName, claimType));
     }
     
-    @Override
     public boolean validateToken(String token) {
         try {
             extractAllClaims(token);
@@ -416,38 +421,50 @@ public class JwtService extends BaseService implements TokenOperations {
         }
     }
     
-    @Override
-    public boolean validateTokenForUser(String token, String username) {
+    public boolean validateTokenForUser(String token, String email) {
         try {
-            String tokenUsername = extractUsername(token);
-            return tokenUsername.equals(username) && !isTokenExpired(token);
+            String tokenEmail = extractEmail(token);
+            return tokenEmail.equals(email) && !isTokenExpired(token);
         } catch (Exception e) {
             return false;
         }
     }
     
-    @Override
     public boolean isExpired(String token) {
         return isTokenExpired(token);
     }
     
-    @Override
     public boolean isAccessToken(String token) {
         return isValidAccessTokenSafe(token);
     }
     
-    @Override
     public boolean isRefreshToken(String token) {
         return isValidRefreshToken(token);
     }
     
-    @Override
     public Map<String, Object> getTokenInformation(String token) {
         return getTokenInfo(token);
     }
     
-    @Override
     public long getSecondsToExpiration(String token) {
         return getTimeToExpiration(token);
+    }
+
+    /**
+     * Retorna o tempo de expiração do access token em segundos.
+     * 
+     * @return tempo de expiração em segundos
+     */
+    public long getAccessTokenExpiration() {
+        return accessTokenExpirationSeconds;
+    }
+
+    /**
+     * Retorna o tempo de expiração do refresh token em segundos.
+     * 
+     * @return tempo de expiração em segundos
+     */
+    public long getRefreshTokenExpiration() {
+        return refreshTokenExpirationSeconds;
     }
 }

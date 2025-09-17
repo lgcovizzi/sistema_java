@@ -50,7 +50,7 @@ public class RefreshTokenService {
      * @return O token de refresh criado
      */
     public RefreshToken createRefreshToken(User user, HttpServletRequest request) {
-        logger.debug("Criando refresh token para usuário: {}", user.getUsername());
+        logger.debug("Criando refresh token para usuário: {}", user.getEmail());
         
         // Limita o número de tokens por usuário
         limitTokensPerUser(user);
@@ -74,7 +74,7 @@ public class RefreshTokenService {
         refreshToken.setLastUsedAt(LocalDateTime.now());
         
         RefreshToken saved = refreshTokenRepository.save(refreshToken);
-        logger.info("Refresh token criado com sucesso para usuário: {} (ID: {})", user.getUsername(), saved.getId());
+        logger.info("Refresh token criado com sucesso para usuário: {} (ID: {})", user.getEmail(), saved.getId());
         
         return saved;
     }
@@ -131,7 +131,7 @@ public class RefreshTokenService {
      */
     public int revokeAllUserTokens(User user) {
         int revokedCount = refreshTokenRepository.revokeAllByUser(user);
-        logger.info("Revogados {} refresh tokens do usuário: {}", revokedCount, user.getUsername());
+        logger.info("Revogados {} refresh tokens do usuário: {}", revokedCount, user.getEmail());
         return revokedCount;
     }
 
@@ -144,7 +144,7 @@ public class RefreshTokenService {
      */
     public int revokeOtherUserTokens(User user, String currentToken) {
         int revokedCount = refreshTokenRepository.revokeAllByUserExcept(user, currentToken);
-        logger.info("Revogados {} outros refresh tokens do usuário: {}", revokedCount, user.getUsername());
+        logger.info("Revogados {} outros refresh tokens do usuário: {}", revokedCount, user.getEmail());
         return revokedCount;
     }
 
@@ -203,7 +203,7 @@ public class RefreshTokenService {
                 refreshTokenRepository.save(tokenToRevoke);
             }
             
-            logger.info("Removidos {} tokens antigos do usuário: {}", tokensToRemove, user.getUsername());
+            logger.info("Removidos {} tokens antigos do usuário: {}", tokensToRemove, user.getEmail());
         }
     }
 

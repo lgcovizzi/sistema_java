@@ -185,7 +185,7 @@ public abstract class BaseRedisService extends BaseService implements CacheOpera
      * @param key chave
      * @return TTL em segundos (-1 se sem TTL, -2 se chave não existe)
      */
-    protected long getTTL(String key) {
+    protected long getTTLInternal(String key) {
         return executeWithErrorHandling(
             () -> {
                 Long ttl = redisTemplate.getExpire(key, TimeUnit.SECONDS);
@@ -295,7 +295,7 @@ public abstract class BaseRedisService extends BaseService implements CacheOpera
     
     @Override
     public long getTTL(String key) {
-        return getTTL(key);
+        return getTTLInternal(key);
     }
     
     @Override

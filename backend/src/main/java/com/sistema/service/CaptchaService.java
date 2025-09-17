@@ -103,7 +103,7 @@ public class CaptchaService extends BaseRedisService implements CaptchaOperation
             ValidationUtils.validateNotBlank(userAnswer, "Resposta do captcha é obrigatória");
             
             String key = CAPTCHA_PREFIX + captchaId;
-            String storedHash = getValue(key);
+            String storedHash = getStringValue(key);
             
             if (storedHash == null) {
                 logger.warn("Captcha não encontrado ou expirado: {}", captchaId);
@@ -153,14 +153,11 @@ public class CaptchaService extends BaseRedisService implements CaptchaOperation
      * 
      * @return número de captchas removidos
      */
-    public long cleanupExpiredCaptchas() {
+    public long cleanupExpiredCaptchasInternal() {
         try {
-            // O Redis já remove automaticamente com TTL
-            // Este método é mantido para compatibilidade
-            logger.info("Limpeza de captchas executada (TTL automático do Redis)");
-            return 0;
+            return cleanupKeysByPattern(CAPTCHA_PREFIX + "*");
         } catch (Exception e) {
-            logger.error("Erro na limpeza de captchas", e);
+            logger.error("Erro ao limpar captchas expirados", e);
             return 0;
         }
     }
@@ -307,7 +304,7 @@ public class CaptchaService extends BaseRedisService implements CaptchaOperation
     
     @Override
     public long cleanupExpiredCaptchas() {
-        return cleanupExpiredCaptchas();
+        return cleanupExpiredCaptchasInternal();
     }
     
     @Override

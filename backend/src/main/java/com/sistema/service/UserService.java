@@ -26,23 +26,18 @@ public class UserService {
     }
 
     /**
-     * Cria um novo usuário com auto-promoção a admin se for o primeiro usuário
+     * Cria um novo usuário
      */
-    public User createUser(String firstName, String lastName, String email, String username, String password) {
-        // Verificar se email ou username já existem
+    public User createUser(String firstName, String lastName, String email, String password) {
+        // Verificar se email já existe
         if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email já está em uso");
-        }
-        
-        if (userRepository.existsByUsername(username)) {
-            throw new IllegalArgumentException("Username já está em uso");
         }
 
         User user = new User();
         user.setFirstName(firstName);
         user.setLastName(lastName);
         user.setEmail(email);
-        user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
         user.setActive(true);
         user.setCreatedAt(LocalDateTime.now());
@@ -57,13 +52,7 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    /**
-     * Busca usuário por username
-     */
-    @Transactional(readOnly = true)
-    public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username);
-    }
+
 
     /**
      * Busca usuário por email
@@ -73,13 +62,7 @@ public class UserService {
         return userRepository.findByEmail(email);
     }
 
-    /**
-     * Busca usuário por username ou email
-     */
-    @Transactional(readOnly = true)
-    public Optional<User> findByUsernameOrEmail(String usernameOrEmail) {
-        return userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail);
-    }
+
 
     /**
      * Lista todos os usuários ativos
@@ -98,7 +81,7 @@ public class UserService {
     }
 
     /**
-     * Busca usuários por texto (nome, email ou username)
+     * Busca usuários por texto (nome ou email)
      */
     @Transactional(readOnly = true)
     public List<User> searchUsers(String searchTerm) {
@@ -130,8 +113,8 @@ public class UserService {
     /**
      * Atualiza último login do usuário
      */
-    public void updateLastLogin(String username) {
-        Optional<User> userOpt = userRepository.findByUsername(username);
+    public void updateLastLogin(String email) {
+        Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isPresent()) {
             userRepository.updateLastLogin(userOpt.get().getId(), LocalDateTime.now());
         }

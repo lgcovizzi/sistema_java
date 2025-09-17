@@ -3,23 +3,22 @@
 ## Pré-requisitos
 
 ### Requisitos Mínimos
-- **Docker**: 20.10.0 ou superior
-- **Docker Compose**: 2.0.0 ou superior
-- **Sistema Operacional**: Linux, macOS ou Windows com WSL2
-- **Memória RAM**: Mínimo 4GB (recomendado 8GB)
-- **Espaço em Disco**: Mínimo 2GB livres
+- **Java**: 21 ou superior
+- **Maven**: 3.9.6 ou superior (ou usar o wrapper incluído)
+- **Sistema Operacional**: Linux, macOS ou Windows
+- **Memória RAM**: Mínimo 2GB (recomendado 4GB)
+- **Espaço em Disco**: Mínimo 1GB livre
 
 ### Verificando Pré-requisitos
 
 ```bash
-# Verificar versão do Docker
-docker --version
+# Verificar versão do Java
+java --version
 
-# Verificar versão do Docker Compose
-docker compose version
+# Verificar versão do Maven (opcional)
+mvn --version
 
-# Verificar se o Docker está rodando
-docker ps
+# O projeto inclui Maven Wrapper, então Maven não é obrigatório
 ```
 
 ---
@@ -36,11 +35,11 @@ cd sistema_java
 ### 2. Execute o Sistema
 
 ```bash
-# Iniciar todos os serviços
-docker compose up -d
+# Navegar para o diretório backend
+cd backend
 
-# Verificar status dos serviços
-docker compose ps
+# Executar a aplicação usando Maven Wrapper
+./mvnw spring-boot:run
 ```
 
 ### 3. Verificar Instalação
@@ -56,148 +55,143 @@ curl http://localhost:8080/api/health
 ### 4. Acessar Serviços
 
 - **Aplicação Principal**: http://localhost:8080
-- **MailHog Web UI**: http://localhost:8025
-- **PostgreSQL**: localhost:5432
-- **Redis**: localhost:6379
+- **Console H2**: http://localhost:8080/h2-console
+- **Actuator**: http://localhost:8080/actuator
 
 ---
 
 ## Instalação Detalhada
 
-### Estrutura dos Serviços
+### Estrutura da Aplicação
 
-O sistema é composto por 4 serviços principais:
+O sistema é uma aplicação Spring Boot standalone com:
 
-1. **app**: Aplicação Spring Boot
-2. **postgres**: Banco de dados PostgreSQL
-3. **redis**: Cache Redis
-4. **mailhog**: Servidor de email para testes
+1. **Aplicação Spring Boot**: API REST principal
+2. **Banco H2**: Banco de dados em memória
+3. **Redis Embarcado**: Cache para desenvolvimento local
+4. **Thymeleaf**: Templates para interface web
 
-### Configuração de Rede
+### Configuração Local
 
-Todos os serviços estão na rede `sistema-network`:
-
-```yaml
-networks:
-  sistema-network:
-    driver: bridge
-```
-
-### Volumes Persistentes
+A aplicação usa o perfil `local` por padrão com:
 
 ```yaml
-volumes:
-  postgres_data:    # Dados do PostgreSQL
-  redis_data:       # Dados do Redis
+spring:
+  profiles:
+    active: local
+  datasource:
+    url: jdbc:h2:mem:sistema_db
+    username: sa
+    password: 
 ```
+
+### Dados em Memória
+
+- **H2**: Dados são perdidos ao reiniciar (desenvolvimento)
+- **Redis**: Cache temporário para sessões e dados
 
 ---
 
 ## Configurações de Ambiente
 
-### Variáveis de Ambiente
+### Configuração Padrão
 
-#### Aplicação Spring Boot
-```bash
-SPRING_PROFILES_ACTIVE=docker
-SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/sistema_db
-SPRING_DATASOURCE_USERNAME=sistema_user
-SPRING_DATASOURCE_PASSWORD=sistema_pass
-SPRING_REDIS_HOST=redis
-SPRING_REDIS_PORT=6379
-SPRING_MAIL_HOST=mailhog
-SPRING_MAIL_PORT=1025
-```
+A aplicação usa configurações padrão definidas em `application.yml`:
 
-#### PostgreSQL
-```bash
-POSTGRES_DB=sistema_db
-POSTGRES_USER=sistema_user
-POSTGRES_PASSWORD=sistema_pass
+```yaml
+spring:
+  profiles:
+    active: local
+  datasource:
+    url: jdbc:h2:mem:sistema_db
+    username: sa
+    password: 
+  data:
+    redis:
+      host: localhost
+      port: 6379
 ```
 
 ### Personalizando Configurações
 
-Para personalizar as configurações, crie um arquivo `.env`:
+Para personalizar as configurações, você pode:
+
+1. **Modificar application.yml** diretamente
+2. **Usar variáveis de ambiente**:
 
 ```bash
-# .env
-DB_NAME=meu_sistema_db
-DB_USER=meu_usuario
-DB_PASSWORD=minha_senha
-APP_PORT=8080
-POSTGRES_PORT=5432
-REDIS_PORT=6379
-MAILHOG_SMTP_PORT=1025
-MAILHOG_WEB_PORT=8025
+# Exemplo de variáveis de ambiente
+export SERVER_PORT=8081
+export SPRING_DATASOURCE_URL=jdbc:h2:file:./data/sistema_db
+export SPRING_REDIS_PORT=6380
 ```
 
-E modifique o `docker-compose.yml` para usar essas variáveis:
+3. **Criar application-dev.yml** para desenvolvimento:
 
 ```yaml
-services:
-  app:
-    ports:
-      - "${APP_PORT:-8080}:8080"
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${DB_NAME:-sistema_db}
-      - SPRING_DATASOURCE_USERNAME=${DB_USER:-sistema_user}
-      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-sistema_pass}
+spring:
+  profiles:
+    active: dev
+server:
+  port: 8081
+logging:
+  level:
+    com.sistema: TRACE
 ```
 
 ---
 
 ## Comandos Úteis
 
-### Gerenciamento dos Serviços
+### Gerenciamento da Aplicação
 
 ```bash
-# Iniciar todos os serviços
-docker compose up -d
+# Executar a aplicação
+./mvnw spring-boot:run
 
-# Parar todos os serviços
-docker compose down
+# Executar em modo debug
+./mvnw spring-boot:run -Dspring-boot.run.jvmArguments="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005"
 
-# Reiniciar um serviço específico
-docker compose restart app
+# Executar com perfil específico
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
-# Ver logs de um serviço
-docker compose logs app -f
-
-# Ver status dos serviços
-docker compose ps
-
-# Reconstruir e iniciar
-docker compose up -d --build
+# Parar a aplicação
+# Pressione Ctrl+C no terminal
 ```
 
-### Gerenciamento de Dados
+### Build e Testes
 
 ```bash
-# Backup do banco de dados
-docker compose exec postgres pg_dump -U sistema_user sistema_db > backup.sql
+# Compilar o projeto
+./mvnw compile
 
-# Restaurar backup
-docker compose exec -T postgres psql -U sistema_user sistema_db < backup.sql
+# Executar testes
+./mvnw test
 
-# Limpar volumes (CUIDADO: apaga todos os dados)
-docker compose down -v
+# Gerar JAR
+./mvnw package
+
+# Limpar e recompilar
+./mvnw clean compile
+
+# Executar JAR gerado
+java -jar target/sistema-java-*.jar
 ```
 
-### Monitoramento
+### Desenvolvimento
 
 ```bash
-# Ver uso de recursos
-docker stats
+# Executar com live reload (DevTools)
+./mvnw spring-boot:run
 
-# Inspecionar um container
-docker compose exec app bash
+# Verificar dependências
+./mvnw dependency:tree
 
-# Ver logs em tempo real
-docker compose logs -f
+# Atualizar dependências
+./mvnw versions:display-dependency-updates
 
-# Ver logs de um serviço específico
-docker compose logs postgres --tail 50
+# Verificar código
+./mvnw checkstyle:check
 ```
 
 ---
@@ -206,43 +200,42 @@ docker compose logs postgres --tail 50
 
 ### Configuração para Desenvolvimento
 
-Para desenvolvimento, você pode mapear o código fonte como volume:
+Para desenvolvimento local, configure o perfil dev:
 
 ```yaml
-# docker-compose.dev.yml
-services:
-  app:
-    volumes:
-      - ./backend/src:/app/src
-    environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - SPRING_DEVTOOLS_RESTART_ENABLED=true
+# application-dev.yml
+spring:
+  profiles:
+    active: dev
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+logging:
+  level:
+    com.sistema: DEBUG
 ```
 
 ```bash
-# Usar configuração de desenvolvimento
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# Executar com perfil de desenvolvimento
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ### Hot Reload
 
-Para ativar hot reload durante desenvolvimento:
+O projeto já inclui Spring Boot DevTools para hot reload:
 
-1. Adicione a dependência no `pom.xml`:
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-devtools</artifactId>
-    <scope>runtime</scope>
-    <optional>true</optional>
-</dependency>
-```
+1. **DevTools já configurado** no `pom.xml`
+2. **Restart automático** quando arquivos são modificados
+3. **LiveReload** para atualização automática do browser
 
-2. Configure o profile de desenvolvimento:
-```properties
-# application-dev.properties
-spring.devtools.restart.enabled=true
-spring.devtools.livereload.enabled=true
+```bash
+# Executar com DevTools ativo
+./mvnw spring-boot:run
+
+# Modificar arquivos Java - restart automático
+# Modificar templates/static - reload automático
 ```
 
 ---
@@ -253,78 +246,78 @@ spring.devtools.livereload.enabled=true
 
 #### 1. Porta já em uso
 ```bash
-# Erro: port is already allocated
+# Erro: Port 8080 was already in use
 # Solução: Verificar processos usando a porta
 sudo netstat -tulpn | grep :8080
 
-# Ou mudar a porta no docker-compose.yml
-ports:
-  - "8081:8080"  # Usar porta 8081 no host
+# Ou mudar a porta no application.yml
+server:
+  port: 8081  # Usar porta 8081
 ```
 
-#### 2. Aplicação não conecta ao banco
+#### 2. Erro de compilação
 ```bash
-# Verificar se o PostgreSQL está rodando
-docker compose ps postgres
+# Limpar e recompilar
+./mvnw clean compile
 
-# Verificar logs do PostgreSQL
-docker compose logs postgres
+# Verificar versão do Java
+java -version
 
-# Testar conexão manualmente
-docker compose exec postgres psql -U sistema_user -d sistema_db
+# Deve ser Java 21 ou superior
 ```
 
-#### 3. Redis não conecta
+#### 3. Banco H2 não inicializa
 ```bash
-# Verificar se o Redis está rodando
-docker compose ps redis
+# Verificar configuração no application.yml
+# Verificar se o diretório tem permissão de escrita
 
-# Testar conexão Redis
-docker compose exec redis redis-cli ping
+# Acessar console H2
+# http://localhost:8080/h2-console
+# JDBC URL: jdbc:h2:mem:testdb
 ```
 
 #### 4. Aplicação não inicia
 ```bash
-# Verificar logs da aplicação
-docker compose logs app
+# Verificar logs detalhados
+./mvnw spring-boot:run -Dlogging.level.root=DEBUG
 
-# Verificar se todas as dependências estão rodando
-docker compose ps
+# Verificar se todas as dependências estão no pom.xml
+./mvnw dependency:tree
 
-# Reconstruir a imagem
-docker compose build app --no-cache
+# Limpar cache do Maven
+./mvnw dependency:purge-local-repository
 ```
 
 ### Logs e Debugging
 
 ```bash
-# Ver todos os logs
-docker compose logs
+# Executar com logs detalhados
+./mvnw spring-boot:run -Dlogging.level.com.sistema=DEBUG
 
-# Logs de um serviço específico
-docker compose logs app --tail 100 -f
+# Logs específicos do Spring
+./mvnw spring-boot:run -Dlogging.level.org.springframework=INFO
 
-# Entrar no container para debug
-docker compose exec app bash
+# Debug remoto (porta 5005)
+./mvnw spring-boot:run -Dspring-boot.run.jvmArguments="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005"
 
-# Verificar variáveis de ambiente
-docker compose exec app env | grep SPRING
+# Verificar configurações ativas
+curl http://localhost:8080/actuator/configprops
 ```
 
 ### Limpeza do Sistema
 
 ```bash
-# Parar e remover containers
-docker compose down
+# Limpar build do Maven
+./mvnw clean
 
-# Remover volumes (apaga dados)
-docker compose down -v
+# Limpar cache de dependências
+./mvnw dependency:purge-local-repository
 
-# Limpar imagens não utilizadas
-docker image prune -f
+# Remover dados H2 (se usando arquivo)
+rm -rf ~/testdb*
 
-# Limpeza completa do Docker
-docker system prune -a --volumes
+# Limpar logs da aplicação
+rm -rf logs/
 ```
 
 ---
@@ -334,45 +327,50 @@ docker system prune -a --volumes
 ### Considerações de Segurança
 
 1. **Senhas**: Use senhas fortes e variáveis de ambiente
-2. **Rede**: Configure firewall adequadamente
+2. **Banco de Dados**: Configure PostgreSQL ou MySQL para produção
 3. **SSL/TLS**: Configure certificados para HTTPS
 4. **Backup**: Configure backup automático dos dados
 
 ### Exemplo de Configuração de Produção
 
 ```yaml
-# docker-compose.prod.yml
-services:
-  app:
-    restart: unless-stopped
-    environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - SPRING_DATASOURCE_PASSWORD_FILE=/run/secrets/db_password
-    secrets:
-      - db_password
-    
-  postgres:
-    restart: unless-stopped
-    environment:
-      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
-    secrets:
-      - db_password
-
-secrets:
-  db_password:
-    file: ./secrets/db_password.txt
+# application-prod.yml
+spring:
+  profiles:
+    active: prod
+  datasource:
+    url: jdbc:postgresql://localhost:5432/sistema_prod
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+server:
+  port: ${SERVER_PORT:8080}
+logging:
+  level:
+    root: WARN
+    com.sistema: INFO
 ```
 
 ### Monitoramento em Produção
 
 ```bash
-# Configurar health checks
-healthcheck:
-  test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
-  interval: 30s
-  timeout: 10s
-  retries: 3
-  start_period: 40s
+# Health check endpoint
+curl http://localhost:8080/api/health
+
+# Métricas do Actuator
+curl http://localhost:8080/actuator/metrics
+
+# Executar como serviço systemd
+sudo systemctl enable sistema-java
+sudo systemctl start sistema-java
 ```
 
 ---
@@ -382,7 +380,7 @@ healthcheck:
 Após a instalação bem-sucedida:
 
 1. Consulte a [Documentação da API](./api.md)
-2. Leia sobre [Configuração Docker](./docker.md)
-3. Explore os endpoints em http://localhost:8080
-4. Configure monitoramento e alertas
-5. Implemente backup automático
+2. Explore os endpoints em http://localhost:8080
+3. Acesse o console H2 em http://localhost:8080/h2-console
+4. Configure banco de dados externo para produção
+5. Implemente monitoramento e alertas

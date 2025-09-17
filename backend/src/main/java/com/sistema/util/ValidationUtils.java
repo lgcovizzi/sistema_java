@@ -11,15 +11,11 @@ import java.util.regex.Pattern;
 public final class ValidationUtils {
     
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
-        "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
-    );
-    
-    private static final Pattern USERNAME_PATTERN = Pattern.compile(
-        "^[a-zA-Z0-9._-]{3,20}$"
+        "^[a-zA-Z0-9+]([a-zA-Z0-9._+%-]*[a-zA-Z0-9])?@[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?\\.[a-zA-Z]{2,}$"
     );
     
     private static final Pattern PHONE_PATTERN = Pattern.compile(
-        "^\\+?[1-9]\\d{1,14}$"
+        "^(\\+55\\s?)?(\\(\\d{2}\\)|\\d{2})\\s?\\d{4,5}[-\\s]?\\d{4}$"
     );
     
     private static final Pattern PASSWORD_PATTERN = Pattern.compile(
@@ -55,6 +51,18 @@ public final class ValidationUtils {
         if (value.trim().isEmpty()) {
             throw new IllegalArgumentException(fieldName + " não pode estar vazio");
         }
+    }
+    
+    /**
+     * Valida se uma string não é nula nem em branco.
+     * Alias para validateNotEmpty para compatibilidade.
+     * 
+     * @param value valor a validar
+     * @param fieldName nome do campo para mensagem de erro
+     * @throws IllegalArgumentException se valor é nulo ou em branco
+     */
+    public static void validateNotBlank(String value, String fieldName) {
+        validateNotEmpty(value, fieldName);
     }
     
     /**
@@ -174,21 +182,6 @@ public final class ValidationUtils {
     }
     
     /**
-     * Valida formato de username.
-     * 
-     * @param username username a validar
-     * @throws IllegalArgumentException se formato inválido
-     */
-    public static void validateUsername(String username) {
-        validateNotEmpty(username, "username");
-        if (!USERNAME_PATTERN.matcher(username).matches()) {
-            throw new IllegalArgumentException(
-                "Username deve ter 3-20 caracteres e conter apenas letras, números, pontos, hífens e underscores"
-            );
-        }
-    }
-    
-    /**
      * Valida formato de telefone.
      * 
      * @param phone telefone a validar
@@ -276,17 +269,16 @@ public final class ValidationUtils {
      * @return true se é válido
      */
     public static boolean isValidEmail(String email) {
-        return email != null && EMAIL_PATTERN.matcher(email).matches();
-    }
-    
-    /**
-     * Verifica se uma string é um username válido.
-     * 
-     * @param username username a verificar
-     * @return true se é válido
-     */
-    public static boolean isValidUsername(String username) {
-        return username != null && USERNAME_PATTERN.matcher(username).matches();
+        if (email == null) {
+            return false;
+        }
+        
+        // Rejeita pontos consecutivos
+        if (email.contains("..")) {
+            return false;
+        }
+        
+        return EMAIL_PATTERN.matcher(email).matches();
     }
     
     /**
@@ -296,7 +288,43 @@ public final class ValidationUtils {
      * @return true se é válido
      */
     public static boolean isValidPhone(String phone) {
-        return phone != null && PHONE_PATTERN.matcher(phone).matches();
+        if (phone == null) return false;
+        
+        // Primeiro aplica o regex para verificar formato
+        if (!PHONE_PATTERN.matcher(phone).matches()) {
+            return false;
+        }
+        
+        // Remove formatação para validações adicionais
+        String cleanPhone = phone.replaceAll("[\\s\\-\\(\\)\\+]", "");
+        
+        // Remove código do país se presente
+        if (cleanPhone.startsWith("55") && cleanPhone.length() > 11) {
+            cleanPhone = cleanPhone.substring(2);
+        }
+        
+        // Deve ter exatamente 10 ou 11 dígitos após limpeza
+        if (cleanPhone.length() != 10 && cleanPhone.length() != 11) {
+            return false;
+        }
+        
+        // Verifica se é numérico
+        if (!cleanPhone.matches("\\d+")) {
+            return false;
+        }
+        
+        // Verifica código de área (primeiros 2 dígitos)
+        String areaCode = cleanPhone.substring(0, 2);
+        try {
+            int code = Integer.parseInt(areaCode);
+            if (code < 11 || code > 99) {
+                return false;
+            }
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        
+        return true;
     }
     
     /**
@@ -307,5 +335,138 @@ public final class ValidationUtils {
      */
     public static boolean isValidPassword(String password) {
         return password != null && password.length() >= 8 && PASSWORD_PATTERN.matcher(password).matches();
+    }
+    
+    /**
+     * Verifica se um CPF é válido.
+     * 
+     * @param cpf CPF a verificar
+     * @return true se válido, false caso contrário
+     */
+    public static boolean isValidCpf(String cpf) {
+        if (cpf == null || cpf.trim().isEmpty()) {
+            return false;
+        }
+        
+        // Remove formatação
+        String cleanCpf = cpf.replaceAll("[^0-9]", "");
+        
+        // Verifica se tem 11 dígitos
+        if (cleanCpf.length() != 11) {
+            return false;
+        }
+        
+        // Verifica se todos os dígitos são iguais
+        if (cleanCpf.matches("(\\d)\\1{10}")) {
+            return false;
+        }
+        
+        // Calcula primeiro dígito verificador
+        int sum = 0;
+        for (int i = 0; i < 9; i++) {
+            sum += Character.getNumericValue(cleanCpf.charAt(i)) * (10 - i);
+        }
+        int firstDigit = 11 - (sum % 11);
+        if (firstDigit >= 10) {
+            firstDigit = 0;
+        }
+        
+        // Calcula segundo dígito verificador
+        sum = 0;
+        for (int i = 0; i < 10; i++) {
+            sum += Character.getNumericValue(cleanCpf.charAt(i)) * (11 - i);
+        }
+        int secondDigit = 11 - (sum % 11);
+        if (secondDigit >= 10) {
+            secondDigit = 0;
+        }
+        
+        // Verifica se os dígitos calculados conferem
+        return Character.getNumericValue(cleanCpf.charAt(9)) == firstDigit &&
+               Character.getNumericValue(cleanCpf.charAt(10)) == secondDigit;
+    }
+    
+    /**
+     * Verifica se uma string não é nula nem vazia nem contém apenas espaços.
+     * 
+     * @param value string a verificar
+     * @return true se não é blank, false caso contrário
+     */
+    public static boolean isNotBlank(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+    
+    /**
+     * Verifica se uma string tem comprimento válido.
+     * 
+     * @param value string a verificar
+     * @param minLength comprimento mínimo
+     * @param maxLength comprimento máximo
+     * @return true se comprimento é válido, false caso contrário
+     */
+    public static boolean isValidLength(String value, int minLength, int maxLength) {
+        if (value == null) {
+            return false;
+        }
+        int length = value.length();
+        return length >= minLength && length <= maxLength;
+    }
+    
+    /**
+     * Verifica se uma string contém apenas números.
+     * 
+     * @param value string a verificar
+     * @return true se contém apenas números
+     */
+    public static boolean isNumeric(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return false;
+        }
+        // Verifica se contém apenas dígitos (sem sinais ou pontos decimais)
+        return value.matches("^\\d+$");
+    }
+    
+    /**
+     * Verifica se um valor está dentro de um intervalo.
+     * 
+     * @param value valor a verificar
+     * @param min valor mínimo
+     * @param max valor máximo
+     * @return true se está no intervalo
+     */
+    public static boolean isInRange(int value, int min, int max) {
+        return value >= min && value <= max;
+    }
+    
+    /**
+     * Verifica se uma URL é válida.
+     * 
+     * @param url URL a verificar
+     * @return true se é uma URL válida
+     */
+    public static boolean isValidUrl(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return false;
+        }
+        
+        // Aceita apenas protocolos HTTP e HTTPS
+        if (!url.toLowerCase().startsWith("http://") && !url.toLowerCase().startsWith("https://")) {
+            return false;
+        }
+        
+        try {
+            java.net.URL urlObj = new java.net.URL(url);
+            urlObj.toURI();
+            
+            // Verifica se o host não está vazio
+            String host = urlObj.getHost();
+            if (host == null || host.trim().isEmpty()) {
+                return false;
+            }
+            
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

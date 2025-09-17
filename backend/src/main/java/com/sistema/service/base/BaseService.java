@@ -163,4 +163,50 @@ public abstract class BaseService {
     protected String formatErrorMessage(String operation, String details) {
         return String.format("Erro ao %s: %s", operation, details);
     }
+    
+    /**
+     * Loga uma mensagem de erro.
+     * 
+     * @param message mensagem de erro
+     */
+    protected void logError(String message) {
+        logger.error(message);
+    }
+    
+    /**
+     * Loga uma mensagem de erro com exceção.
+     * 
+     * @param message mensagem de erro
+     * @param exception exceção associada
+     */
+    protected void logError(String message, Exception exception) {
+        logger.error(message, exception);
+    }
+    
+    /**
+     * Loga uma mensagem de informação.
+     * 
+     * @param message mensagem de informação
+     */
+    protected void logInfo(String message) {
+        logger.info(message);
+    }
+    
+    /**
+     * Loga uma mensagem de aviso.
+     * 
+     * @param message mensagem de aviso
+     */
+    protected void logWarn(String message) {
+        logger.warn(message);
+    }
+    
+    /**
+     * Loga uma mensagem de debug.
+     * 
+     * @param message mensagem de debug
+     */
+    protected void logDebug(String message) {
+        logger.debug(message);
+    }
 }

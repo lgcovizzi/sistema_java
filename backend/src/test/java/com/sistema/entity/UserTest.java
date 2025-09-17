@@ -23,21 +23,18 @@ class UserTest {
         // Given
         String firstName = "João";
         String lastName = "Silva";
-        String username = "joao.silva";
         String email = "joao@email.com";
         String password = "senha123";
 
         // When
         user.setFirstName(firstName);
         user.setLastName(lastName);
-        user.setUsername(username);
         user.setEmail(email);
         user.setPassword(password);
 
         // Then
         assertThat(user.getFirstName()).isEqualTo(firstName);
         assertThat(user.getLastName()).isEqualTo(lastName);
-        assertThat(user.getUsername()).isEqualTo(username);
         assertThat(user.getEmail()).isEqualTo(email);
         assertThat(user.getPassword()).isEqualTo(password);
     }
@@ -164,15 +161,15 @@ class UserTest {
         // Given
         User user1 = new User();
         user1.setId(1L);
-        user1.setUsername("test");
+        user1.setEmail("test@email.com");
 
         User user2 = new User();
         user2.setId(2L);
-        user2.setUsername("other");
+        user2.setEmail("other@email.com");
 
         // Then
         assertThat(user1.getId()).isEqualTo(1L);
-        assertThat(user1.getUsername()).isEqualTo("test");
+        assertThat(user1.getUsername()).isEqualTo("test@email.com");
         assertThat(user1).isNotEqualTo(user2);
         assertThat(user1.hashCode()).isNotZero();
     }
@@ -182,7 +179,6 @@ class UserTest {
     void shouldImplementToStringCorrectly() {
         // Given
         user.setId(1L);
-        user.setUsername("test");
         user.setEmail("test@email.com");
         user.setRole(UserRole.USER);
 
@@ -193,7 +189,7 @@ class UserTest {
         assertThat(toString)
             .contains("User")
             .contains("id=1")
-            .contains("username=test")
+            .contains("username=test@email.com")
             .contains("email=test@email.com")
             .contains("role=USER");
     }

@@ -37,7 +37,6 @@ class UserRepositoryTest {
         user1.setFirstName("João");
         user1.setLastName("Silva");
         user1.setEmail("joao.silva@example.com");
-        user1.setUsername("joao.silva");
         user1.setPassword("senha123");
         user1.setRole(UserRole.USER);
         user1.setActive(true);
@@ -47,7 +46,6 @@ class UserRepositoryTest {
         user2.setFirstName("Maria");
         user2.setLastName("Santos");
         user2.setEmail("maria.santos@example.com");
-        user2.setUsername("maria.santos");
         user2.setPassword("senha456");
         user2.setRole(UserRole.ADMIN);
         user2.setActive(false);
@@ -57,27 +55,13 @@ class UserRepositoryTest {
         user3.setFirstName("Pedro");
         user3.setLastName("Oliveira");
         user3.setEmail("pedro.oliveira@example.com");
-        user3.setUsername("pedro.oliveira");
         user3.setPassword("senha789");
         user3.setRole(UserRole.USER);
         user3.setActive(true);
         user3.setCreatedAt(LocalDateTime.now());
     }
 
-    @Test
-    @DisplayName("Deve encontrar usuário por username")
-    void shouldFindUserByUsername() {
-        // Given
-        entityManager.persistAndFlush(user1);
-        
-        // When
-        Optional<User> found = userRepository.findByUsername("joao.silva");
-        
-        // Then
-        assertThat(found).isPresent();
-        assertThat(found.get().getFirstName()).isEqualTo("João");
-        assertThat(found.get().getUsername()).isEqualTo("joao.silva");
-    }
+
 
     @Test
     @DisplayName("Deve encontrar usuário por email")
@@ -94,20 +78,7 @@ class UserRepositoryTest {
         assertThat(found.get().getEmail()).isEqualTo("joao.silva@example.com");
     }
 
-    @Test
-    @DisplayName("Deve verificar se username existe")
-    void shouldCheckIfUsernameExists() {
-        // Given
-        entityManager.persistAndFlush(user1);
-        
-        // When
-        boolean exists = userRepository.existsByUsername("joao.silva");
-        boolean notExists = userRepository.existsByUsername("inexistente");
-        
-        // Then
-        assertThat(exists).isTrue();
-        assertThat(notExists).isFalse();
-    }
+
 
     @Test
     @DisplayName("Deve verificar se email existe")
@@ -224,7 +195,7 @@ class UserRepositoryTest {
         
         // Then
         assertThat(firstUser).isPresent();
-        assertThat(firstUser.get().getUsername()).isEqualTo("joao.silva");
+        assertThat(firstUser.get().getEmail()).isEqualTo("joao.silva@example.com");
     }
 
     @Test
@@ -238,7 +209,7 @@ class UserRepositoryTest {
         // When
         List<User> foundByFirstName = userRepository.searchUsers("João");
         List<User> foundByEmail = userRepository.searchUsers("maria.santos");
-        List<User> foundByUsername = userRepository.searchUsers("pedro");
+        List<User> foundByEmailPedro = userRepository.searchUsers("pedro");
         
         // Then
         assertThat(foundByFirstName).hasSize(1);
@@ -247,7 +218,7 @@ class UserRepositoryTest {
         assertThat(foundByEmail).hasSize(1);
         assertThat(foundByEmail.get(0).getEmail()).isEqualTo("maria.santos@example.com");
         
-        assertThat(foundByUsername).hasSize(1);
-        assertThat(foundByUsername.get(0).getUsername()).isEqualTo("pedro.oliveira");
+        assertThat(foundByEmailPedro).hasSize(1);
+        assertThat(foundByEmailPedro.get(0).getEmail()).isEqualTo("pedro.oliveira@example.com");
     }
 }

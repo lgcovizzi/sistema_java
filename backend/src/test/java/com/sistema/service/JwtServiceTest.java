@@ -2,7 +2,8 @@ package com.sistema.service;
 
 import com.sistema.config.RSAKeyManager;
 import com.sistema.entity.User;
-import com.sistema.entity.Role;
+import com.sistema.entity.UserRole;
+import com.sistema.service.interfaces.TokenOperations;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -10,6 +11,7 @@ import io.jsonwebtoken.security.SignatureException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -22,6 +24,7 @@ import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -61,10 +64,9 @@ class JwtServiceTest {
         // Setup test user
         testUser = new User();
         testUser.setId(1L);
-        testUser.setUsername("testuser");
         testUser.setEmail("test@example.com");
         testUser.setPassword("encodedPassword");
-        testUser.setRoles(List.of(Role.USER, Role.ADMIN));
+        testUser.setRole(UserRole.USER);
         testUser.setEnabled(true);
         testUser.setCreatedAt(LocalDateTime.now());
 
@@ -91,7 +93,7 @@ class JwtServiceTest {
 
         // Verify token content
         String username = jwtService.extractUsername(accessToken);
-        assertThat(username).isEqualTo("testuser");
+        assertThat(username).isEqualTo("test@example.com");
 
         boolean isValid = jwtService.isValidAccessToken(accessToken);
         assertThat(isValid).isTrue();
@@ -110,7 +112,7 @@ class JwtServiceTest {
 
         // Verify token content
         String username = jwtService.extractUsername(refreshToken);
-        assertThat(username).isEqualTo("testuser");
+        assertThat(username).isEqualTo("test@example.com");
 
         boolean isValid = jwtService.isValidRefreshToken(refreshToken);
         assertThat(isValid).isTrue();
@@ -126,7 +128,7 @@ class JwtServiceTest {
         String extractedUsername = jwtService.extractUsername(token);
 
         // Then
-        assertThat(extractedUsername).isEqualTo("testuser");
+        assertThat(extractedUsername).isEqualTo("test@example.com");
     }
 
     @Test
@@ -136,9 +138,9 @@ class JwtServiceTest {
         String token = jwtService.generateAccessToken(testUser);
 
         // When & Then
-        assertThat(jwtService.extractUsername(token)).isEqualTo("testuser");
+        assertThat(jwtService.extractUsername(token)).isEqualTo("test@example.com");
         assertThat(jwtService.isTokenValid(token, testUser)).isTrue();
-        assertThat(jwtService.extractRoles(token)).containsExactly("ROLE_USER", "ROLE_ADMIN");
+        assertThat(jwtService.extractRoles(token)).containsExactly("ROLE_USER");
     }
 
     @Test
@@ -206,7 +208,6 @@ class JwtServiceTest {
         Map<String, Object> tokenInfo = jwtService.getTokenInfo(token);
 
         // Then
-        assertThat(tokenInfo).containsKey("username");
         assertThat(tokenInfo).containsKey("userId");
         assertThat(tokenInfo).containsKey("email");
         assertThat(tokenInfo).containsKey("roles");
@@ -215,10 +216,9 @@ class JwtServiceTest {
         assertThat(tokenInfo).containsKey("issuedAt");
         assertThat(tokenInfo).containsKey("expiresAt");
 
-        assertThat(tokenInfo.get("username")).isEqualTo("testuser");
         assertThat(tokenInfo.get("userId")).isEqualTo(1);
         assertThat(tokenInfo.get("email")).isEqualTo("test@example.com");
-        assertThat(tokenInfo.get("roles")).isEqualTo(List.of("ROLE_USER", "ROLE_ADMIN"));
+        assertThat(tokenInfo.get("roles")).isEqualTo(List.of("ROLE_USER"));
         assertThat(tokenInfo.get("tokenType")).isEqualTo("access");
     }
 
@@ -317,39 +317,10 @@ class JwtServiceTest {
     }
 
     @Test
-    @DisplayName("Deve incluir todas as roles do usuário no token")
-    void shouldIncludeAllUserRolesInToken() {
+    @DisplayName("Deve incluir role do usuário no token")
+    void shouldIncludeUserRoleInToken() {
         // Given
-        testUser.setRoles(List.of(Role.USER, Role.ADMIN));
-        String token = jwtService.generateAccessToken(testUser);
-
-        // When
-        List<String> roles = jwtService.extractRoles(token);
-
-        // Then
-        assertThat(roles).containsExactlyInAnyOrder("ROLE_USER", "ROLE_ADMIN");
-    }
-
-    @Test
-    @DisplayName("Deve lidar com usuário sem roles")
-    void shouldHandleUserWithoutRoles() {
-        // Given
-        testUser.setRoles(List.of());
-        
-        // When
-        String token = jwtService.generateAccessToken(testUser);
-        
-        // Then
-        assertThat(token).isNotNull();
-        List<String> roles = jwtService.extractRoles(token);
-        assertThat(roles).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Deve extrair roles do usuário corretamente")
-    void shouldExtractUserRolesCorrectly() {
-        // Given
-        testUser.setRoles(List.of(Role.USER));
+        testUser.setRole(UserRole.USER);
         String token = jwtService.generateAccessToken(testUser);
 
         // When
@@ -357,6 +328,254 @@ class JwtServiceTest {
 
         // Then
         assertThat(roles).containsExactly("ROLE_USER");
+    }
+
+    @Test
+    @DisplayName("Deve lidar com usuário com role padrão")
+    void shouldHandleUserWithDefaultRole() {
+        // Given
+        testUser.setRole(UserRole.USER);
+        
+        // When
+        String token = jwtService.generateAccessToken(testUser);
+        
+        // Then
+        assertThat(token).isNotNull();
+        List<String> roles = jwtService.extractRoles(token);
+        assertThat(roles).containsExactly("ROLE_USER");
+    }
+
+    @Test
+    @DisplayName("Deve extrair role do usuário corretamente")
+    void shouldExtractUserRoleCorrectly() {
+        // Given
+        testUser.setRole(UserRole.USER);
+        String token = jwtService.generateAccessToken(testUser);
+
+        // When
+        List<String> roles = jwtService.extractRoles(token);
+
+        // Then
+        assertThat(roles).containsExactly("ROLE_USER");
+    }
+
+    @Nested
+    @DisplayName("TokenOperations Interface Tests")
+    class TokenOperationsInterfaceTests {
+
+        @Test
+        @DisplayName("Deve implementar interface TokenOperations")
+        void shouldImplementTokenOperationsInterface() {
+            // Then
+            assertThat(jwtService).isInstanceOf(TokenOperations.class);
+        }
+
+        @Test
+        @DisplayName("Deve fornecer todos os métodos da interface")
+        void shouldProvideAllInterfaceMethods() {
+            // Given
+            TokenOperations operations = jwtService;
+            Map<String, Object> claims = Map.of("username", "testuser");
+
+            // When & Then - Não deve lançar exceções para métodos da interface
+            assertThat(operations).isNotNull();
+            
+            User testUser = new User();
+            testUser.setEmail("test@example.com");
+            
+            String accessToken = operations.generateAccessToken(testUser);
+            assertThat(accessToken).isNotNull();
+            
+            String refreshToken = operations.generateRefreshToken(testUser);
+            assertThat(refreshToken).isNotNull();
+            
+            String subject = operations.extractSubject(accessToken);
+            assertThat(subject).isEqualTo("test@example.com");
+            
+            boolean isValid = operations.isTokenValid(accessToken, testUser);
+            assertThat(isValid).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("Error Handling and Edge Cases")
+    class ErrorHandlingTests {
+
+        @Test
+        @DisplayName("Deve lidar com chave privada nula")
+        void shouldHandleNullPrivateKey() {
+            // Given
+            when(rsaKeyManager.getPrivateKey()).thenReturn(null);
+
+            // When & Then
+            assertThatThrownBy(() -> jwtService.generateAccessToken(testUser))
+                    .isInstanceOf(RuntimeException.class);
+        }
+
+        @Test
+        @DisplayName("Deve lidar com chave pública nula")
+        void shouldHandleNullPublicKey() {
+            // Given
+            String token = jwtService.generateAccessToken(testUser);
+            when(rsaKeyManager.getPublicKey()).thenReturn(null);
+
+            // When
+            boolean isValid = jwtService.validateToken(token);
+
+            // Then
+            assertThat(isValid).isFalse();
+        }
+
+        @Test
+        @DisplayName("Deve lidar com token muito longo")
+        void shouldHandleVeryLongToken() {
+            // Given
+            StringBuilder longString = new StringBuilder();
+            for (int i = 0; i < 1000; i++) {
+                longString.append("a");
+            }
+            String longToken = longString.toString();
+
+            // When & Then
+            assertThatThrownBy(() -> jwtService.validateToken(longToken))
+                    .isInstanceOf(MalformedJwtException.class);
+            
+            assertThatThrownBy(() -> jwtService.extractSubject(longToken))
+                    .isInstanceOf(MalformedJwtException.class);
+        }
+
+        @Test
+        @DisplayName("Deve lidar com caracteres especiais no subject")
+        void shouldHandleSpecialCharactersInSubject() {
+            // Given
+            String specialSubject = "user@domain.com!@#$%^&*()";
+            Map<String, Object> claims = Map.of("username", "testuser");
+
+            // When
+            String token = jwtService.generateToken(specialSubject, claims, 15);
+            String extractedSubject = jwtService.extractSubject(token);
+
+            // Then
+            assertThat(token).isNotNull();
+            assertThat(extractedSubject).isEqualTo(specialSubject);
+        }
+
+        @Test
+        @DisplayName("Deve lidar com claims vazios")
+        void shouldHandleEmptyClaims() {
+            // Given
+            Map<String, Object> emptyClaims = Map.of();
+
+            // When
+            String token = jwtService.generateToken("test@example.com", emptyClaims, 15);
+
+            // Then
+            assertThat(token).isNotNull();
+            assertThat(jwtService.validateToken(token)).isTrue();
+        }
+
+        @Test
+        @DisplayName("Deve lidar com TTL zero")
+        void shouldHandleZeroTTL() {
+            // Given
+            Map<String, Object> claims = Map.of("username", "testuser");
+
+            // When & Then
+            assertThatThrownBy(() -> jwtService.generateToken("test@example.com", claims, 0))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("Deve lidar com TTL negativo")
+        void shouldHandleNegativeTTL() {
+            // Given
+            Map<String, Object> claims = Map.of("username", "testuser");
+
+            // When & Then
+            assertThatThrownBy(() -> jwtService.generateToken("test@example.com", claims, -1))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Performance Tests")
+    class PerformanceTests {
+
+        @Test
+        @DisplayName("Deve gerar múltiplos tokens eficientemente")
+        void shouldGenerateMultipleTokensEfficiently() {
+            // Given
+            Map<String, Object> claims = Map.of("username", "testuser");
+
+            // When & Then
+            for (int i = 0; i < 100; i++) {
+                String token = jwtService.generateToken("test" + i + "@example.com", claims, 15);
+                assertThat(token).isNotNull();
+            }
+        }
+
+        @Test
+        @DisplayName("Deve validar múltiplos tokens eficientemente")
+        void shouldValidateMultipleTokensEfficiently() {
+            // Given
+            String token = jwtService.generateAccessToken(testUser);
+
+            // When & Then
+            for (int i = 0; i < 100; i++) {
+                boolean isValid = jwtService.validateToken(token);
+                assertThat(isValid).isTrue();
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("Token Security Tests")
+    class TokenSecurityTests {
+
+        @Test
+        @DisplayName("Deve gerar tokens únicos para cada chamada")
+        void shouldGenerateUniqueTokensForEachCall() {
+            // Given
+            Map<String, Object> claims = Map.of("username", "testuser");
+
+            // When
+            String token1 = jwtService.generateToken("test@example.com", claims, 15);
+            String token2 = jwtService.generateToken("test@example.com", claims, 15);
+
+            // Then
+            assertThat(token1).isNotEqualTo(token2);
+        }
+
+        @Test
+        @DisplayName("Deve incluir timestamp de criação no token")
+        void shouldIncludeCreationTimestampInToken() {
+            // Given
+            String token = jwtService.generateAccessToken(testUser);
+
+            // When
+            Date issuedAt = jwtService.extractIssuedAt(token);
+            Date expiration = jwtService.extractExpiration(token);
+
+            // Then
+            assertThat(issuedAt).isNotNull();
+            assertThat(expiration).isNotNull();
+            assertThat(expiration).isAfter(issuedAt);
+        }
+
+        @Test
+        @DisplayName("Deve rejeitar token com assinatura modificada")
+        void shouldRejectTokenWithModifiedSignature() {
+            // Given
+            String validToken = jwtService.generateAccessToken(testUser);
+            String[] tokenParts = validToken.split("\\.");
+            String modifiedToken = tokenParts[0] + "." + tokenParts[1] + ".modified_signature";
+
+            // When
+            boolean isValid = jwtService.validateToken(modifiedToken);
+
+            // Then
+            assertThat(isValid).isFalse();
+        }
     }
 
 }

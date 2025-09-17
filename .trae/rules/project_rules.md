@@ -1470,3 +1470,14 @@ Uma feature só está completa quando:
 - [ ] Links verificados
 - [ ] Exemplos funcionais
 ```
+
+configuraçlão mailtrap
+// Looking to send emails in production? Check out our Email API/SMTP product!
+play.mailer {
+  host = "sandbox.smtp.mailtrap.io"
+  port = 2525
+  ssl = no
+  tls = yes
+  user = "67af468e706c8e"
+  password = "c9c83240f6d045"
+}

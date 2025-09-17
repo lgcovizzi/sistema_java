@@ -6,6 +6,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.regex.Pattern;
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.spec.IvParameterSpec;
 
 /**
  * Utilitários para operações de segurança.
@@ -69,6 +74,17 @@ public final class SecurityUtils {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Algoritmo de hash não disponível: " + HASH_ALGORITHM, e);
         }
+    }
+    
+    /**
+     * Gera um hash SHA-256 da entrada fornecida.
+     * Alias para generateHash para compatibilidade.
+     * 
+     * @param input string de entrada
+     * @return hash SHA-256 em hexadecimal
+     */
+    public static String hashSHA256(String input) {
+        return generateHash(input);
     }
     
     /**
@@ -316,20 +332,229 @@ public final class SecurityUtils {
     }
     
     /**
-     * Verifica se um endereço IP é válido (IPv4).
+     * Valida se um endereço IP é válido (IPv4 ou IPv6).
      * 
-     * @param ip endereço IP
-     * @return true se é válido
+     * @param ip endereço IP para validar
+     * @return true se o IP for válido
      */
     public static boolean isValidIpAddress(String ip) {
         if (ip == null || ip.trim().isEmpty()) {
             return false;
         }
         
-        Pattern ipPattern = Pattern.compile(
-            "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"
-        );
+        // Validação básica de IPv4
+        String ipv4Pattern = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
+        if (ip.matches(ipv4Pattern)) {
+            return true;
+        }
         
-        return ipPattern.matcher(ip).matches();
+        // Validação básica de IPv6
+        String ipv6Pattern = "^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$";
+        return ip.matches(ipv6Pattern);
+    }
+    
+    /**
+     * Mascara um endereço de email.
+     * 
+     * @param email endereço de email para mascarar
+     * @return email mascarado
+     */
+    public static String maskEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return email;
+        }
+        
+        int atIndex = email.indexOf('@');
+        if (atIndex <= 0) {
+            return maskSensitiveData(email, 2);
+        }
+        
+        String localPart = email.substring(0, atIndex);
+        String domain = email.substring(atIndex);
+        
+        if (localPart.length() <= 2) {
+            return localPart.charAt(0) + "*" + domain;
+        }
+        
+        return localPart.charAt(0) + "*".repeat(localPart.length() - 2) + localPart.charAt(localPart.length() - 1) + domain;
+    }
+    
+    /**
+     * Mascara um número de cartão de crédito.
+     * 
+     * @param creditCard número do cartão de crédito
+     * @return cartão mascarado
+     */
+    public static String maskCreditCard(String creditCard) {
+        if (creditCard == null || creditCard.trim().isEmpty()) {
+            return creditCard;
+        }
+        
+        String cleanCard = creditCard.replaceAll("\\s|-", "");
+        if (cleanCard.length() < 8) {
+            return maskSensitiveData(creditCard, 2);
+        }
+        
+        return cleanCard.substring(0, 4) + "*".repeat(cleanCard.length() - 8) + cleanCard.substring(cleanCard.length() - 4);
+    }
+    
+    /**
+     * Mascara um número de telefone.
+     * 
+     * @param phone número de telefone
+     * @return telefone mascarado
+     */
+    public static String maskPhone(String phone) {
+        if (phone == null || phone.trim().isEmpty()) {
+            return phone;
+        }
+        
+        String cleanPhone = phone.replaceAll("\\D", "");
+        if (cleanPhone.length() < 6) {
+            return maskSensitiveData(phone, 2);
+        }
+        
+        if (cleanPhone.length() <= 8) {
+            return cleanPhone.substring(0, 2) + "*".repeat(cleanPhone.length() - 4) + cleanPhone.substring(cleanPhone.length() - 2);
+        }
+        
+        return cleanPhone.substring(0, 2) + "*".repeat(cleanPhone.length() - 6) + cleanPhone.substring(cleanPhone.length() - 4);
+    }
+    
+    /**
+     * Mascara um número de CPF.
+     * 
+     * @param cpf número do CPF
+     * @return CPF mascarado
+     */
+    public static String maskCpf(String cpf) {
+        if (cpf == null || cpf.trim().isEmpty()) {
+            return cpf;
+        }
+        
+        String cleanCpf = cpf.replaceAll("\\D", "");
+        if (cleanCpf.length() != 11) {
+            return maskSensitiveData(cpf, 3);
+        }
+        
+        return cleanCpf.substring(0, 3) + ".***.***-" + cleanCpf.substring(9);
+    }
+    
+    /**
+     * Criptografa uma string usando AES.
+     * 
+     * @param plaintext texto a ser criptografado
+     * @param key chave de criptografia
+     * @return texto criptografado em base64
+     */
+    public static String encrypt(String plaintext, String key) {
+        if (plaintext == null || key == null) {
+            throw new IllegalArgumentException("Plaintext and key cannot be null");
+        }
+        
+        try {
+            // Gera uma chave AES a partir da string fornecida
+            byte[] keyBytes = hashSHA256(key).substring(0, 32).getBytes(StandardCharsets.UTF_8);
+            SecretKeySpec secretKey = new SecretKeySpec(keyBytes, "AES");
+            
+            // Gera um IV aleatório
+            byte[] iv = new byte[16];
+            SECURE_RANDOM.nextBytes(iv);
+            IvParameterSpec ivSpec = new IvParameterSpec(iv);
+            
+            // Configura o cipher
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec);
+            
+            // Criptografa o texto
+            byte[] encrypted = cipher.doFinal(plaintext.getBytes(StandardCharsets.UTF_8));
+            
+            // Combina IV + dados criptografados
+            byte[] encryptedWithIv = new byte[iv.length + encrypted.length];
+            System.arraycopy(iv, 0, encryptedWithIv, 0, iv.length);
+            System.arraycopy(encrypted, 0, encryptedWithIv, iv.length, encrypted.length);
+            
+            return Base64.getEncoder().encodeToString(encryptedWithIv);
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Erro na criptografia: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Descriptografa uma string usando AES.
+     * 
+     * @param encryptedText texto criptografado em base64
+     * @param key chave de descriptografia
+     * @return texto descriptografado
+     */
+    public static String decrypt(String encryptedText, String key) {
+        if (encryptedText == null || key == null) {
+            throw new IllegalArgumentException("Encrypted text and key cannot be null");
+        }
+        
+        try {
+            // Decodifica o texto base64
+            byte[] encryptedWithIv = Base64.getDecoder().decode(encryptedText);
+            
+            // Extrai o IV (primeiros 16 bytes)
+            byte[] iv = new byte[16];
+            System.arraycopy(encryptedWithIv, 0, iv, 0, iv.length);
+            IvParameterSpec ivSpec = new IvParameterSpec(iv);
+            
+            // Extrai os dados criptografados
+            byte[] encrypted = new byte[encryptedWithIv.length - 16];
+            System.arraycopy(encryptedWithIv, 16, encrypted, 0, encrypted.length);
+            
+            // Gera a chave AES
+            byte[] keyBytes = hashSHA256(key).substring(0, 32).getBytes(StandardCharsets.UTF_8);
+            SecretKeySpec secretKey = new SecretKeySpec(keyBytes, "AES");
+            
+            // Configura o cipher
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, ivSpec);
+            
+            // Descriptografa
+            byte[] decrypted = cipher.doFinal(encrypted);
+            
+            return new String(decrypted, StandardCharsets.UTF_8);
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Erro na descriptografia: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Verifica se uma string contém padrões suspeitos.
+     * 
+     * @param input string a verificar
+     * @return true se contém padrões suspeitos, false caso contrário
+     */
+    public static boolean containsSuspiciousPattern(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            return false;
+        }
+        
+        String lowerInput = input.toLowerCase();
+        
+        // Padrões suspeitos comuns
+        String[] suspiciousPatterns = {
+            "script", "javascript", "vbscript", "onload", "onerror",
+            "alert", "confirm", "prompt", "document.cookie",
+            "eval", "expression", "iframe", "object", "embed",
+            "form", "input", "select", "textarea", "button",
+            "drop", "delete", "insert", "update", "union",
+            "select", "from", "where", "order", "group",
+            "../", "..\\", "/etc/", "c:\\", "cmd.exe",
+            "powershell", "bash", "sh", "/bin/", "system"
+        };
+        
+        for (String pattern : suspiciousPatterns) {
+            if (lowerInput.contains(pattern)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 }

@@ -1,5 +1,6 @@
 package com.sistema.controller;
 
+import com.sistema.dto.UpdateProfileRequest;
 import com.sistema.entity.User;
 import com.sistema.entity.UserRole;
 import com.sistema.service.AuthService;
@@ -7,6 +8,7 @@ import com.sistema.service.JwtService;
 import com.sistema.service.TokenBlacklistService;
 import com.sistema.service.AttemptService;
 import com.sistema.service.CaptchaService;
+import com.sistema.service.EmailVerificationService;
 import com.sistema.validation.ValidCpf;
 import com.sistema.util.EmailMaskUtil;
 import com.sistema.security.JwtAuthenticationFilter;
@@ -47,15 +49,18 @@ public class AuthController {
     private final TokenBlacklistService tokenBlacklistService;
     private final AttemptService attemptService;
     private final CaptchaService captchaService;
+    private final EmailVerificationService emailVerificationService;
 
     @Autowired
     public AuthController(AuthService authService, JwtService jwtService, TokenBlacklistService tokenBlacklistService,
-                         AttemptService attemptService, CaptchaService captchaService) {
+                         AttemptService attemptService, CaptchaService captchaService, 
+                         EmailVerificationService emailVerificationService) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.tokenBlacklistService = tokenBlacklistService;
         this.attemptService = attemptService;
         this.captchaService = captchaService;
+        this.emailVerificationService = emailVerificationService;
     }
 
     /**
@@ -68,7 +73,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest httpRequest) {
         String clientIp = getClientIpAddress(httpRequest);
-        String identifier = loginRequest.getUsernameOrEmail();
+        String identifier = loginRequest.getEmail();
         
         try {
             // Verificar se captcha é necessário
@@ -97,7 +102,7 @@ public class AuthController {
             }
             
             Map<String, Object> authResponse = authService.authenticate(
-                    loginRequest.getUsernameOrEmail(),
+                    loginRequest.getEmail(),
                     loginRequest.getPassword(),
                     httpRequest
             );
@@ -105,14 +110,14 @@ public class AuthController {
             // Login bem-sucedido - limpar tentativas
             attemptService.clearLoginAttempts(clientIp);
             
-            logger.info("Login realizado com sucesso para: {}", loginRequest.getUsernameOrEmail());
+            logger.info("Login realizado com sucesso para: {}", loginRequest.getEmail());
             return ResponseEntity.ok(authResponse);
             
         } catch (Exception e) {
             // Registrar tentativa falhada
             attemptService.recordLoginAttempt(clientIp);
             
-            logger.warn("Falha no login para: {} (IP: {})", loginRequest.getUsernameOrEmail(), clientIp);
+            logger.warn("Falha no login para: {} (IP: {})", loginRequest.getEmail(), clientIp);
             
             Map<String, Object> errorResponse = createErrorResponse("Credenciais inválidas", "INVALID_CREDENTIALS");
             
@@ -135,7 +140,6 @@ public class AuthController {
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest, HttpServletRequest httpRequest) {
         try {
             Map<String, Object> authResponse = authService.registerAndAuthenticate(
-                    registerRequest.getUsername(),
                     registerRequest.getEmail(),
                     registerRequest.getPassword(),
                     registerRequest.getFirstName(),
@@ -144,7 +148,7 @@ public class AuthController {
                     httpRequest
             );
             
-            logger.info("Usuário registrado com sucesso: {}", registerRequest.getUsername());
+            logger.info("Usuário registrado com sucesso: {}", registerRequest.getEmail());
             return ResponseEntity.status(HttpStatus.CREATED).body(authResponse);
             
         } catch (IllegalArgumentException e) {
@@ -201,14 +205,14 @@ public class AuthController {
             
             // Extrai o token de acesso atual da requisição
             String currentAccessToken = extractTokenFromRequest(httpRequest);
-            String username = null;
+            String email = null;
             
             if (currentAccessToken != null) {
                 try {
-                    username = jwtService.extractUsername(currentAccessToken);
+                    email = jwtService.extractSubject(currentAccessToken);
                     // Revoga o token de acesso atual
                     tokenBlacklistService.revokeToken(currentAccessToken);
-                    logger.info("Token de acesso atual revogado para usuário: {}", username);
+                    logger.info("Token de acesso atual revogado para usuário: {}", email);
                 } catch (Exception e) {
                     logger.warn("Erro ao revogar token de acesso atual: {}", e.getMessage());
                 }
@@ -227,15 +231,15 @@ public class AuthController {
             }
             
             // Se solicitado, revoga todos os tokens do usuário
-            if (revokeAll && username != null) {
-                tokenBlacklistService.revokeAllUserTokens(username);
-                logger.info("Todos os tokens do usuário {} foram revogados", username);
+            if (revokeAll && email != null) {
+                tokenBlacklistService.revokeAllUserTokens(email);
+                logger.info("Todos os tokens do usuário {} foram revogados", email);
             }
             
             // Chama o logout do AuthService para limpeza adicional
             authService.logout(refreshToken, revokeAll);
             
-            logger.info("Logout realizado com sucesso para usuário: {}", username);
+            logger.info("Logout realizado com sucesso para usuário: {}", email);
             
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Logout realizado com sucesso");
@@ -268,10 +272,10 @@ public class AuthController {
             
             Map<String, Object> userInfo = new HashMap<>();
             userInfo.put("id", user.getId());
-            userInfo.put("username", user.getUsername());
+            userInfo.put("username", user.getEmail());
             userInfo.put("email", user.getEmail());
             userInfo.put("fullName", user.getFullName());
-            userInfo.put("roles", user.getRoles());
+            userInfo.put("role", user.getRole());
             userInfo.put("lastLogin", user.getLastLogin());
             userInfo.put("createdAt", user.getCreatedAt());
             
@@ -279,6 +283,44 @@ public class AuthController {
             
         } catch (Exception e) {
             logger.error("Erro ao obter informações do usuário", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
+        }
+    }
+
+    /**
+     * Endpoint para atualização do perfil do usuário autenticado.
+     * 
+     * @param updateProfileRequest dados de atualização do perfil
+     * @return informações atualizadas do usuário
+     */
+    @PutMapping("/profile")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> updateProfile(@Valid @RequestBody UpdateProfileRequest updateProfileRequest) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            User currentUser = (User) authentication.getPrincipal();
+            
+            User updatedUser = authService.updateProfile(
+                    currentUser.getId(),
+                    updateProfileRequest.getFirstName(),
+                    updateProfileRequest.getLastName(),
+                    updateProfileRequest.getPhone()
+            );
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Perfil atualizado com sucesso");
+            response.put("user", createUserResponse(updatedUser));
+            
+            logger.info("Perfil atualizado com sucesso para usuário: {}", currentUser.getEmail());
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            logger.warn("Erro na atualização do perfil: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(createErrorResponse(e.getMessage(), "PROFILE_UPDATE_ERROR"));
+        } catch (Exception e) {
+            logger.error("Erro interno na atualização do perfil", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
         }
@@ -480,7 +522,7 @@ public class AuthController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getUserStatistics() {
         try {
-            Map<String, Object> statistics = authService.getUserStatistics();
+            Map<String, Object> statistics = authService.getUserStatisticsAsMap();
             return ResponseEntity.ok(statistics);
             
         } catch (Exception e) {
@@ -547,17 +589,87 @@ public class AuthController {
             Map<String, Object> response = new HashMap<>();
             response.put("message", "Role do usuário atualizado com sucesso");
             response.put("userId", userId);
-            response.put("username", updatedUser.getUsername());
+            response.put("username", updatedUser.getEmail());
             response.put("email", updatedUser.getEmail());
             response.put("newRole", updatedUser.getRole());
             
             logger.info("Role do usuário {} (ID: {}) atualizado para {} por admin", 
-                       updatedUser.getUsername(), userId, updateRoleRequest.getRole());
+                       updatedUser.getEmail(), userId, updateRoleRequest.getRole());
             
             return ResponseEntity.ok(response);
             
         } catch (Exception e) {
             logger.error("Erro ao alterar role do usuário", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
+        }
+    }
+
+    /**
+     * Endpoint para verificação de email através de token.
+     * 
+     * @param token token de verificação
+     * @return resposta de sucesso ou erro
+     */
+    @GetMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
+        try {
+            logger.info("Tentativa de verificação de email com token: {}", token.substring(0, Math.min(token.length(), 10)) + "...");
+            
+            boolean verified = emailVerificationService.verifyEmailToken(token);
+            
+            if (verified) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Email verificado com sucesso! Agora você pode fazer login.");
+                response.put("verified", true);
+                
+                logger.info("Email verificado com sucesso para token: {}", token.substring(0, Math.min(token.length(), 10)) + "...");
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, Object> errorResponse = createErrorResponse(
+                    "Token de verificação inválido ou expirado", 
+                    "INVALID_VERIFICATION_TOKEN"
+                );
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Erro ao verificar email", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
+        }
+    }
+
+    /**
+     * Endpoint para reenvio de email de verificação.
+     * 
+     * @param resendRequest dados para reenvio
+     * @return resposta de sucesso ou erro
+     */
+    @PostMapping("/resend-verification")
+    public ResponseEntity<?> resendVerificationEmail(@Valid @RequestBody ResendVerificationRequest resendRequest) {
+        try {
+            logger.info("Solicitação de reenvio de verificação para email: {}", resendRequest.getEmail());
+            
+            String token = emailVerificationService.regenerateVerificationToken(resendRequest.getEmail());
+            
+            if (token != null) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Email de verificação reenviado com sucesso!");
+                response.put("sent", true);
+                
+                logger.info("Email de verificação reenviado para: {}", resendRequest.getEmail());
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, Object> errorResponse = createErrorResponse(
+                    "Usuário não encontrado ou email já verificado", 
+                    "USER_NOT_FOUND_OR_VERIFIED"
+                );
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Erro ao reenviar email de verificação", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
         }
@@ -613,11 +725,34 @@ public class AuthController {
         return error;
     }
 
+    /**
+     * Cria uma resposta padronizada com dados do usuário.
+     * 
+     * @param user usuário
+     * @return mapa com dados do usuário
+     */
+    private Map<String, Object> createUserResponse(User user) {
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("id", user.getId());
+        userInfo.put("email", user.getEmail());
+        userInfo.put("firstName", user.getFirstName());
+        userInfo.put("lastName", user.getLastName());
+        userInfo.put("fullName", user.getFullName());
+        userInfo.put("phone", user.getPhone());
+        userInfo.put("role", user.getRole());
+        userInfo.put("enabled", user.isEnabled());
+        userInfo.put("lastLogin", user.getLastLogin());
+        userInfo.put("createdAt", user.getCreatedAt());
+        userInfo.put("updatedAt", user.getUpdatedAt());
+        return userInfo;
+    }
+
     // Classes de Request DTOs
     
     public static class LoginRequest {
-        @NotBlank(message = "Username ou email é obrigatório")
-        private String usernameOrEmail;
+        @NotBlank(message = "Email é obrigatório")
+        @Email(message = "Email deve ser válido")
+        private String email;
         
         @NotBlank(message = "Password é obrigatório")
         private String password;
@@ -627,8 +762,8 @@ public class AuthController {
         private String captchaAnswer;
         
         // Getters e Setters
-        public String getUsernameOrEmail() { return usernameOrEmail; }
-        public void setUsernameOrEmail(String usernameOrEmail) { this.usernameOrEmail = usernameOrEmail; }
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
         public String getPassword() { return password; }
         public void setPassword(String password) { this.password = password; }
         public String getCaptchaId() { return captchaId; }
@@ -638,16 +773,12 @@ public class AuthController {
     }
     
     public static class RegisterRequest {
-        @NotBlank(message = "Username é obrigatório")
-        @Size(min = 3, max = 50, message = "Username deve ter entre 3 e 50 caracteres")
-        private String username;
-        
         @NotBlank(message = "Email é obrigatório")
         @Email(message = "Email deve ser válido")
         private String email;
         
         @NotBlank(message = "Password é obrigatório")
-        @Size(min = 6, message = "Password deve ter pelo menos 6 caracteres")
+        @Size(min = 8, message = "Password deve ter pelo menos 8 caracteres")
         private String password;
         
         @NotBlank(message = "Nome é obrigatório")
@@ -663,8 +794,6 @@ public class AuthController {
         private String cpf;
         
         // Getters e Setters
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
         public String getPassword() { return password; }
@@ -691,7 +820,7 @@ public class AuthController {
         private String currentPassword;
         
         @NotBlank(message = "Nova senha é obrigatória")
-        @Size(min = 6, message = "Nova senha deve ter pelo menos 6 caracteres")
+        @Size(min = 8, message = "Nova senha deve ter pelo menos 8 caracteres")
         private String newPassword;
         
         // Getters e Setters
@@ -757,5 +886,15 @@ public class AuthController {
         public void setCaptchaId(String captchaId) { this.captchaId = captchaId; }
         public String getCaptchaAnswer() { return captchaAnswer; }
         public void setCaptchaAnswer(String captchaAnswer) { this.captchaAnswer = captchaAnswer; }
+    }
+    
+    public static class ResendVerificationRequest {
+        @NotBlank(message = "Email é obrigatório")
+        @Email(message = "Email deve ser válido")
+        private String email;
+        
+        // Getters e Setters
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
     }
 }

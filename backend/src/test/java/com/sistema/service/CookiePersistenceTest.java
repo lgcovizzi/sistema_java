@@ -2,7 +2,7 @@ package com.sistema.service;
 
 import com.sistema.entity.RefreshToken;
 import com.sistema.entity.User;
-import com.sistema.entity.Role;
+import com.sistema.entity.UserRole;
 import com.sistema.repository.RefreshTokenRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,11 +47,10 @@ class CookiePersistenceTest {
         // Configurar usuário de teste
         testUser = new User();
         testUser.setId(1L);
-        testUser.setUsername("testuser");
         testUser.setEmail("test@example.com");
         testUser.setPassword("encodedPassword");
         testUser.setEnabled(true);
-        testUser.setRoles(List.of(Role.USER));
+        testUser.setRole(UserRole.USER);
         testUser.setCreatedAt(LocalDateTime.now());
         testUser.setLastLogin(LocalDateTime.now().minusDays(1));
 

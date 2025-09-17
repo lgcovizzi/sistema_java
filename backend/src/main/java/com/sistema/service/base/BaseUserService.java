@@ -64,38 +64,19 @@ public abstract class BaseUserService extends BaseService {
         });
     }
     
-    /**
-     * Busca usuário por username com validação.
-     * 
-     * @param username username do usuário
-     * @return usuário encontrado
-     * @throws IllegalArgumentException se username inválido
-     * @throws RuntimeException se usuário não encontrado
-     */
-    protected User findUserByUsernameRequired(String username) {
-        validateNotEmpty(username, "username");
-        
-        Optional<User> userOpt = userRepository.findByUsername(username);
-        logSearchOperation("Usuário por username", username, userOpt);
-        
-        return userOpt.orElseThrow(() -> {
-            String message = String.format("Usuário não encontrado com username: %s", username);
-            logger.warn(message);
-            return new RuntimeException(message);
-        });
-    }
+
     
     /**
-     * Busca usuário por username ou email.
+     * Busca usuário por email.
      * 
-     * @param usernameOrEmail username ou email
+     * @param email email do usuário
      * @return usuário encontrado ou Optional.empty()
      */
-    protected Optional<User> findUserByUsernameOrEmail(String usernameOrEmail) {
-        validateNotEmpty(usernameOrEmail, "usernameOrEmail");
+    protected Optional<User> findUserByEmail(String email) {
+        validateNotEmpty(email, "email");
         
-        Optional<User> userOpt = userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail);
-        logSearchOperation("Usuário por username ou email", usernameOrEmail, userOpt);
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        logSearchOperation("Usuário por email", email, userOpt);
         
         return userOpt;
     }
@@ -118,23 +99,7 @@ public abstract class BaseUserService extends BaseService {
         }
     }
     
-    /**
-     * Verifica se username já está em uso.
-     * 
-     * @param username username a verificar
-     * @param excludeUserId ID do usuário a excluir da verificação (para updates)
-     * @throws IllegalArgumentException se username já está em uso
-     */
-    protected void validateUsernameNotInUse(String username, Long excludeUserId) {
-        validateNotEmpty(username, "username");
-        
-        Optional<User> existingUser = userRepository.findByUsername(username);
-        if (existingUser.isPresent() && !existingUser.get().getId().equals(excludeUserId)) {
-            String message = String.format("Username já está em uso: %s", username);
-            logger.warn(message);
-            throw new IllegalArgumentException(message);
-        }
-    }
+
     
     /**
      * Valida força da senha.
@@ -217,7 +182,7 @@ public abstract class BaseUserService extends BaseService {
         validateNotNull(user, "user");
         
         if (!user.isEnabled()) {
-            String message = String.format("Usuário está inativo: %s", user.getUsername());
+            String message = String.format("Usuário está inativo: %s", user.getEmail());
             logger.warn(message);
             throw new RuntimeException(message);
         }

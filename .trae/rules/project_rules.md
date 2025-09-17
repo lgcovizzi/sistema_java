@@ -2,7 +2,40 @@
 
 ## Visão Geral do Projeto
 
-Sistema Java completo implementado com Spring Boot 3.2.0, utilizando PostgreSQL como banco de dados principal, Redis para cache, e MailHog para testes de email. O projeto está totalmente containerizado com Docker Compose.
+Sistema Java completo implementado com Spring Boot 3.2.0, utilizar o banco H2 do springboot, Redis para cache, e smtp mailtrap. O projeto não usa Docker Compose ou docker, o projeto deve iniciar na porta 8080, caso exista alguma coisa na porta 8080 o projeto deve parar, matar o processo e iniciar novamente.
+
+## Regras de Configuração de Porta
+
+### Porta HTTP Obrigatória: 8080
+
+**REGRA FUNDAMENTAL**: A aplicação DEVE rodar exclusivamente na porta **http://localhost:8080**
+
+#### Comportamento Obrigatório:
+1. **Porta Fixa**: A aplicação sempre deve iniciar na porta 8080
+2. **Verificação de Conflito**: Antes de iniciar, verificar se a porta 8080 está ocupada
+3. **Resolução de Conflito**: Se a porta estiver ocupada:
+   - Identificar o processo que está usando a porta 8080
+   - Parar/matar o processo conflitante
+   - Aguardar liberação da porta
+   - Iniciar a aplicação na porta 8080
+4. **Falha de Inicialização**: Se não conseguir usar a porta 8080, a aplicação NÃO deve iniciar em porta alternativa
+5. **URL de Acesso**: A aplicação deve estar sempre disponível em `http://localhost:8080`
+
+#### Configuração no application.yml:
+```yaml
+server:
+  port: 8080
+```
+
+#### Verificação de Porta:
+- Usar comandos do sistema para verificar se a porta está em uso
+- No Windows: `Get-NetTCPConnection -LocalPort 8080`
+- Implementar verificação automática na inicialização
+
+#### Tratamento de Erros:
+- Se a porta 8080 não estiver disponível, a aplicação deve falhar com erro claro
+- Logs devem indicar claramente o conflito de porta
+- Não permitir fallback para outras portas
 
 ## Estrutura Implementada
 
@@ -31,8 +64,8 @@ O projeto implementa uma arquitetura baseada em classes abstratas e utilitários
 **BaseUserService** (`com.sistema.service.base.BaseUserService`)
 - Estende BaseService para operações de usuário
 - CRUD padronizado para entidades User
-- Validações específicas (email, username, senha)
-- Métodos de busca otimizados (por ID, email, username)
+- Validações específicas (email, senha)
+- Métodos de busca otimizados (por ID, email)
 - Codificação de senhas com BCrypt
 - Atualização de último login
 
@@ -42,6 +75,15 @@ O projeto implementa uma arquitetura baseada em classes abstratas e utilitários
 - Verificação de permissões e roles
 - Operações de autorização padronizadas
 - Validação de entrada sanitizada
+
+
+##### O cadastro do usuário utiliza:
+nome
+sobre nome
+email,
+cpf, 
+senha
+
 
 ##### Utilitários Compartilhados
 
@@ -66,6 +108,18 @@ O projeto implementa uma arquitetura baseada em classes abstratas e utilitários
 - Sanitização de entrada
 - Validação de endereços IP
 - Mascaramento de dados sensíveis
+
+**CpfGenerator** (`com.sistema.util.CpfGenerator`)
+- **REGRA OBRIGATÓRIA**: Para testes e desenvolvimento, sempre usar CPFs válidos gerados por esta classe
+- Geração de CPFs válidos com algoritmo de verificação correto
+- Métodos disponíveis:
+  - `generateValidCpf()`: Gera um CPF válido aleatório
+  - `generateValidCpfWithoutMask()`: Gera CPF válido sem formatação
+  - `generateValidCpfWithMask()`: Gera CPF válido com formatação (xxx.xxx.xxx-xx)
+- **Uso em Testes**: Sempre utilizar CPFs gerados por esta classe em testes de integração e unitários
+- **Desenvolvimento**: Para dados de exemplo e demonstração, usar apenas CPFs válidos desta classe
+- **Validação**: CPFs gerados são compatíveis com a validação implementada em `CpfValidator`
+- **Localização**: `.\backend\src\main\java\com\sistema\util\CpfGenerator.java`
 
 ##### Interfaces Padronizadas
 
@@ -135,7 +189,7 @@ O projeto implementa interfaces específicas para padronizar operações dos ser
   - Spring Boot Actuator
   - Spring Boot Starter Thymeleaf
   - Spring Security
-  - PostgreSQL Driver
+  - H2 Database (banco em memória)
   - Lettuce (Redis client)
   - JWT (io.jsonwebtoken)
   - SimpleCaptcha
@@ -381,131 +435,6 @@ O projeto implementa interfaces específicas para padronizar operações dos ser
 - **Responsividade**: Breakpoints para mobile, tablet e desktop
 - **Acessibilidade**: Contraste adequado e navegação por teclado
 
-## Docker Compose Configuration
-
-### Arquitetura dos Serviços
-
-O projeto utiliza Docker Compose com os seguintes serviços:
-
-#### 1. Backend Spring Boot
-- **Serviço**: `app`
-- **Contexto de Build**: `./backend`
-- **Dockerfile**: `./backend/Dockerfile`
-- **Imagem Base**: `maven:3.9.6-eclipse-temurin-21` (build) + `eclipse-temurin:21-jre-alpine` (runtime)
-- **Porta**: 8080:8080
-- **Dependências**: postgres, redis
-- **Variáveis de ambiente**:
-  - `SPRING_PROFILES_ACTIVE=docker`
-  - `SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/sistema_db`
-  - `SPRING_DATASOURCE_USERNAME=sistema_user`
-  - `SPRING_DATASOURCE_PASSWORD=sistema_pass`
-  - `SPRING_REDIS_HOST=redis`
-  - `SPRING_REDIS_PORT=6379`
-  - `SPRING_MAIL_HOST=mailhog`
-  - `SPRING_MAIL_PORT=1025`
-
-#### 2. PostgreSQL Database
-- **Serviço**: `postgres`
-- **Imagem**: `postgres:15-alpine`
-- **Porta**: 5432:5432
-- **Variáveis de ambiente**:
-  - `POSTGRES_DB=sistema_db`
-  - `POSTGRES_USER=sistema_user`
-  - `POSTGRES_PASSWORD=sistema_pass`
-- **Volume**: `postgres_data:/var/lib/postgresql/data`
-
-#### 3. Redis Cache
-- **Serviço**: `redis`
-- **Imagem**: `redis:7-alpine`
-- **Porta**: 6379:6379
-- **Comando**: `redis-server --appendonly yes`
-- **Volume**: `redis_data:/data`
-
-#### 4. MailHog (Email Testing)
-- **Serviço**: `mailhog`
-- **Imagem**: `mailhog/mailhog:latest`
-- **Portas**: 
-  - `1025:1025` (SMTP)
-  - `8025:8025` (Web UI)
-
-### Networks
-- **Rede**: `sistema-network`
-- **Driver**: bridge
-- Todos os serviços devem estar na mesma rede
-
-### Volumes
-- `postgres_data`: Para persistência do PostgreSQL
-- `redis_data`: Para persistência do Redis
-
-### Ordem de Inicialização
-1. postgres
-2. redis
-3. mailhog
-4. app (dependente dos demais)
-
-### Configurações Adicionais
-- Usar `restart: unless-stopped` para todos os serviços
-- Configurar healthchecks para postgres e redis
-- Usar variáveis de ambiente para configurações sensíveis
-- Implementar wait-for-it ou dockerize para aguardar dependências
-
-### Dockerfile Implementado
-
-#### Multi-stage Build
-- **Stage 1 (build)**: `maven:3.9.6-eclipse-temurin-21`
-  - Copia `pom.xml` e baixa dependências
-  - Copia código fonte e compila aplicação
-  - Gera JAR executável
-- **Stage 2 (runtime)**: `eclipse-temurin:21-jre-alpine`
-  - Copia apenas o JAR da aplicação
-  - Configuração otimizada para produção
-  - Imagem final menor e mais segura
-
-### Maven Wrapper
-- **mvnw**: Script executável para Linux/Mac
-- **maven-wrapper.properties**: Configuração da versão do Maven
-- **maven-wrapper.jar**: JAR do wrapper (baixado automaticamente)
-
-### Estrutura do Projeto Implementada
-- **Backend**: `./backend/`
-  - **src/main/java/com/sistema/**:
-    - `SistemaJavaApplication.java`: Classe principal
-    - `controller/HealthController.java`: Endpoints de API
-    - `controller/HomeController.java`: Página inicial
-    - `config/RedisConfig.java`: Configuração do Redis
-  - **src/main/resources/**:
-    - `application.properties`: Configurações da aplicação
-    - `application-docker.properties`: Configurações para Docker
-  - **Dockerfile**: Build multi-stage implementado
-  - **pom.xml**: Dependências e configurações Maven
-  - **mvnw**: Maven wrapper
-- **Documentação**: `./docs/`
-  - **README.md**: Documentação principal e quick start
-  - **api.md**: Documentação completa da API REST
-  - **installation.md**: Guia de instalação e configuração
-  - **docker.md**: Documentação Docker Compose e arquitetura
-- **Configuração**:
-  - **docker-compose.yml**: Orquestração de todos os serviços
-  - **.trae/rules/project_rules.md**: Regras e documentação do projeto
-
-### Endpoints Funcionais
-- **http://localhost:8080/**: Interface web responsiva com template Thymeleaf (via Docker Compose)
-- **http://localhost:8080/api-simple**: Redirecionamento para página principal
-- **http://localhost:8080/api/health**: Status da aplicação
-- **http://localhost:8080/api/info**: Informações do sistema
-- **http://localhost:8080/api/redis-test**: Teste do Redis
-- **http://localhost:8080/actuator**: Endpoints do Actuator
-- **http://localhost:8080/api/auth/register**: Registro de usuários
-- **http://localhost:8080/api/auth/login**: Login com controle de tentativas
-- **http://localhost:8080/api/auth/refresh**: Renovação de tokens JWT
-- **http://localhost:8080/api/auth/logout**: Logout com invalidação de tokens
-- **http://localhost:8080/api/auth/me**: Informações do usuário autenticado
-- **http://localhost:8080/api/auth/captcha/generate**: Geração de captcha
-- **http://localhost:8080/api/auth/captcha/validate**: Validação de captcha
-- **http://localhost:8025**: Interface web do MailHog
-
-**Nota**: A aplicação está configurada para rodar na porta 8080 através do Docker Compose. Para desenvolvimento local, a aplicação pode ser executada na porta 8082 via Maven (`mvn spring-boot:run`) para evitar conflitos de porta.
-
 ### Documentação Implementada
 
 O projeto possui uma estrutura completa de documentação na pasta `docs/`:
@@ -514,7 +443,6 @@ O projeto possui uma estrutura completa de documentação na pasta `docs/`:
 - **docs/README.md**: Visão geral do projeto, quick start e navegação
 - **docs/api.md**: Documentação completa da API com todos os endpoints
 - **docs/installation.md**: Guia detalhado de instalação e configuração
-- **docs/docker.md**: Documentação completa do Docker Compose
 
 #### Conteúdo da Documentação
 
@@ -540,27 +468,19 @@ O projeto possui uma estrutura completa de documentação na pasta `docs/`:
 - Troubleshooting completo
 - Configurações para produção
 
-**Docker.md**:
-- Visão geral da arquitetura Docker
-- Detalhes de cada serviço
-- Configurações e volumes
-- Comandos de gerenciamento
-- Health checks e monitoramento
-- Otimizações e boas práticas
+
 
 ### Status do Projeto
-- ✅ **Aplicação funcionando**: Todos os serviços rodando na porta 8080 via Docker Compose
-- ✅ **Conectividade PostgreSQL**: Configurada e testada
+- ✅ **Aplicação funcionando**: Todos os serviços rodando na porta 8080
+- ✅ **Conectividade H2**: Banco de dados em memória configurado e testado
 - ✅ **Conectividade Redis**: Configurada e testada
-- ✅ **MailHog**: Disponível para testes de email
+- ✅ **SMTP Mailtrap**: Configurado para envio de emails
 - ✅ **Endpoints REST**: Implementados e funcionais
-- ✅ **Docker Compose**: Totalmente operacional
 - ✅ **Configuração de Porta**: Aplicação acessível em http://localhost:8080
-- ✅ **Desenvolvimento Local**: Configurado para porta 8082 quando executado via Maven
+- ✅ **Desenvolvimento Local**: Configurado para porta 8080 standalone
 - ✅ **Documentação**: Estrutura completa implementada
 - ✅ **Guias de instalação**: Documentação detalhada criada
 - ✅ **API Documentation**: Todos os endpoints documentados
-- ✅ **Docker Documentation**: Arquitetura e configurações documentadas
 - ✅ **Estrutura de Documentação**: Pasta `docs/` organizada e completa
 - ✅ **Guias de Desenvolvimento**: Procedimentos e boas práticas documentadas
 - ✅ **Troubleshooting**: Soluções para problemas comuns documentadas
@@ -585,7 +505,7 @@ O projeto possui uma estrutura completa de documentação na pasta `docs/`:
 - Visão geral do Sistema Java
 - Stack tecnológico completo
 - Estrutura de diretórios
-- Serviços disponíveis (Spring Boot, PostgreSQL, Redis, MailHog)
+- Serviços disponíveis (Spring Boot, H2 Database, Redis, SMTP Mailtrap)
 - Quick start com comandos essenciais
 - Links para documentação específica
 - Informações de contribuição
@@ -607,7 +527,6 @@ O projeto possui uma estrutura completa de documentação na pasta `docs/`:
 #### docs/installation.md
 **Propósito**: Guia completo de instalação e configuração
 **Conteúdo**:
-- Pré-requisitos (Docker, Docker Compose, Git)
 - Instalação rápida (3 comandos)
 - Instalação detalhada passo a passo
 - Configurações de ambiente
@@ -616,53 +535,6 @@ O projeto possui uma estrutura completa de documentação na pasta `docs/`:
 - Troubleshooting de problemas comuns
 - Configurações para ambiente de produção
 
-#### docs/docker.md
-**Propósito**: Documentação da arquitetura Docker
-**Conteúdo**:
-- Visão geral da arquitetura multi-serviços
-- Detalhes de cada serviço:
-  - Spring Boot (app)
-  - PostgreSQL (postgres)
-  - Redis (redis)
-  - MailHog (mailhog)
-- Configurações de rede e volumes
-- Dockerfile multi-stage explicado
-- Comandos de gerenciamento Docker
-- Health checks e monitoramento
-- Variáveis de ambiente
-- Otimizações e boas práticas
-
-### Desenvolvimento
-- **Produção**: Usar Docker Compose (`docker-compose up -d`) - aplicação disponível em http://localhost:8080
-- **Desenvolvimento Local**: Executar via Maven (`mvn spring-boot:run`) - aplicação disponível em http://localhost:8082
-- Para desenvolvimento local, mapear o código fonte como volume
-- Usar profiles do Spring Boot para diferentes ambientes
-- Configurar hot reload quando possível
-- Manter separação clara entre backend e outros componentes
-- Consultar documentação na pasta `docs/` para referências
-- Atualizar documentação ao implementar novas features
-- **Configuração de Porta**:
-  - Docker Compose: Porta 8080 (configurada no docker-compose.yml)
-  - Maven local: Porta 8082 (configurada no application.yml)
-- **Thymeleaf**:
-  - Templates HTML em `/src/main/resources/templates/`
-  - Controladores Spring MVC em `/src/main/java/com/sistema/controller/`
-  - Configuração automática via Spring Boot
-  - CSS responsivo integrado nos templates
-  - Expressões Thymeleaf para dados dinâmicos
-- **Autenticação e Segurança**:
-  - JWT tokens com chaves RSA para assinatura
-  - Sistema de blacklist de tokens no Redis
-  - Controle de tentativas de login por IP
-  - Captcha obrigatório após 5 tentativas falhadas
-  - BCrypt para hash de senhas
-  - Roles de usuário (USER, ADMIN)
-  - Endpoints protegidos com Spring Security
-- **Testes de Autenticação**:
-  - Usar endpoints `/api/auth/register` e `/api/auth/login` para testes
-  - Captcha disponível em `/api/auth/captcha/generate`
-  - Tokens JWT válidos por 24 horas
-  - Refresh tokens válidos por 7 dias
 
 ### Segurança
 - Não expor portas desnecessárias
@@ -770,52 +642,6 @@ src/
 
 #### Dependências de Teste
 
-**Configuração no pom.xml**:
-```xml
-<dependencies>
-    <!-- JUnit 5 -->
-    <dependency>
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-jupiter</artifactId>
-        <scope>test</scope>
-    </dependency>
-    
-    <!-- Mockito -->
-    <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-core</artifactId>
-        <scope>test</scope>
-    </dependency>
-    
-    <!-- Spring Boot Test -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-test</artifactId>
-        <scope>test</scope>
-    </dependency>
-    
-    <!-- Testcontainers -->
-    <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>junit-jupiter</artifactId>
-        <scope>test</scope>
-    </dependency>
-    
-    <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>postgresql</artifactId>
-        <scope>test</scope>
-    </dependency>
-    
-    <!-- AssertJ -->
-    <dependency>
-        <groupId>org.assertj</groupId>
-        <artifactId>assertj-core</artifactId>
-        <scope>test</scope>
-    </dependency>
-</dependencies>
-```
-
 ### Estratégias de Teste
 
 #### 1. Testes Unitários
@@ -867,10 +693,8 @@ class HealthServiceTest {
 class HealthControllerIntegrationTest {
     
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-            .withDatabaseName("test_db")
-            .withUsername("test")
-            .withPassword("test");
+    // H2 Database em memória é usado automaticamente para testes
+// Não é necessário container externo
     
     @Autowired
     private TestRestTemplate restTemplate;
@@ -996,26 +820,13 @@ logging:
     com.sistema: DEBUG
 ```
 
-#### Docker para Testes
+#### Configuração para Testes
 
-**docker-compose.test.yml**:
-```yaml
-version: '3.8'
-services:
-  postgres-test:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: test_db
-      POSTGRES_USER: test_user
-      POSTGRES_PASSWORD: test_pass
-    ports:
-      - "5433:5432"
-  
-  redis-test:
-    image: redis:7-alpine
-    ports:
-      - "6370:6379"
-```
+**application-test.yml**:
+- H2 Database em memória para testes de integração
+- Redis configurado na porta 6370 para cache de testes
+- Configuração isolada do ambiente de desenvolvimento
+- Dados temporários em memória para testes
 
 ### Boas Práticas
 
@@ -1131,6 +942,367 @@ void setUp() {
 - **Failsafe**: Resultados de testes de integração
 - **SonarQube**: Qualidade geral do código
 
+### Padrões de Implementação TDD
+
+#### 1. Workflow de Desenvolvimento
+
+**Sequência Obrigatória**:
+1. **Escrever teste falhando** (Red)
+2. **Implementar código mínimo** (Green)
+3. **Refatorar mantendo testes** (Refactor)
+4. **Commit apenas com testes passando**
+
+**Exemplo Prático - Implementando UserService**:
+
+```java
+// PASSO 1: RED - Teste falhando
+@Test
+@DisplayName("Deve criar usuário com dados válidos")
+void shouldCreateUserWithValidData() {
+    // Given
+    CreateUserRequest request = CreateUserRequest.builder()
+        .name("João Silva")
+        .email("joao@email.com")
+        .password("senha123")
+        .build();
+    
+    // When
+    User user = userService.createUser(request);
+    
+    // Then
+    assertThat(user.getId()).isNotNull();
+    assertThat(user.getName()).isEqualTo("João Silva");
+    assertThat(user.getEmail()).isEqualTo("joao@email.com");
+    assertThat(user.getPassword()).isNotEqualTo("senha123"); // deve estar criptografada
+}
+
+// PASSO 2: GREEN - Implementação mínima
+@Service
+public class UserService {
+    public User createUser(CreateUserRequest request) {
+        User user = new User();
+        user.setId(UUID.randomUUID().toString());
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+        user.setPassword(BCrypt.hashpw(request.getPassword(), BCrypt.gensalt()));
+        return user;
+    }
+}
+
+// PASSO 3: REFACTOR - Melhorar sem quebrar testes
+@Service
+public class UserService {
+    
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    
+    public User createUser(CreateUserRequest request) {
+        validateUserRequest(request);
+        
+        User user = User.builder()
+            .id(UUID.randomUUID().toString())
+            .name(request.getName())
+            .email(request.getEmail())
+            .password(passwordEncoder.encode(request.getPassword()))
+            .createdAt(LocalDateTime.now())
+            .build();
+            
+        return userRepository.save(user);
+    }
+    
+    private void validateUserRequest(CreateUserRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new UserAlreadyExistsException("Email já cadastrado");
+        }
+    }
+}
+```
+
+#### 2. Padrões de Teste por Camada
+
+**Controller Layer**:
+```java
+@WebMvcTest(UserController.class)
+class UserControllerTest {
+    
+    @Autowired
+    private MockMvc mockMvc;
+    
+    @MockBean
+    private UserService userService;
+    
+    @Test
+    @DisplayName("POST /api/users deve retornar 201 quando dados válidos")
+    void shouldReturn201WhenValidUserData() throws Exception {
+        // Given
+        CreateUserRequest request = new CreateUserRequest("João", "joao@email.com", "senha123");
+        User expectedUser = User.builder().id("123").name("João").build();
+        
+        when(userService.createUser(any(CreateUserRequest.class))).thenReturn(expectedUser);
+        
+        // When & Then
+        mockMvc.perform(post("/api/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value("123"))
+                .andExpect(jsonPath("$.name").value("João"));
+    }
+}
+```
+
+**Service Layer**:
+```java
+@ExtendWith(MockitoExtension.class)
+class UserServiceTest {
+    
+    @Mock
+    private UserRepository userRepository;
+    
+    @Mock
+    private PasswordEncoder passwordEncoder;
+    
+    @InjectMocks
+    private UserService userService;
+    
+    @Test
+    @DisplayName("Deve lançar exceção quando email já existe")
+    void shouldThrowExceptionWhenEmailAlreadyExists() {
+        // Given
+        CreateUserRequest request = new CreateUserRequest("João", "joao@email.com", "senha123");
+        when(userRepository.existsByEmail("joao@email.com")).thenReturn(true);
+        
+        // When & Then
+        assertThatThrownBy(() -> userService.createUser(request))
+            .isInstanceOf(UserAlreadyExistsException.class)
+            .hasMessage("Email já cadastrado");
+    }
+}
+```
+
+**Repository Layer**:
+```java
+@DataJpaTest
+class UserRepositoryTest {
+    
+    @Autowired
+    private TestEntityManager entityManager;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Test
+    @DisplayName("Deve encontrar usuário por email")
+    void shouldFindUserByEmail() {
+        // Given
+        User user = User.builder()
+            .name("João")
+            .email("joao@email.com")
+            .password("hashedPassword")
+            .build();
+        entityManager.persistAndFlush(user);
+        
+        // When
+        Optional<User> found = userRepository.findByEmail("joao@email.com");
+        
+        // Then
+        assertThat(found).isPresent();
+        assertThat(found.get().getName()).isEqualTo("João");
+    }
+}
+```
+
+#### 3. Test Data Builders
+
+**Padrão Builder para Testes**:
+```java
+public class UserTestDataBuilder {
+    
+    private String id = UUID.randomUUID().toString();
+    private String name = "João Silva";
+    private String email = "joao@email.com";
+    private String password = "senha123";
+    private LocalDateTime createdAt = LocalDateTime.now();
+    
+    public static UserTestDataBuilder aUser() {
+        return new UserTestDataBuilder();
+    }
+    
+    public UserTestDataBuilder withId(String id) {
+        this.id = id;
+        return this;
+    }
+    
+    public UserTestDataBuilder withName(String name) {
+        this.name = name;
+        return this;
+    }
+    
+    public UserTestDataBuilder withEmail(String email) {
+        this.email = email;
+        return this;
+    }
+    
+    public User build() {
+        return User.builder()
+            .id(id)
+            .name(name)
+            .email(email)
+            .password(password)
+            .createdAt(createdAt)
+            .build();
+    }
+}
+
+// Uso nos testes
+@Test
+void shouldUpdateUserName() {
+    // Given
+    User user = aUser()
+        .withName("João Original")
+        .withEmail("joao@test.com")
+        .build();
+    
+    // When & Then...
+}
+```
+
+#### 4. Testes de Comportamento (BDD Style)
+
+**Estrutura Given-When-Then Expandida**:
+```java
+@Test
+@DisplayName("Cenário: Usuário tenta fazer login com credenciais válidas")
+void userTriesToLoginWithValidCredentials() {
+    // Given: Um usuário cadastrado no sistema
+    User existingUser = aUser()
+        .withEmail("joao@email.com")
+        .withPassword(passwordEncoder.encode("senha123"))
+        .build();
+    when(userRepository.findByEmail("joao@email.com")).thenReturn(Optional.of(existingUser));
+    when(passwordEncoder.matches("senha123", existingUser.getPassword())).thenReturn(true);
+    
+    // When: O usuário tenta fazer login
+    LoginRequest request = new LoginRequest("joao@email.com", "senha123");
+    LoginResponse response = authService.login(request);
+    
+    // Then: O login deve ser bem-sucedido
+    assertThat(response.isSuccess()).isTrue();
+    assertThat(response.getToken()).isNotBlank();
+    assertThat(response.getUser().getEmail()).isEqualTo("joao@email.com");
+    
+    // And: O token deve ser válido
+    assertThat(jwtService.isValidToken(response.getToken())).isTrue();
+}
+```
+
+#### 5. Testes de Exceções e Edge Cases
+
+**Padrão para Testes de Exceção**:
+```java
+@Test
+@DisplayName("Deve lançar ValidationException quando dados inválidos")
+void shouldThrowValidationExceptionWhenInvalidData() {
+    // Given
+    CreateUserRequest invalidRequest = CreateUserRequest.builder()
+        .name("") // nome vazio
+        .email("email-inválido") // email inválido
+        .password("123") // senha muito curta
+        .build();
+    
+    // When & Then
+    assertThatThrownBy(() -> userService.createUser(invalidRequest))
+        .isInstanceOf(ValidationException.class)
+        .hasMessageContaining("Nome é obrigatório")
+        .hasMessageContaining("Email inválido")
+        .hasMessageContaining("Senha deve ter pelo menos 8 caracteres");
+}
+
+@ParameterizedTest
+@ValueSource(strings = {"", " ", "a", "ab"})
+@DisplayName("Deve rejeitar nomes inválidos")
+void shouldRejectInvalidNames(String invalidName) {
+    // Given
+    CreateUserRequest request = aCreateUserRequest()
+        .withName(invalidName)
+        .build();
+    
+    // When & Then
+    assertThatThrownBy(() -> userService.createUser(request))
+        .isInstanceOf(ValidationException.class);
+}
+```
+
+#### 6. Testes de Integração com Transações
+
+**Padrão para Testes Transacionais**:
+```java
+@SpringBootTest
+@Transactional
+@Rollback
+class UserServiceIntegrationTest {
+    
+    @Autowired
+    private UserService userService;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Test
+    @DisplayName("Deve criar usuário e persistir no banco")
+    void shouldCreateUserAndPersistInDatabase() {
+        // Given
+        CreateUserRequest request = new CreateUserRequest("João", "joao@email.com", "senha123");
+        
+        // When
+        User createdUser = userService.createUser(request);
+        
+        // Then
+        assertThat(createdUser.getId()).isNotNull();
+        
+        // And: Verificar persistência
+        Optional<User> persistedUser = userRepository.findById(createdUser.getId());
+        assertThat(persistedUser).isPresent();
+        assertThat(persistedUser.get().getName()).isEqualTo("João");
+    }
+}
+```
+
+### Diretrizes de Qualidade TDD
+
+#### 1. Regras de Ouro
+
+- **Teste primeiro, sempre**: Nunca escrever código sem teste falhando
+- **Um teste, uma responsabilidade**: Cada teste verifica apenas um comportamento
+- **Testes independentes**: Não devem depender uns dos outros
+- **Nomes expressivos**: Teste deve documentar o comportamento esperado
+- **Arrange-Act-Assert**: Estrutura clara e consistente
+
+#### 2. Code Review Checklist
+
+**Para Testes**:
+- [ ] Teste falha antes da implementação?
+- [ ] Nome do teste é descritivo e claro?
+- [ ] Usa Given-When-Then ou Arrange-Act-Assert?
+- [ ] Verifica apenas um comportamento?
+- [ ] Usa mocks apropriadamente?
+- [ ] Tem assertions suficientes?
+
+**Para Código de Produção**:
+- [ ] Implementação mínima para passar no teste?
+- [ ] Código foi refatorado após passar?
+- [ ] Mantém todos os testes passando?
+- [ ] Segue padrões de design estabelecidos?
+
+#### 3. Métricas de Qualidade TDD
+
+**Indicadores de Sucesso**:
+- **Cobertura de testes**: > 85%
+- **Tempo de feedback**: < 10 minutos para suite completa
+- **Taxa de bugs em produção**: < 1% por release
+- **Velocidade de desenvolvimento**: Mantida ou aumentada
+- **Confiança do time**: Alta para fazer mudanças
+
 ## Regras de Documentação
 
 ### Estrutura da Documentação
@@ -1141,8 +1313,7 @@ A documentação do projeto está organizada na pasta `docs/` com a seguinte est
 docs/
 ├── README.md           # Visão geral e quick start
 ├── api.md             # Documentação completa da API
-├── installation.md    # Guia de instalação e configuração
-└── docker.md          # Documentação Docker Compose
+└── installation.md    # Guia de instalação e configuração
 ```
 
 ### Padrões de Documentação
@@ -1238,7 +1409,7 @@ A documentação DEVE ser atualizada sempre que:
 - Configurações forem modificadas
 - Dependências forem alteradas
 - Processo de instalação mudar
-- Novos serviços forem adicionados ao Docker Compose
+- Novos serviços forem adicionados ao projeto
 
 #### 2. Versionamento
 
@@ -1371,34 +1542,45 @@ aspell check docs/*.md
 **Sintoma**: `IllegalStateException: Ambiguous mapping`
 **Causa**: Múltiplos controladores mapeando o mesmo endpoint
 **Solução**: 
-- Verificar logs com `docker-compose logs app | grep -A 10 'Ambiguous mapping'`
+- Verificar logs da aplicação para identificar endpoints conflitantes
 - Identificar controladores conflitantes
 - Remover ou renomear endpoints duplicados
 
 #### 2. Falha na Inicialização da Aplicação
-**Sintoma**: Container não inicia ou para imediatamente
+**Sintoma**: Aplicação não inicia ou para imediatamente
 **Diagnóstico**:
 ```bash
 # Verificar logs detalhados
-docker-compose logs app
+mvn spring-boot:run
 
-# Verificar status dos containers
-docker-compose ps
+# Verificar se porta 8080 está ocupada (Windows)
+Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue
 
-# Rebuild completo
-docker-compose down
-docker-compose up -d --build
+# Alternativa com netstat (se disponível)
+netstat -ano | findstr :8080
+
+# Identificar processo usando a porta 8080
+Get-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess
+
+# Matar processo na porta 8080 se necessário
+Stop-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess -Force
+
+# Alternativa com taskkill
+taskkill /PID <PID> /F
+
+# Verificar se a porta foi liberada
+Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue
 ```
 
-#### 3. Problemas de Conectividade com Banco
-**Sintoma**: Erro de conexão com PostgreSQL
+#### 3. Problemas de Conectividade com Banco H2
+**Sintoma**: Erro de conexão com H2 Database
 **Verificação**:
 ```bash
-# Status do PostgreSQL
-docker-compose logs postgres
-
 # Teste de conectividade
-docker-compose exec app curl -f http://localhost:8080/api/health
+curl -f http://localhost:8080/api/health
+
+# Verificar console H2 (se habilitado)
+# http://localhost:8080/h2-console
 ```
 
 ```
@@ -1471,13 +1653,75 @@ Uma feature só está completa quando:
 - [ ] Exemplos funcionais
 ```
 
-configuraçlão mailtrap
-// Looking to send emails in production? Check out our Email API/SMTP product!
-play.mailer {
-  host = "sandbox.smtp.mailtrap.io"
-  port = 2525
-  ssl = no
-  tls = yes
-  user = "67af468e706c8e"
-  password = "c9c83240f6d045"
+## Configuração SMTP Mailtrap
+
+### Configuração Spring Boot
+
+#### Configuração Obrigatória de Porta
+
+**IMPORTANTE**: A configuração de porta no `application.yml` DEVE ser sempre 8080:
+
+```yaml
+server:
+  port: 8080
+  servlet:
+    context-path: /
+```
+
+**Regras de Configuração de Porta**:
+- ✅ **OBRIGATÓRIO**: `server.port: 8080`
+- ❌ **PROIBIDO**: Qualquer outra porta (8081, 9090, etc.)
+- ❌ **PROIBIDO**: Porta dinâmica (`server.port: 0`)
+- ❌ **PROIBIDO**: Configuração condicional de porta por perfil
+
+#### Configuração de Email via Mailtrap
+
+Para configurar o envio de emails via Mailtrap, adicione as seguintes propriedades no `application.yml`:
+
+```yaml
+spring:
+  mail:
+    host: sandbox.smtp.mailtrap.io
+    port: 2525
+    username: 67af468e706c8e
+    password: c9c83240f6d045
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          ssl:
+            trust: sandbox.smtp.mailtrap.io
+```
+
+### Configuração de Desenvolvimento
+
+Para ambiente de desenvolvimento, use as configurações do Mailtrap:
+- **Host**: sandbox.smtp.mailtrap.io
+- **Porta**: 2525
+- **Username**: 67af468e706c8e
+- **Password**: c9c83240f6d045
+- **TLS**: Habilitado
+- **Autenticação**: Obrigatória
+
+### Uso no Código
+
+```java
+@Service
+public class EmailService {
+    
+    @Autowired
+    private JavaMailSender mailSender;
+    
+    public void sendEmail(String to, String subject, String body) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject(subject);
+        message.setText(body);
+        message.setFrom("noreply@sistema.com");
+        
+        mailSender.send(message);
+    }
 }

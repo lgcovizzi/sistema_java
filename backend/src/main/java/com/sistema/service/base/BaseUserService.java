@@ -23,6 +23,24 @@ public abstract class BaseUserService extends BaseService {
     protected PasswordEncoder passwordEncoder;
     
     /**
+     * Setter para userRepository - usado principalmente para testes.
+     * 
+     * @param userRepository repositório de usuários
+     */
+    public void setUserRepository(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+    
+    /**
+     * Setter para passwordEncoder - usado principalmente para testes.
+     * 
+     * @param passwordEncoder codificador de senhas
+     */
+    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
+    
+    /**
      * Busca usuário por ID com validação.
      * 
      * @param userId ID do usuário

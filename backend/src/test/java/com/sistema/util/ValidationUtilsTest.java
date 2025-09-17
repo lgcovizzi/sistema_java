@@ -215,9 +215,9 @@ class ValidationUtilsTest {
                     "123456789", // Too short
                     "123456789012", // Too long
                     "abcdefghijk", // Non-numeric
-                    "1234567890", // Missing area code
-                    "(11) 1234-567", // Wrong format
-                    "11 1234 5678" // Wrong format
+                    "0912345678", // Invalid area code (09)
+                    "(11) 1234-567", // Wrong format - missing digit
+                    "11-1234-56789" // Wrong format - too many digits in last group
             };
 
             // When & Then

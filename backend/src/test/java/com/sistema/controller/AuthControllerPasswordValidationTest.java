@@ -2,6 +2,7 @@ package com.sistema.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sistema.repository.UserRepository;
+import com.sistema.util.CpfGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -246,9 +247,7 @@ class AuthControllerPasswordValidationTest {
     }
 
     private String generateUniqueCpf() {
-        // Gera um CPF único baseado no timestamp
-        long timestamp = System.currentTimeMillis();
-        String cpf = String.valueOf(timestamp).substring(3, 14); // Pega 11 dígitos
-        return cpf.length() == 11 ? cpf : "12345678901"; // Fallback
+        // Gera um CPF válido único usando o CpfGenerator
+        return CpfGenerator.generateCpf(); // Retorna CPF sem formatação
     }
 }

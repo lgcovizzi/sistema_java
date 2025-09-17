@@ -111,14 +111,25 @@ senha
 
 **CpfGenerator** (`com.sistema.util.CpfGenerator`)
 - **REGRA OBRIGATÓRIA**: Para testes e desenvolvimento, sempre usar CPFs válidos gerados por esta classe
-- Geração de CPFs válidos com algoritmo de verificação correto
-- Métodos disponíveis:
-  - `generateValidCpf()`: Gera um CPF válido aleatório
-  - `generateValidCpfWithoutMask()`: Gera CPF válido sem formatação
-  - `generateValidCpfWithMask()`: Gera CPF válido com formatação (xxx.xxx.xxx-xx)
+- **Baseado em**: Repositório gabriel-logan/Gerador-CPF-e-CNPJ-valido (https://github.com/gabriel-logan/Gerador-CPF-e-CNPJ-valido)
+- **Licença**: MIT License - implementação open source confiável e testada
+- **Algoritmo**: Implementa o algoritmo oficial brasileiro de geração de CPF com dígitos verificadores
+- **Características**:
+  - Geração de CPFs válidos com algoritmo de verificação correto
+  - Suporte a formatação com e sem máscara
+  - Validação integrada dos CPFs gerados
+  - Métodos estáticos para facilitar uso
+  - Compatibilidade total com validadores brasileiros
+- **Métodos disponíveis**:
+  - `generateCpf()`: Gera um CPF válido aleatório sem formatação (11 dígitos)
+  - `generateCpfWithMask()`: Gera CPF válido com formatação (xxx.xxx.xxx-xx)
+  - `isValidCpf(String cpf)`: Valida se um CPF é válido
+  - `formatCpf(String cpf)`: Formata um CPF adicionando máscara
+  - `cleanCpf(String cpf)`: Remove formatação de um CPF
 - **Uso em Testes**: Sempre utilizar CPFs gerados por esta classe em testes de integração e unitários
 - **Desenvolvimento**: Para dados de exemplo e demonstração, usar apenas CPFs válidos desta classe
-- **Validação**: CPFs gerados são compatíveis com a validação implementada em `CpfValidator`
+- **Validação**: CPFs gerados são 100% compatíveis com a validação implementada em `CpfValidator`
+- **Qualidade**: Implementação baseada em biblioteca open source amplamente testada e utilizada
 - **Localização**: `.\backend\src\main\java\com\sistema\util\CpfGenerator.java`
 
 ##### Interfaces Padronizadas

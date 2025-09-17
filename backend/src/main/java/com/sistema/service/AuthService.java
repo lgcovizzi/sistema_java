@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -165,6 +166,10 @@ public class AuthService extends BaseUserService implements UserDetailsService {
      */
     public Map<String, Object> authenticate(String email, String password, HttpServletRequest request) {
         try {
+            // Validar entrada
+            ValidationUtils.validateNotBlank(email, "Email é obrigatório");
+            ValidationUtils.validateNotBlank(password, "Senha é obrigatória");
+            
             // Autentica usando Spring Security
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(email, password)
@@ -183,6 +188,9 @@ public class AuthService extends BaseUserService implements UserDetailsService {
             
             return createAuthResponse(user, accessToken, refreshToken.getToken());
             
+        } catch (DisabledException e) {
+            logger.warn("Tentativa de login com usuário desabilitado: {}", email);
+            throw e; // Propagar DisabledException para o teste
         } catch (AuthenticationException e) {
             logger.warn("Falha na autenticação para usuário: {}", email);
             throw new BadCredentialsException("Credenciais inválidas");
@@ -534,6 +542,7 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         result.put("adminUsers", stats.getAdminUsers());
         result.put("regularUsers", stats.getRegularUsers());
         result.put("activeUserPercentage", stats.getActiveUserPercentage());
+        result.put("lastUpdated", java.time.LocalDateTime.now());
         
         return result;
     }
@@ -563,7 +572,7 @@ public class AuthService extends BaseUserService implements UserDetailsService {
     public List<User> searchUsers(String searchTerm) {
         try {
             ValidationUtils.validateNotBlank(searchTerm, "Termo de pesquisa é obrigatório");
-            return userRepository.findByEmailContainingIgnoreCase(searchTerm);
+            return userRepository.searchUsers(searchTerm);
         } catch (Exception e) {
             logError("Erro ao pesquisar usuários com termo: " + searchTerm, e);
             return List.of();

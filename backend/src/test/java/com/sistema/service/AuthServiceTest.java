@@ -147,7 +147,8 @@ class AuthServiceTest {
         Map<String, Object> userInfo = (Map<String, Object>) result.get("user");
         assertThat(userInfo.get("email")).isEqualTo("test@example.com");
         
-        verify(userRepository).updateLastLogin(eq(1L), any(LocalDateTime.class));
+        // Verificar que o usuário foi salvo para atualizar o lastLoginAt
+        verify(userRepository, times(1)).save(any(User.class));
     }
 
     @Test
@@ -365,7 +366,7 @@ class AuthServiceTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getUsername()).isEqualTo("testuser");
+        assertThat(result.get(0).getEmail()).isEqualTo("test@example.com");
         verify(userRepository).searchUsers("test");
     }
 

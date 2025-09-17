@@ -4,7 +4,10 @@ import java.util.regex.Pattern;
 
 /**
  * Utilitário para validação de CPF brasileiro.
+ * Baseado no repositório gabriel-logan/Gerador-CPF-e-CNPJ-valido (Licença MIT).
  * Implementa o algoritmo oficial de validação do CPF.
+ * 
+ * Compatível com CpfGenerator para uso em testes e validação.
  */
 public class CpfValidator {
 

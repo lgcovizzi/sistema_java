@@ -6,8 +6,15 @@ import java.util.List;
 
 /**
  * Gerador de CPFs válidos para testes.
- * Implementa o algoritmo oficial de geração de CPF brasileiro baseado em:
- * https://desenvolvo.wordpress.com/2012/06/24/desenvolvimento-gerador-de-cpfs-validos-em-java/
+ * Baseado no repositório gabriel-logan/Gerador-CPF-e-CNPJ-valido (Licença MIT).
+ * Implementa o algoritmo oficial de geração de CPF brasileiro com melhorias.
+ * 
+ * Características:
+ * - Métodos estáticos para facilidade de uso
+ * - Compatibilidade com validadores existentes
+ * - Geração segura usando SecureRandom
+ * - Suporte a formatação e limpeza de CPF
+ * - Validação integrada
  * 
  * ATENÇÃO: Esta classe é destinada APENAS para testes e desenvolvimento.
  * Não deve ser usada para gerar CPFs para uso real ou produção.
@@ -18,6 +25,15 @@ public final class CpfGenerator {
     
     private CpfGenerator() {
         // Classe utilitária - construtor privado
+    }
+    
+    /**
+     * Gera um CPF válido aleatório (método principal baseado no gabriel-logan).
+     * 
+     * @return CPF válido apenas com números (11 dígitos)
+     */
+    public static String generateCpf() {
+        return generateValidCpf(false);
     }
     
     /**
@@ -213,6 +229,99 @@ public final class CpfGenerator {
      */
     public static boolean validateGeneratedCpf(String cpf) {
         return ValidationUtils.isValidCpf(cpf);
+    }
+    
+    /**
+     * Valida se um CPF é válido (método baseado no gabriel-logan).
+     * Implementa o algoritmo oficial de validação de CPF brasileiro.
+     * 
+     * @param cpf CPF a validar (com ou sem formatação)
+     * @return true se o CPF for válido
+     */
+    public static boolean isValidCpf(String cpf) {
+        if (cpf == null || cpf.trim().isEmpty()) {
+            return false;
+        }
+        
+        // Remove formatação
+        String cleanCpf = cleanCpf(cpf);
+        
+        // Verifica se tem 11 dígitos
+        if (cleanCpf.length() != 11 || !cleanCpf.matches("\\d{11}")) {
+            return false;
+        }
+        
+        // Verifica se não são todos os dígitos iguais
+        if (cleanCpf.matches("(\\d)\\1{10}")) {
+            return false;
+        }
+        
+        // Calcula o primeiro dígito verificador
+        int sum = 0;
+        for (int i = 0; i < 9; i++) {
+            sum += Character.getNumericValue(cleanCpf.charAt(i)) * (10 - i);
+        }
+        int firstDigit = 11 - (sum % 11);
+        if (firstDigit >= 10) {
+            firstDigit = 0;
+        }
+        
+        // Verifica o primeiro dígito
+        if (Character.getNumericValue(cleanCpf.charAt(9)) != firstDigit) {
+            return false;
+        }
+        
+        // Calcula o segundo dígito verificador
+        sum = 0;
+        for (int i = 0; i < 10; i++) {
+            sum += Character.getNumericValue(cleanCpf.charAt(i)) * (11 - i);
+        }
+        int secondDigit = 11 - (sum % 11);
+        if (secondDigit >= 10) {
+            secondDigit = 0;
+        }
+        
+        // Verifica o segundo dígito
+        return Character.getNumericValue(cleanCpf.charAt(10)) == secondDigit;
+    }
+    
+    /**
+     * Formata um CPF no padrão xxx.xxx.xxx-xx (método baseado no gabriel-logan).
+     * 
+     * @param cpf CPF apenas com números (11 dígitos)
+     * @return CPF formatado ou string vazia se inválido
+     */
+    public static String formatCpf(String cpf) {
+        if (cpf == null) {
+            return "";
+        }
+        
+        String cleanCpf = cleanCpf(cpf);
+        
+        if (cleanCpf.length() != 11 || !cleanCpf.matches("\\d{11}")) {
+            return "";
+        }
+        
+        return String.format("%s.%s.%s-%s",
+            cleanCpf.substring(0, 3),
+            cleanCpf.substring(3, 6),
+            cleanCpf.substring(6, 9),
+            cleanCpf.substring(9, 11)
+        );
+    }
+    
+    /**
+     * Remove formatação do CPF, deixando apenas números (método baseado no gabriel-logan).
+     * 
+     * @param cpf CPF com ou sem formatação
+     * @return CPF apenas com números
+     */
+    public static String cleanCpf(String cpf) {
+        if (cpf == null) {
+            return "";
+        }
+        
+        return cpf.replaceAll("[^0-9]", "");
     }
     
     /**

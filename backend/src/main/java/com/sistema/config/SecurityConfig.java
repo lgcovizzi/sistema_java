@@ -77,7 +77,8 @@ public class SecurityConfig {
                     "/api/login",
                     "/logout",
                     "/dashboard",
-                    "/news"
+                    "/news",
+                    "/h2-console/**"
                 ).permitAll()
                 
                 // Endpoints administrativos - requerem role ADMIN
@@ -108,7 +109,12 @@ public class SecurityConfig {
             .authenticationProvider(authenticationProvider())
             
             // Adiciona filtro JWT antes do filtro de autenticação padrão
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            
+            // Configuração de headers para H2 console
+            .headers(headers -> headers
+                .frameOptions().sameOrigin() // Permite frames da mesma origem para H2 console
+            );
 
         return http.build();
     }

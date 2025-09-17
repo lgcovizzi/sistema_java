@@ -1,7 +1,7 @@
 package com.sistema.controller;
 
 import com.sistema.entity.User;
-import com.sistema.entity.Role;
+import com.sistema.entity.UserRole;
 import com.sistema.service.AuthService;
 import com.sistema.service.JwtService;
 import com.sistema.service.TokenBlacklistService;
@@ -75,7 +75,7 @@ class AuthControllerTest {
         testUser.setId(1L);
         testUser.setEmail("test@example.com");
         testUser.setPassword("encodedPassword");
-        testUser.setRoles(List.of(Role.USER));
+        testUser.setRole(UserRole.USER);
         testUser.setEnabled(true);
         testUser.setCreatedAt(LocalDateTime.now());
         

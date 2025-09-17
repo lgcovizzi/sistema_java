@@ -11,11 +11,11 @@ import java.util.regex.Pattern;
 public final class ValidationUtils {
     
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
-        "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+        "^[a-zA-Z0-9+]([a-zA-Z0-9._+%-]*[a-zA-Z0-9])?@[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?\\.[a-zA-Z]{2,}$"
     );
     
     private static final Pattern PHONE_PATTERN = Pattern.compile(
-        "^\\+?[1-9]\\d{1,14}$"
+        "^(\\+55\\s?)?(\\(\\d{2}\\)|\\d{2})\\s?\\d{4,5}[-\\s]?\\d{4}$"
     );
     
     private static final Pattern PASSWORD_PATTERN = Pattern.compile(
@@ -269,7 +269,16 @@ public final class ValidationUtils {
      * @return true se é válido
      */
     public static boolean isValidEmail(String email) {
-        return email != null && EMAIL_PATTERN.matcher(email).matches();
+        if (email == null) {
+            return false;
+        }
+        
+        // Rejeita pontos consecutivos
+        if (email.contains("..")) {
+            return false;
+        }
+        
+        return EMAIL_PATTERN.matcher(email).matches();
     }
     
     /**
@@ -279,7 +288,43 @@ public final class ValidationUtils {
      * @return true se é válido
      */
     public static boolean isValidPhone(String phone) {
-        return phone != null && PHONE_PATTERN.matcher(phone).matches();
+        if (phone == null) return false;
+        
+        // Primeiro aplica o regex para verificar formato
+        if (!PHONE_PATTERN.matcher(phone).matches()) {
+            return false;
+        }
+        
+        // Remove formatação para validações adicionais
+        String cleanPhone = phone.replaceAll("[\\s\\-\\(\\)\\+]", "");
+        
+        // Remove código do país se presente
+        if (cleanPhone.startsWith("55") && cleanPhone.length() > 11) {
+            cleanPhone = cleanPhone.substring(2);
+        }
+        
+        // Deve ter exatamente 10 ou 11 dígitos após limpeza
+        if (cleanPhone.length() != 10 && cleanPhone.length() != 11) {
+            return false;
+        }
+        
+        // Verifica se é numérico
+        if (!cleanPhone.matches("\\d+")) {
+            return false;
+        }
+        
+        // Verifica código de área (primeiros 2 dígitos)
+        String areaCode = cleanPhone.substring(0, 2);
+        try {
+            int code = Integer.parseInt(areaCode);
+            if (code < 11 || code > 99) {
+                return false;
+            }
+        } catch (NumberFormatException e) {
+            return false;
+        }
+        
+        return true;
     }
     
     /**
@@ -377,12 +422,8 @@ public final class ValidationUtils {
         if (value == null || value.trim().isEmpty()) {
             return false;
         }
-        try {
-            Double.parseDouble(value);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
+        // Verifica se contém apenas dígitos (sem sinais ou pontos decimais)
+        return value.matches("^\\d+$");
     }
     
     /**
@@ -408,9 +449,21 @@ public final class ValidationUtils {
             return false;
         }
         
+        // Aceita apenas protocolos HTTP e HTTPS
+        if (!url.toLowerCase().startsWith("http://") && !url.toLowerCase().startsWith("https://")) {
+            return false;
+        }
+        
         try {
             java.net.URL urlObj = new java.net.URL(url);
             urlObj.toURI();
+            
+            // Verifica se o host não está vazio
+            String host = urlObj.getHost();
+            if (host == null || host.trim().isEmpty()) {
+                return false;
+            }
+            
             return true;
         } catch (Exception e) {
             return false;

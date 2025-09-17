@@ -1,7 +1,7 @@
 package com.sistema.integration;
 
 import com.sistema.config.RSAKeyManager;
-import com.sistema.entity.Role;
+import com.sistema.entity.UserRole;
 import com.sistema.entity.User;
 import com.sistema.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +56,7 @@ class RSAKeyManagerJwtIntegrationTest {
         testUser.setFirstName("Test");
         testUser.setLastName("User");
         testUser.setPassword("password");
-        testUser.setRoles(List.of(Role.USER));
+        testUser.setRole(UserRole.USER);
     }
 
     @Test

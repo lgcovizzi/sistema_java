@@ -35,12 +35,15 @@ public class AuthService extends BaseUserService implements UserDetailsService {
 
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
+    private final EmailVerificationService emailVerificationService;
     private AuthenticationManager authenticationManager;
 
     @Autowired
-    public AuthService(JwtService jwtService, RefreshTokenService refreshTokenService) {
+    public AuthService(JwtService jwtService, RefreshTokenService refreshTokenService, 
+                      EmailVerificationService emailVerificationService) {
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
+        this.emailVerificationService = emailVerificationService;
     }
 
     @Autowired
@@ -108,6 +111,12 @@ public class AuthService extends BaseUserService implements UserDetailsService {
             if (!user.isEnabled()) {
                 logger.warn("Tentativa de login com usuário desabilitado: {}", email);
                 throw new BadCredentialsException("Usuário desabilitado");
+            }
+            
+            // Verificar se email foi verificado
+            if (!user.isEmailVerified()) {
+                logger.warn("Tentativa de login com email não verificado: {}", email);
+                throw new BadCredentialsException("Email não verificado. Verifique sua caixa de entrada e clique no link de verificação.");
             }
             
             // Autenticar com Spring Security
@@ -221,9 +230,11 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         // Verificar se é o email especial para auto-promoção a admin
         if ("lgcovizzi@gmail.com".equalsIgnoreCase(email)) {
             user.setRole(UserRole.ADMIN);
+            user.setEmailVerified(true); // Admin é verificado automaticamente
             logger.info("Usuário {} promovido automaticamente para ADMIN devido ao email especial", email);
         } else {
             user.setRole(UserRole.USER);
+            user.setEmailVerified(false); // Usuários normais precisam verificar email
         }
         
         user.setActive(true);
@@ -231,6 +242,18 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         user.setUpdatedAt(LocalDateTime.now());
         
         User savedUser = userRepository.save(user);
+        
+        // Gerar token de verificação apenas para usuários não verificados
+        if (!savedUser.isEmailVerified()) {
+            try {
+                String verificationToken = emailVerificationService.generateVerificationToken(savedUser);
+                logger.info("Token de verificação gerado para: {}", email);
+            } catch (Exception e) {
+                logger.error("Erro ao gerar token de verificação para: {}", email, e);
+                // Não falha o registro se o token não puder ser gerado
+            }
+        }
+        
         logger.info("Usuário registrado com sucesso: {}", email);
         
         return savedUser;
@@ -359,7 +382,7 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         userInfo.put("id", user.getId());
         userInfo.put("email", user.getEmail());
         userInfo.put("fullName", user.getFullName());
-        userInfo.put("roles", user.getRoles());
+        userInfo.put("role", user.getRole());
         userInfo.put("lastLogin", user.getLastLogin());
         
         response.put("user", userInfo);
@@ -416,6 +439,46 @@ public class AuthService extends BaseUserService implements UserDetailsService {
                 }
             }
         }
+    }
+
+    /**
+     * Atualiza o perfil do usuário.
+     * 
+     * @param userId ID do usuário
+     * @param firstName novo nome
+     * @param lastName novo sobrenome
+     * @param phone novo telefone (opcional)
+     * @return usuário atualizado
+     */
+    public User updateProfile(Long userId, String firstName, String lastName, String phone) {
+        logInfo("Atualizando perfil do usuário");
+        
+        // Validações
+        validateNotNull(userId, "ID do usuário");
+        validateNotEmpty(firstName, "Nome");
+        validateNotEmpty(lastName, "Sobrenome");
+        
+        // Validação de telefone se fornecido
+        if (phone != null && !phone.trim().isEmpty()) {
+            if (!ValidationUtils.isValidPhone(phone)) {
+                throw new IllegalArgumentException("Formato de telefone inválido");
+            }
+        }
+        
+        User user = findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+        
+        // Atualiza os campos
+        user.setFirstName(firstName.trim());
+        user.setLastName(lastName.trim());
+        user.setPhone(phone != null && !phone.trim().isEmpty() ? phone.trim() : null);
+        user.setUpdatedAt(LocalDateTime.now());
+        
+        User savedUser = userRepository.save(user);
+        
+        logInfo("Perfil do usuário atualizado com sucesso");
+        
+        return savedUser;
     }
 
     /**
@@ -536,6 +599,5 @@ public class AuthService extends BaseUserService implements UserDetailsService {
             return Optional.empty();
         }
     }
-
 
 }

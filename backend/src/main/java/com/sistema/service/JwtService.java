@@ -91,6 +91,11 @@ public class JwtService extends BaseService implements TokenOperations {
      * @return token JWT
      */
     private String generateToken(Map<String, Object> extraClaims, String email, long expirationSeconds) {
+        // Validar TTL
+        if (expirationSeconds <= 0) {
+            throw new IllegalArgumentException("TTL deve ser maior que zero");
+        }
+        
         try {
             PrivateKey privateKey = rsaKeyManager.getPrivateKey();
             

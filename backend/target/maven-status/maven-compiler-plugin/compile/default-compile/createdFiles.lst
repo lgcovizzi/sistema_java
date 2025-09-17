@@ -1,3 +1,5 @@
+com/sistema/dto/UpdateProfileRequest.class
+com/sistema/util/CpfGenerator$CpfGenerationResult.class
 com/sistema/controller/AuthController$RegisterRequest.class
 com/sistema/controller/AuthController$LogoutRequest.class
 com/sistema/config/SecurityConfig$DevSecurityConfig.class
@@ -7,10 +9,12 @@ com/sistema/service/EmailService.class
 com/sistema/service/interfaces/AttemptControlOperations$AttemptStatistics.class
 com/sistema/service/UserService$UserStatistics.class
 com/sistema/controller/HealthController.class
+com/sistema/service/SmtpService$SmtpStats.class
 com/sistema/config/SecurityConfig$ProductionSecurityConfig.class
 com/sistema/config/SecurityConfig.class
 com/sistema/util/CpfValidator.class
 com/sistema/service/AuthService.class
+com/sistema/config/SmtpConfig.class
 com/sistema/controller/AuthController$ForgotPasswordRequest.class
 com/sistema/service/UserService.class
 com/sistema/service/CaptchaService$CaptchaData.class
@@ -22,9 +26,11 @@ com/sistema/util/FormatUtils.class
 com/sistema/dto/LoginRequest.class
 com/sistema/controller/LoginController.class
 com/sistema/service/CaptchaService$CaptchaStatistics.class
+com/sistema/service/EmailVerificationService.class
 com/sistema/config/RSAKeyManager.class
 com/sistema/repository/RefreshTokenRepository.class
 com/sistema/controller/AuthController.class
+com/sistema/controller/AuthController$ResendVerificationRequest.class
 com/sistema/service/base/BaseUserService.class
 com/sistema/controller/AuthController$LoginRequest.class
 com/sistema/controller/AuthController$UpdateRoleRequest.class
@@ -32,10 +38,12 @@ com/sistema/service/JwtService.class
 com/sistema/security/JwtAuthenticationFilter.class
 com/sistema/entity/Role.class
 com/sistema/util/EmailMaskUtil.class
+com/sistema/config/SmtpConfig$SmtpConfiguration.class
 com/sistema/entity/UserRole.class
 com/sistema/controller/AuthController$ValidateTokenRequest.class
 com/sistema/entity/RefreshToken.class
 com/sistema/service/TokenBlacklistService.class
+com/sistema/service/SmtpService$EmailOperation.class
 com/sistema/validation/ValidCpf.class
 com/sistema/controller/AuthController$RefreshTokenRequest.class
 com/sistema/controller/AuthController$EnableUserRequest.class
@@ -43,6 +51,7 @@ com/sistema/config/EmbeddedRedisConfig.class
 com/sistema/service/interfaces/TokenOperations.class
 com/sistema/validation/CpfValidator.class
 com/sistema/config/RedisConfig.class
+com/sistema/util/CpfGenerator.class
 com/sistema/service/interfaces/CacheOperations.class
 com/sistema/controller/HomeController.class
 com/sistema/controller/AuthController$ChangePasswordRequest.class
@@ -51,7 +60,9 @@ com/sistema/service/RefreshTokenService.class
 com/sistema/controller/CaptchaController$CaptchaValidationRequest.class
 com/sistema/service/interfaces/SecurityOperations.class
 com/sistema/entity/User.class
+com/sistema/service/SmtpService.class
 com/sistema/SistemaJavaApplication.class
+com/sistema/service/EmailVerificationService$EmailVerificationStats.class
 com/sistema/service/base/BaseSecurityService.class
 com/sistema/service/base/BaseUserService$UserStatistics.class
 com/sistema/controller/CaptchaController.class
@@ -59,6 +70,7 @@ com/sistema/config/DataLoader.class
 com/sistema/controller/NewsController.class
 com/sistema/controller/RSATestController.class
 com/sistema/service/interfaces/AttemptControlOperations.class
+com/sistema/config/SmtpConfig$SmtpConfiguration$Builder.class
 com/sistema/service/interfaces/CaptchaOperations.class
 com/sistema/util/SecurityUtils.class
 com/sistema/util/ValidationUtils.class

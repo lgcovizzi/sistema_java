@@ -1,5 +1,6 @@
 package com.sistema.controller;
 
+import com.sistema.dto.UpdateProfileRequest;
 import com.sistema.entity.User;
 import com.sistema.entity.UserRole;
 import com.sistema.service.AuthService;
@@ -7,6 +8,7 @@ import com.sistema.service.JwtService;
 import com.sistema.service.TokenBlacklistService;
 import com.sistema.service.AttemptService;
 import com.sistema.service.CaptchaService;
+import com.sistema.service.EmailVerificationService;
 import com.sistema.validation.ValidCpf;
 import com.sistema.util.EmailMaskUtil;
 import com.sistema.security.JwtAuthenticationFilter;
@@ -47,15 +49,18 @@ public class AuthController {
     private final TokenBlacklistService tokenBlacklistService;
     private final AttemptService attemptService;
     private final CaptchaService captchaService;
+    private final EmailVerificationService emailVerificationService;
 
     @Autowired
     public AuthController(AuthService authService, JwtService jwtService, TokenBlacklistService tokenBlacklistService,
-                         AttemptService attemptService, CaptchaService captchaService) {
+                         AttemptService attemptService, CaptchaService captchaService, 
+                         EmailVerificationService emailVerificationService) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.tokenBlacklistService = tokenBlacklistService;
         this.attemptService = attemptService;
         this.captchaService = captchaService;
+        this.emailVerificationService = emailVerificationService;
     }
 
     /**
@@ -270,7 +275,7 @@ public class AuthController {
             userInfo.put("username", user.getEmail());
             userInfo.put("email", user.getEmail());
             userInfo.put("fullName", user.getFullName());
-            userInfo.put("roles", user.getRoles());
+            userInfo.put("role", user.getRole());
             userInfo.put("lastLogin", user.getLastLogin());
             userInfo.put("createdAt", user.getCreatedAt());
             
@@ -278,6 +283,44 @@ public class AuthController {
             
         } catch (Exception e) {
             logger.error("Erro ao obter informações do usuário", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
+        }
+    }
+
+    /**
+     * Endpoint para atualização do perfil do usuário autenticado.
+     * 
+     * @param updateProfileRequest dados de atualização do perfil
+     * @return informações atualizadas do usuário
+     */
+    @PutMapping("/profile")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> updateProfile(@Valid @RequestBody UpdateProfileRequest updateProfileRequest) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            User currentUser = (User) authentication.getPrincipal();
+            
+            User updatedUser = authService.updateProfile(
+                    currentUser.getId(),
+                    updateProfileRequest.getFirstName(),
+                    updateProfileRequest.getLastName(),
+                    updateProfileRequest.getPhone()
+            );
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Perfil atualizado com sucesso");
+            response.put("user", createUserResponse(updatedUser));
+            
+            logger.info("Perfil atualizado com sucesso para usuário: {}", currentUser.getEmail());
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            logger.warn("Erro na atualização do perfil: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(createErrorResponse(e.getMessage(), "PROFILE_UPDATE_ERROR"));
+        } catch (Exception e) {
+            logger.error("Erro interno na atualização do perfil", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
         }
@@ -563,6 +606,76 @@ public class AuthController {
     }
 
     /**
+     * Endpoint para verificação de email através de token.
+     * 
+     * @param token token de verificação
+     * @return resposta de sucesso ou erro
+     */
+    @GetMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
+        try {
+            logger.info("Tentativa de verificação de email com token: {}", token.substring(0, Math.min(token.length(), 10)) + "...");
+            
+            boolean verified = emailVerificationService.verifyEmailToken(token);
+            
+            if (verified) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Email verificado com sucesso! Agora você pode fazer login.");
+                response.put("verified", true);
+                
+                logger.info("Email verificado com sucesso para token: {}", token.substring(0, Math.min(token.length(), 10)) + "...");
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, Object> errorResponse = createErrorResponse(
+                    "Token de verificação inválido ou expirado", 
+                    "INVALID_VERIFICATION_TOKEN"
+                );
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Erro ao verificar email", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
+        }
+    }
+
+    /**
+     * Endpoint para reenvio de email de verificação.
+     * 
+     * @param resendRequest dados para reenvio
+     * @return resposta de sucesso ou erro
+     */
+    @PostMapping("/resend-verification")
+    public ResponseEntity<?> resendVerificationEmail(@Valid @RequestBody ResendVerificationRequest resendRequest) {
+        try {
+            logger.info("Solicitação de reenvio de verificação para email: {}", resendRequest.getEmail());
+            
+            String token = emailVerificationService.regenerateVerificationToken(resendRequest.getEmail());
+            
+            if (token != null) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Email de verificação reenviado com sucesso!");
+                response.put("sent", true);
+                
+                logger.info("Email de verificação reenviado para: {}", resendRequest.getEmail());
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, Object> errorResponse = createErrorResponse(
+                    "Usuário não encontrado ou email já verificado", 
+                    "USER_NOT_FOUND_OR_VERIFIED"
+                );
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Erro ao reenviar email de verificação", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
+        }
+    }
+
+    /**
      * Obtém o endereço IP real do cliente.
      * 
      * @param request requisição HTTP
@@ -612,6 +725,28 @@ public class AuthController {
         return error;
     }
 
+    /**
+     * Cria uma resposta padronizada com dados do usuário.
+     * 
+     * @param user usuário
+     * @return mapa com dados do usuário
+     */
+    private Map<String, Object> createUserResponse(User user) {
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("id", user.getId());
+        userInfo.put("email", user.getEmail());
+        userInfo.put("firstName", user.getFirstName());
+        userInfo.put("lastName", user.getLastName());
+        userInfo.put("fullName", user.getFullName());
+        userInfo.put("phone", user.getPhone());
+        userInfo.put("role", user.getRole());
+        userInfo.put("enabled", user.isEnabled());
+        userInfo.put("lastLogin", user.getLastLogin());
+        userInfo.put("createdAt", user.getCreatedAt());
+        userInfo.put("updatedAt", user.getUpdatedAt());
+        return userInfo;
+    }
+
     // Classes de Request DTOs
     
     public static class LoginRequest {
@@ -643,7 +778,7 @@ public class AuthController {
         private String email;
         
         @NotBlank(message = "Password é obrigatório")
-        @Size(min = 6, message = "Password deve ter pelo menos 6 caracteres")
+        @Size(min = 8, message = "Password deve ter pelo menos 8 caracteres")
         private String password;
         
         @NotBlank(message = "Nome é obrigatório")
@@ -685,7 +820,7 @@ public class AuthController {
         private String currentPassword;
         
         @NotBlank(message = "Nova senha é obrigatória")
-        @Size(min = 6, message = "Nova senha deve ter pelo menos 6 caracteres")
+        @Size(min = 8, message = "Nova senha deve ter pelo menos 8 caracteres")
         private String newPassword;
         
         // Getters e Setters
@@ -751,5 +886,15 @@ public class AuthController {
         public void setCaptchaId(String captchaId) { this.captchaId = captchaId; }
         public String getCaptchaAnswer() { return captchaAnswer; }
         public void setCaptchaAnswer(String captchaAnswer) { this.captchaAnswer = captchaAnswer; }
+    }
+    
+    public static class ResendVerificationRequest {
+        @NotBlank(message = "Email é obrigatório")
+        @Email(message = "Email deve ser válido")
+        private String email;
+        
+        // Getters e Setters
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
     }
 }

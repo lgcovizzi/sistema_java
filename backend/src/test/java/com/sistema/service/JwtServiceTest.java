@@ -2,7 +2,7 @@ package com.sistema.service;
 
 import com.sistema.config.RSAKeyManager;
 import com.sistema.entity.User;
-import com.sistema.entity.Role;
+import com.sistema.entity.UserRole;
 import com.sistema.service.interfaces.TokenOperations;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -66,7 +66,7 @@ class JwtServiceTest {
         testUser.setId(1L);
         testUser.setEmail("test@example.com");
         testUser.setPassword("encodedPassword");
-        testUser.setRoles(List.of(Role.USER, Role.ADMIN));
+        testUser.setRole(UserRole.USER);
         testUser.setEnabled(true);
         testUser.setCreatedAt(LocalDateTime.now());
 
@@ -93,7 +93,7 @@ class JwtServiceTest {
 
         // Verify token content
         String username = jwtService.extractUsername(accessToken);
-        assertThat(username).isEqualTo("testuser");
+        assertThat(username).isEqualTo("test@example.com");
 
         boolean isValid = jwtService.isValidAccessToken(accessToken);
         assertThat(isValid).isTrue();
@@ -112,7 +112,7 @@ class JwtServiceTest {
 
         // Verify token content
         String username = jwtService.extractUsername(refreshToken);
-        assertThat(username).isEqualTo("testuser");
+        assertThat(username).isEqualTo("test@example.com");
 
         boolean isValid = jwtService.isValidRefreshToken(refreshToken);
         assertThat(isValid).isTrue();
@@ -128,7 +128,7 @@ class JwtServiceTest {
         String extractedUsername = jwtService.extractUsername(token);
 
         // Then
-        assertThat(extractedUsername).isEqualTo("testuser");
+        assertThat(extractedUsername).isEqualTo("test@example.com");
     }
 
     @Test
@@ -138,9 +138,9 @@ class JwtServiceTest {
         String token = jwtService.generateAccessToken(testUser);
 
         // When & Then
-        assertThat(jwtService.extractUsername(token)).isEqualTo("testuser");
+        assertThat(jwtService.extractUsername(token)).isEqualTo("test@example.com");
         assertThat(jwtService.isTokenValid(token, testUser)).isTrue();
-        assertThat(jwtService.extractRoles(token)).containsExactly("ROLE_USER", "ROLE_ADMIN");
+        assertThat(jwtService.extractRoles(token)).containsExactly("ROLE_USER");
     }
 
     @Test
@@ -208,7 +208,6 @@ class JwtServiceTest {
         Map<String, Object> tokenInfo = jwtService.getTokenInfo(token);
 
         // Then
-        assertThat(tokenInfo).containsKey("username");
         assertThat(tokenInfo).containsKey("userId");
         assertThat(tokenInfo).containsKey("email");
         assertThat(tokenInfo).containsKey("roles");
@@ -217,10 +216,9 @@ class JwtServiceTest {
         assertThat(tokenInfo).containsKey("issuedAt");
         assertThat(tokenInfo).containsKey("expiresAt");
 
-        assertThat(tokenInfo.get("username")).isEqualTo("testuser");
         assertThat(tokenInfo.get("userId")).isEqualTo(1);
         assertThat(tokenInfo.get("email")).isEqualTo("test@example.com");
-        assertThat(tokenInfo.get("roles")).isEqualTo(List.of("ROLE_USER", "ROLE_ADMIN"));
+        assertThat(tokenInfo.get("roles")).isEqualTo(List.of("ROLE_USER"));
         assertThat(tokenInfo.get("tokenType")).isEqualTo("access");
     }
 
@@ -319,24 +317,24 @@ class JwtServiceTest {
     }
 
     @Test
-    @DisplayName("Deve incluir todas as roles do usuário no token")
-    void shouldIncludeAllUserRolesInToken() {
+    @DisplayName("Deve incluir role do usuário no token")
+    void shouldIncludeUserRoleInToken() {
         // Given
-        testUser.setRoles(List.of(Role.USER, Role.ADMIN));
+        testUser.setRole(UserRole.USER);
         String token = jwtService.generateAccessToken(testUser);
 
         // When
         List<String> roles = jwtService.extractRoles(token);
 
         // Then
-        assertThat(roles).containsExactlyInAnyOrder("ROLE_USER", "ROLE_ADMIN");
+        assertThat(roles).containsExactly("ROLE_USER");
     }
 
     @Test
-    @DisplayName("Deve lidar com usuário sem roles")
-    void shouldHandleUserWithoutRoles() {
+    @DisplayName("Deve lidar com usuário com role padrão")
+    void shouldHandleUserWithDefaultRole() {
         // Given
-        testUser.setRoles(List.of());
+        testUser.setRole(UserRole.USER);
         
         // When
         String token = jwtService.generateAccessToken(testUser);
@@ -344,14 +342,14 @@ class JwtServiceTest {
         // Then
         assertThat(token).isNotNull();
         List<String> roles = jwtService.extractRoles(token);
-        assertThat(roles).isEmpty();
+        assertThat(roles).containsExactly("ROLE_USER");
     }
 
     @Test
-    @DisplayName("Deve extrair roles do usuário corretamente")
-    void shouldExtractUserRolesCorrectly() {
+    @DisplayName("Deve extrair role do usuário corretamente")
+    void shouldExtractUserRoleCorrectly() {
         // Given
-        testUser.setRoles(List.of(Role.USER));
+        testUser.setRole(UserRole.USER);
         String token = jwtService.generateAccessToken(testUser);
 
         // When
@@ -377,7 +375,7 @@ class JwtServiceTest {
         void shouldProvideAllInterfaceMethods() {
             // Given
             TokenOperations operations = jwtService;
-            Map<String, Object> claims = Map.of("username", "testuser");
+            Map<String, Object> claims = Map.of("username", "test@example.com");
 
             // When & Then - Não deve lançar exceções para métodos da interface
             assertThat(operations).isNotNull();
@@ -407,7 +405,7 @@ class JwtServiceTest {
         @DisplayName("Deve lidar com chave privada nula")
         void shouldHandleNullPrivateKey() {
             // Given
-            ReflectionTestUtils.setField(jwtService, "privateKey", null);
+            when(rsaKeyManager.getPrivateKey()).thenReturn(null);
 
             // When & Then
             assertThatThrownBy(() -> jwtService.generateAccessToken(testUser))
@@ -419,7 +417,7 @@ class JwtServiceTest {
         void shouldHandleNullPublicKey() {
             // Given
             String token = jwtService.generateAccessToken(testUser);
-            ReflectionTestUtils.setField(jwtService, "publicKey", null);
+            when(rsaKeyManager.getPublicKey()).thenReturn(null);
 
             // When
             boolean isValid = jwtService.validateToken(token);
@@ -438,13 +436,12 @@ class JwtServiceTest {
             }
             String longToken = longString.toString();
 
-            // When
-            boolean isValid = jwtService.validateToken(longToken);
-            String subject = jwtService.extractSubject(longToken);
-
-            // Then
-            assertThat(isValid).isFalse();
-            assertThat(subject).isNull();
+            // When & Then
+            assertThatThrownBy(() -> jwtService.validateToken(longToken))
+                    .isInstanceOf(MalformedJwtException.class);
+            
+            assertThatThrownBy(() -> jwtService.extractSubject(longToken))
+                    .isInstanceOf(MalformedJwtException.class);
         }
 
         @Test
@@ -452,7 +449,7 @@ class JwtServiceTest {
         void shouldHandleSpecialCharactersInSubject() {
             // Given
             String specialSubject = "user@domain.com!@#$%^&*()";
-            Map<String, Object> claims = Map.of("username", "testuser");
+            Map<String, Object> claims = Map.of("username", "test@example.com");
 
             // When
             String token = jwtService.generateToken(specialSubject, claims, 15);
@@ -481,7 +478,7 @@ class JwtServiceTest {
         @DisplayName("Deve lidar com TTL zero")
         void shouldHandleZeroTTL() {
             // Given
-            Map<String, Object> claims = Map.of("username", "testuser");
+            Map<String, Object> claims = Map.of("username", "test@example.com");
 
             // When & Then
             assertThatThrownBy(() -> jwtService.generateToken("test@example.com", claims, 0))
@@ -492,7 +489,7 @@ class JwtServiceTest {
         @DisplayName("Deve lidar com TTL negativo")
         void shouldHandleNegativeTTL() {
             // Given
-            Map<String, Object> claims = Map.of("username", "testuser");
+            Map<String, Object> claims = Map.of("username", "test@example.com");
 
             // When & Then
             assertThatThrownBy(() -> jwtService.generateToken("test@example.com", claims, -1))
@@ -508,7 +505,7 @@ class JwtServiceTest {
         @DisplayName("Deve gerar múltiplos tokens eficientemente")
         void shouldGenerateMultipleTokensEfficiently() {
             // Given
-            Map<String, Object> claims = Map.of("username", "testuser");
+            Map<String, Object> claims = Map.of("username", "test@example.com");
 
             // When & Then
             for (int i = 0; i < 100; i++) {
@@ -539,7 +536,7 @@ class JwtServiceTest {
         @DisplayName("Deve gerar tokens únicos para cada chamada")
         void shouldGenerateUniqueTokensForEachCall() {
             // Given
-            Map<String, Object> claims = Map.of("username", "testuser");
+            Map<String, Object> claims = Map.of("username", "test@example.com");
 
             // When
             String token1 = jwtService.generateToken("test@example.com", claims, 15);

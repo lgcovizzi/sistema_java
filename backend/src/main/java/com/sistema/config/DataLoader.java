@@ -1,7 +1,7 @@
 package com.sistema.config;
 
-import com.sistema.entity.Role;
 import com.sistema.entity.User;
+import com.sistema.entity.UserRole;
 import com.sistema.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +11,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * DataLoader para inicializar dados padrão na aplicação.
@@ -49,7 +48,7 @@ public class DataLoader implements CommandLineRunner {
             admin.setFirstName("Administrador");
             admin.setLastName("Sistema");
             admin.setCpf("11144477735"); // CPF válido para usuário admin
-            admin.setRoles(List.of(Role.ADMIN, Role.USER));
+            admin.setRole(UserRole.ADMIN);
             admin.setEnabled(true);
             admin.setCreatedAt(LocalDateTime.now());
             admin.setUpdatedAt(LocalDateTime.now());
@@ -68,7 +67,7 @@ public class DataLoader implements CommandLineRunner {
             testUser.setFirstName("Usuário");
             testUser.setLastName("Teste");
             testUser.setCpf("98765432100"); // CPF válido para usuário de teste
-            testUser.setRoles(List.of(Role.USER));
+            testUser.setRole(UserRole.USER);
             testUser.setEnabled(true);
             testUser.setCreatedAt(LocalDateTime.now());
             testUser.setUpdatedAt(LocalDateTime.now());
@@ -87,7 +86,7 @@ public class DataLoader implements CommandLineRunner {
             demoUser.setFirstName("Demo");
             demoUser.setLastName("User");
             demoUser.setCpf("12345678909"); // CPF válido para usuário demo
-            demoUser.setRoles(List.of(Role.USER));
+            demoUser.setRole(UserRole.USER);
             demoUser.setEnabled(true);
             demoUser.setCreatedAt(LocalDateTime.now());
             demoUser.setUpdatedAt(LocalDateTime.now());

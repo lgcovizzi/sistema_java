@@ -1,43 +1,144 @@
 package com.sistema.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.sistema.entity.User;
+import com.sistema.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
- * Serviço para envio de emails usando Mailtrap
+ * Serviço para envio de emails.
+ * Responsável por enviar emails de verificação e outros tipos de notificação.
+ * Agora usa SmtpService desacoplado para envio real dos emails.
  */
 @Service
-public class EmailService {
-
-    private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
+public class EmailService extends BaseService {
 
     @Autowired
-    private JavaMailSender mailSender;
+    private SmtpService smtpService;
+
+    @Autowired
+    private TemplateEngine templateEngine;
+
+    @Value("${spring.mail.username:noreply@sistema.com}")
+    private String fromEmail;
+
+    @Value("${app.email.verification.url:http://localhost:8080/api/auth/verify-email}")
+    private String verificationBaseUrl;
+
+    @Value("${app.name:Sistema Java}")
+    private String appName;
+
+    @Value("${app.email.enabled:true}")
+    private boolean emailEnabled;
 
     /**
-     * Envia um email simples
+     * Envia email de verificação para o usuário.
+     * 
+     * @param user usuário para enviar email
+     * @param verificationToken token de verificação
+     * @return true se email foi enviado com sucesso
+     */
+    public boolean sendVerificationEmail(User user, String verificationToken) {
+        validateNotNull(user, "user");
+        validateNotEmpty(verificationToken, "verificationToken");
+        validateNotEmpty(user.getEmail(), "user.email");
+
+        if (!emailEnabled) {
+            logInfo("Envio de email está desabilitado. Email de verificação não enviado para: " + user.getEmail());
+            return false;
+        }
+
+        try {
+            String verificationUrl = buildVerificationUrl(verificationToken);
+            String subject = "Verificação de Email - " + appName;
+            String htmlContent = buildVerificationEmailHtml(user, verificationUrl, false);
+
+            sendHtmlEmail(user.getEmail(), subject, htmlContent);
+            
+            logInfo("Email de verificação enviado para: " + user.getEmail());
+            return true;
+
+        } catch (Exception e) {
+            logError("Erro ao enviar email de verificação para " + user.getEmail() + ": " + e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * Reenvia email de verificação para o usuário.
+     * 
+     * @param user usuário para reenviar email
+     * @param verificationToken novo token de verificação
+     * @return true se email foi reenviado com sucesso
+     */
+    public boolean resendVerificationEmail(User user, String verificationToken) {
+        validateNotNull(user, "user");
+        validateNotEmpty(verificationToken, "verificationToken");
+
+        if (!emailEnabled) {
+            logWarn("Email está desabilitado. Reenvio de email de verificação não será enviado para: " + user.getEmail());
+            return false;
+        }
+
+        try {
+            String verificationUrl = buildVerificationUrl(verificationToken);
+            String htmlContent = buildVerificationEmailHtml(user, verificationUrl, true);
+            
+            sendHtmlEmail(user.getEmail(), "Novo Link de Verificação - " + appName, htmlContent);
+            logInfo("Email de verificação reenviado para: " + user.getEmail());
+            return true;
+        } catch (Exception e) {
+            logError("Erro ao reenviar email de verificação para " + user.getEmail() + ": " + e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * Envia um email simples usando SmtpService
      * 
      * @param to Destinatário
      * @param subject Assunto
      * @param text Corpo do email
      */
     public void sendSimpleEmail(String to, String subject, String text) {
+        validateNotEmpty(to, "to");
+        validateNotEmpty(subject, "subject");
+        validateNotEmpty(text, "text");
+
         try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom("noreply@sistema.com");
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(text);
-            
-            mailSender.send(message);
-            logger.info("Email enviado com sucesso para: {}", to);
+            smtpService.sendSimpleEmail(to, subject, text);
+            logInfo("Email enviado com sucesso para: " + to);
         } catch (Exception e) {
-            logger.error("Erro ao enviar email para: {}", to, e);
+            logError("Erro ao enviar email para " + to, e);
             throw new RuntimeException("Falha ao enviar email", e);
+        }
+    }
+
+    /**
+     * Envia email HTML usando SmtpService.
+     * 
+     * @param to destinatário
+     * @param subject assunto
+     * @param htmlContent conteúdo HTML
+     */
+    public void sendHtmlEmail(String to, String subject, String htmlContent) {
+        validateNotEmpty(to, "to");
+        validateNotEmpty(subject, "subject");
+        validateNotEmpty(htmlContent, "htmlContent");
+
+        try {
+            smtpService.sendHtmlEmail(to, subject, htmlContent);
+            logInfo("Email HTML enviado com sucesso para: " + to);
+        } catch (Exception e) {
+            logError("Erro ao enviar email HTML para " + to, e);
+            throw new RuntimeException("Falha ao enviar email HTML", e);
         }
     }
 
@@ -96,5 +197,193 @@ public class EmailService {
         );
         
         sendSimpleEmail(to, subject, text);
+    }
+
+    /**
+     * Envia email simples de forma assíncrona
+     * 
+     * @param to Destinatário
+     * @param subject Assunto
+     * @param text Corpo do email
+     * @return CompletableFuture com resultado do envio
+     */
+    public CompletableFuture<Boolean> sendSimpleEmailAsync(String to, String subject, String text) {
+        validateNotEmpty(to, "to");
+        validateNotEmpty(subject, "subject");
+        validateNotEmpty(text, "text");
+
+        return smtpService.sendSimpleEmailAsync(to, subject, text)
+            .thenApply(success -> {
+                if (success) {
+                    logInfo("Email assíncrono enviado com sucesso para: " + to);
+                } else {
+                    logWarn("Falha no envio de email assíncrono para: " + to);
+                }
+                return success;
+            })
+            .exceptionally(throwable -> {
+                logError("Erro no envio de email assíncrono para " + to, (Exception) throwable);
+                return false;
+            });
+    }
+
+    /**
+     * Envia email HTML de forma assíncrona
+     * 
+     * @param to destinatário
+     * @param subject assunto
+     * @param htmlContent conteúdo HTML
+     * @return CompletableFuture com resultado do envio
+     */
+    public CompletableFuture<Boolean> sendHtmlEmailAsync(String to, String subject, String htmlContent) {
+        validateNotEmpty(to, "to");
+        validateNotEmpty(subject, "subject");
+        validateNotEmpty(htmlContent, "htmlContent");
+
+        return smtpService.sendHtmlEmailAsync(to, subject, htmlContent)
+            .thenApply(success -> {
+                if (success) {
+                    logInfo("Email HTML assíncrono enviado com sucesso para: " + to);
+                } else {
+                    logWarn("Falha no envio de email HTML assíncrono para: " + to);
+                }
+                return success;
+            })
+            .exceptionally(throwable -> {
+                logError("Erro no envio de email HTML assíncrono para " + to, (Exception) throwable);
+                return false;
+            });
+    }
+
+    /**
+     * Constrói URL de verificação.
+     * 
+     * @param token token de verificação
+     * @return URL completa de verificação
+     */
+    private String buildVerificationUrl(String token) {
+        return verificationBaseUrl + "?token=" + token;
+    }
+
+    /**
+     * Constrói texto do email de verificação.
+     * 
+     * @param user usuário
+     * @param verificationUrl URL de verificação
+     * @return texto do email
+     */
+    private String buildVerificationEmailText(User user, String verificationUrl) {
+        return String.format(
+            "Olá %s,\n\n" +
+            "Obrigado por se cadastrar no %s!\n\n" +
+            "Para ativar sua conta, clique no link abaixo:\n" +
+            "%s\n\n" +
+            "Este link é válido por 24 horas.\n\n" +
+            "Se você não se cadastrou em nosso sistema, ignore este email.\n\n" +
+            "Atenciosamente,\n" +
+            "Equipe %s",
+            user.getFullName(),
+            appName,
+            verificationUrl,
+            appName
+        );
+    }
+
+    /**
+     * Constrói HTML do email de verificação usando template.
+     * 
+     * @param user usuário
+     * @param verificationUrl URL de verificação
+     * @param isResend se é reenvio
+     * @return HTML do email
+     */
+    private String buildVerificationEmailHtml(User user, String verificationUrl, boolean isResend) {
+        try {
+            Context context = new Context();
+            context.setVariable("firstName", getFirstName(user));
+            context.setVariable("appName", appName);
+            context.setVariable("verificationUrl", verificationUrl);
+            context.setVariable("expiryHours", "24");
+            
+            String templateName = isResend ? "email-verification-resend" : "email-verification";
+            return templateEngine.process(templateName, context);
+        } catch (Exception e) {
+            logWarn("Erro ao processar template HTML, usando texto simples: " + e.getMessage());
+            // Fallback para texto simples se template falhar
+            return buildVerificationEmailText(user, verificationUrl);
+        }
+    }
+
+    /**
+     * Extrai primeiro nome do usuário.
+     * 
+     * @param user usuário
+     * @return primeiro nome
+     */
+    private String getFirstName(User user) {
+        if (user.getUsername() != null && !user.getUsername().trim().isEmpty()) {
+            String[] parts = user.getUsername().trim().split("\\s+");
+            return parts[0];
+        }
+        return "Usuário";
+    }
+
+    /**
+     * Testa conectividade do serviço de email.
+     * 
+     * @return true se conexão está funcionando
+     */
+    public boolean testEmailConnection() {
+        if (!emailEnabled) {
+            logInfo("Serviço de email está desabilitado");
+            return false;
+        }
+
+        try {
+            boolean connectionOk = smtpService.testConnection();
+            if (connectionOk) {
+                logInfo("Conexão com servidor de email testada com sucesso");
+            } else {
+                logWarn("Teste de conexão com servidor de email falhou");
+            }
+            return connectionOk;
+        } catch (Exception e) {
+            logError("Erro ao testar conexão com servidor de email: " + e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * Verifica se envio de email está habilitado.
+     * 
+     * @return true se habilitado
+     */
+    public boolean isEmailEnabled() {
+        return emailEnabled;
+    }
+
+    /**
+     * Obtém estatísticas do serviço de email.
+     * 
+     * @return mapa com estatísticas
+     */
+    public Map<String, Object> getEmailStats() {
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("emailEnabled", emailEnabled);
+        stats.put("fromEmail", fromEmail);
+        stats.put("verificationBaseUrl", verificationBaseUrl);
+        stats.put("appName", appName);
+        stats.put("connectionTest", testEmailConnection());
+        
+        // Incluir estatísticas do SmtpService
+        try {
+            Map<String, Object> smtpStats = smtpService.getStatistics();
+            stats.put("smtpStats", smtpStats);
+        } catch (Exception e) {
+            logWarn("Erro ao obter estatísticas do SMTP: " + e.getMessage());
+            stats.put("smtpStats", "Erro ao obter estatísticas");
+        }
+        
+        return stats;
     }
 }

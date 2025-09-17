@@ -181,4 +181,49 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return lista de usuários encontrados
      */
     List<User> findByEmailContainingIgnoreCase(String email);
+
+    /**
+     * Busca usuário por token de verificação.
+     * 
+     * @param verificationToken o token de verificação
+     * @return Optional contendo o usuário se encontrado
+     */
+    Optional<User> findByVerificationToken(String verificationToken);
+
+    /**
+     * Busca usuários com email não verificado.
+     * 
+     * @return lista de usuários com email não verificado
+     */
+    List<User> findByEmailVerifiedFalse();
+
+    /**
+     * Busca usuários com email verificado.
+     * 
+     * @return lista de usuários com email verificado
+     */
+    List<User> findByEmailVerifiedTrue();
+
+    /**
+     * Conta usuários com email verificado.
+     * 
+     * @return número de usuários com email verificado
+     */
+    long countByEmailVerifiedTrue();
+
+    /**
+     * Conta usuários com email não verificado.
+     * 
+     * @return número de usuários com email não verificado
+     */
+    long countByEmailVerifiedFalse();
+
+    /**
+     * Busca usuários com tokens de verificação expirados.
+     * 
+     * @param now data/hora atual para comparação
+     * @return lista de usuários com tokens expirados
+     */
+    @Query("SELECT u FROM User u WHERE u.verificationTokenExpiresAt < :now AND u.emailVerified = false")
+    List<User> findUsersWithExpiredVerificationTokens(@Param("now") LocalDateTime now);
 }

@@ -82,6 +82,12 @@ public class User implements UserDetails {
     @Column(name = "verification_token_expires_at")
     private LocalDateTime verificationTokenExpiresAt;
 
+    @Column(name = "reset_password_token")
+    private String resetPasswordToken;
+
+    @Column(name = "reset_password_token_expires_at")
+    private LocalDateTime resetPasswordTokenExpiresAt;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -290,6 +296,22 @@ public class User implements UserDetails {
         this.verificationTokenExpiresAt = verificationTokenExpiresAt;
     }
 
+    public String getResetPasswordToken() {
+        return resetPasswordToken;
+    }
+
+    public void setResetPasswordToken(String resetPasswordToken) {
+        this.resetPasswordToken = resetPasswordToken;
+    }
+
+    public LocalDateTime getResetPasswordTokenExpiresAt() {
+        return resetPasswordTokenExpiresAt;
+    }
+
+    public void setResetPasswordTokenExpiresAt(LocalDateTime resetPasswordTokenExpiresAt) {
+        this.resetPasswordTokenExpiresAt = resetPasswordTokenExpiresAt;
+    }
+
     // Métodos de conveniência
     public String getFullName() {
         if (firstName != null && lastName != null) {
@@ -340,6 +362,23 @@ public class User implements UserDetails {
     public void clearVerificationToken() {
         this.verificationToken = null;
         this.verificationTokenExpiresAt = null;
+    }
+
+    // Métodos de conveniência para reset de senha
+    public boolean isResetPasswordTokenExpired() {
+        return resetPasswordTokenExpiresAt != null && 
+               LocalDateTime.now().isAfter(resetPasswordTokenExpiresAt);
+    }
+
+    public boolean hasValidResetPasswordToken(String token) {
+        return resetPasswordToken != null && 
+               resetPasswordToken.equals(token) && 
+               !isResetPasswordTokenExpired();
+    }
+
+    public void clearResetPasswordToken() {
+        this.resetPasswordToken = null;
+        this.resetPasswordTokenExpiresAt = null;
     }
 
     @PreUpdate

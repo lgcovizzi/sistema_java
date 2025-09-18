@@ -60,7 +60,7 @@ class HomeControllerTest {
     @DisplayName("Should redirect api-simple to root")
     void apiSimple_ShouldRedirectToRoot() {
         // When
-        String result = homeController.apiSimple();
+        String result = homeController.redirectToHome();
 
         // Then
         assertThat(result).isEqualTo("redirect:/");
@@ -148,8 +148,8 @@ class HomeControllerTest {
     @DisplayName("Should return consistent redirect URL")
     void apiSimple_ShouldReturnConsistentRedirectUrl() {
         // When
-        String result1 = homeController.apiSimple();
-        String result2 = homeController.apiSimple();
+        String result1 = homeController.redirectToHome();
+        String result2 = homeController.redirectToHome();
 
         // Then
         assertThat(result1).isEqualTo("redirect:/");

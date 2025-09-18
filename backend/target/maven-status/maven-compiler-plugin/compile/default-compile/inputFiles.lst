@@ -52,6 +52,7 @@
 /home/lg/sistema_java/backend/src/main/java/com/sistema/util/EmailMaskUtil.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/service/EmailVerificationService.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/config/EmbeddedRedisConfig.java
+/home/lg/sistema_java/backend/src/main/java/com/sistema/service/PasswordResetService.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/service/AuthService.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/config/WebConfig.java
 /home/lg/sistema_java/backend/src/main/java/com/sistema/controller/NewsController.java

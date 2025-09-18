@@ -209,17 +209,19 @@ class EmailServiceTest {
     @DisplayName("Deve enviar email de recuperação de senha com sucesso")
     void shouldSendPasswordResetEmailSuccessfully() {
         // Given
-        String to = "test@email.com";
         String resetToken = "abc123token";
+        String expectedHtmlContent = "<html>Password reset content</html>";
 
-        doNothing().when(smtpService).sendSimpleEmail(eq(to), eq("Recuperação de Senha - Sistema Java"), anyString());
+        when(templateEngine.process(eq("password-reset"), any(Context.class))).thenReturn(expectedHtmlContent);
+        doNothing().when(smtpService).sendHtmlEmail(eq(testUser.getEmail()), anyString(), eq(expectedHtmlContent));
 
         // When
-        assertThatCode(() -> emailService.sendPasswordResetEmail(to, resetToken))
+        assertThatCode(() -> emailService.sendPasswordResetEmail(testUser, resetToken))
                 .doesNotThrowAnyException();
 
         // Then
-        verify(smtpService).sendSimpleEmail(eq(to), eq("Recuperação de Senha - Sistema Java"), contains(resetToken));
+        verify(templateEngine).process(eq("password-reset"), any(Context.class));
+        verify(smtpService).sendHtmlEmail(eq(testUser.getEmail()), contains("Recuperação de Senha"), eq(expectedHtmlContent));
     }
 
     @Test

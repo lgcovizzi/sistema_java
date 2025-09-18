@@ -9,6 +9,7 @@ import com.sistema.service.TokenBlacklistService;
 import com.sistema.service.AttemptService;
 import com.sistema.service.CaptchaService;
 import com.sistema.service.EmailVerificationService;
+import com.sistema.service.PasswordResetService;
 import com.sistema.validation.ValidCpf;
 import com.sistema.util.EmailMaskUtil;
 import com.sistema.security.JwtAuthenticationFilter;
@@ -51,17 +52,19 @@ public class AuthController {
     private final AttemptService attemptService;
     private final CaptchaService captchaService;
     private final EmailVerificationService emailVerificationService;
+    private final PasswordResetService passwordResetService;
 
     @Autowired
     public AuthController(AuthService authService, JwtService jwtService, TokenBlacklistService tokenBlacklistService,
                          AttemptService attemptService, CaptchaService captchaService, 
-                         EmailVerificationService emailVerificationService) {
+                         EmailVerificationService emailVerificationService, PasswordResetService passwordResetService) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.tokenBlacklistService = tokenBlacklistService;
         this.attemptService = attemptService;
         this.captchaService = captchaService;
         this.emailVerificationService = emailVerificationService;
+        this.passwordResetService = passwordResetService;
     }
 
     /**
@@ -432,21 +435,38 @@ public class AuthController {
                 String email = user.getEmail();
                 String maskedEmail = EmailMaskUtil.maskEmail(email);
                 
-                // TODO: Implementar envio de email com token de recuperação
-                logger.info("Solicitação de recuperação de senha para CPF: {} (email: {})", cpf, email);
+                // Iniciar processo de reset de senha
+                boolean resetInitiated = passwordResetService.initiatePasswordReset(email);
                 
-                // Limpar tentativas após sucesso
-                attemptService.clearPasswordResetAttempts(clientIp);
-                
-                // Ativar rate limiting por 1 minuto
-                attemptService.recordPasswordResetSuccess(clientIp);
-                
-                Map<String, Object> response = new HashMap<>();
-                response.put("message", "Instruções de recuperação foram enviadas para o email cadastrado");
-                response.put("maskedEmail", maskedEmail);
-                response.put("success", true);
-                
-                return ResponseEntity.ok(response);
+                if (resetInitiated) {
+                    logger.info("Token de recuperação de senha enviado para CPF: {} (email: {})", cpf, maskedEmail);
+                    
+                    // Limpar tentativas após sucesso
+                    attemptService.clearPasswordResetAttempts(clientIp);
+                    
+                    // Ativar rate limiting por 1 minuto
+                    attemptService.recordPasswordResetSuccess(clientIp);
+                    
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("message", "Instruções de recuperação foram enviadas para o email cadastrado");
+                    response.put("maskedEmail", maskedEmail);
+                    response.put("success", true);
+                    
+                    return ResponseEntity.ok(response);
+                } else {
+                    logger.error("Falha ao enviar email de recuperação para CPF: {} (email: {})", cpf, maskedEmail);
+                    
+                    // Registrar tentativa falhada
+                    attemptService.recordPasswordResetAttempt(clientIp);
+                    
+                    Map<String, Object> errorResponse = createErrorResponse(
+                        "Erro ao enviar email de recuperação. Tente novamente.", 
+                        "EMAIL_SEND_FAILED"
+                    );
+                    errorResponse.put("requiresCaptcha", true);
+                    
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+                }
             } else {
                 logger.warn("Tentativa de recuperação para CPF inexistente: {}", cpf);
                 
@@ -474,6 +494,66 @@ public class AuthController {
             // Verificar se captcha será necessário na próxima tentativa
             boolean willRequireCaptcha = attemptService.isCaptchaRequiredForPasswordReset(clientIp);
             errorResponse.put("requiresCaptcha", willRequireCaptcha);
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+
+    /**
+     * Endpoint para redefinir senha usando token de recuperação.
+     * 
+     * @param request dados para redefinição de senha
+     * @param httpRequest requisição HTTP
+     * @return confirmação da redefinição
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request,
+                                          HttpServletRequest httpRequest) {
+        String clientIp = getClientIpAddress(httpRequest);
+        
+        try {
+            // Validar se as senhas coincidem
+            if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+                Map<String, Object> errorResponse = createErrorResponse(
+                    "As senhas não coincidem", 
+                    "PASSWORD_MISMATCH"
+                );
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            }
+
+            // Validar token e redefinir senha
+            boolean resetSuccessful = passwordResetService.resetPassword(
+                request.getToken(), 
+                request.getNewPassword()
+            );
+
+            if (resetSuccessful) {
+                logger.info("Senha redefinida com sucesso para token: {}", 
+                    request.getToken().substring(0, Math.min(8, request.getToken().length())) + "...");
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Senha redefinida com sucesso");
+                response.put("success", true);
+                
+                return ResponseEntity.ok(response);
+            } else {
+                logger.warn("Tentativa de reset com token inválido ou expirado: {}", 
+                    request.getToken().substring(0, Math.min(8, request.getToken().length())) + "...");
+                
+                Map<String, Object> errorResponse = createErrorResponse(
+                    "Token inválido ou expirado", 
+                    "INVALID_TOKEN"
+                );
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            }
+
+        } catch (Exception e) {
+            logger.error("Erro interno no reset-password", e);
+            
+            Map<String, Object> errorResponse = createErrorResponse(
+                "Erro interno do servidor", 
+                "INTERNAL_ERROR"
+            );
             
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
@@ -888,5 +968,27 @@ public class AuthController {
         // Getters e Setters
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
+    }
+    
+    public static class ResetPasswordRequest {
+        @NotBlank(message = "Token é obrigatório")
+        private String token;
+        
+        @NotBlank(message = "Nova senha é obrigatória")
+        @Size(min = 8, message = "Nova senha deve ter pelo menos 8 caracteres")
+        private String newPassword;
+        
+        @NotBlank(message = "Confirmação de senha é obrigatória")
+        private String confirmPassword;
+        
+        // Getters e Setters
+        public String getToken() { return token; }
+        public void setToken(String token) { this.token = token; }
+        
+        public String getNewPassword() { return newPassword; }
+        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
+        
+        public String getConfirmPassword() { return confirmPassword; }
+        public void setConfirmPassword(String confirmPassword) { this.confirmPassword = confirmPassword; }
     }
 }

@@ -178,25 +178,33 @@ public class EmailService extends BaseService {
     }
 
     /**
-     * Envia email de recuperação de senha
+     * Envia email de recuperação de senha usando template HTML
      * 
-     * @param to Email do usuário
+     * @param user Usuário que solicitou a recuperação
      * @param resetToken Token de recuperação
+     * @return true se email foi enviado com sucesso
      */
-    public void sendPasswordResetEmail(String to, String resetToken) {
-        String subject = "Recuperação de Senha - Sistema Java";
-        String text = String.format(
-            "Você solicitou a recuperação de sua senha.\n\n" +
-            "Use o token abaixo para redefinir sua senha:\n" +
-            "%s\n\n" +
-            "Este token é válido por 24 horas.\n\n" +
-            "Se você não solicitou esta recuperação, ignore este email.\n\n" +
-            "Atenciosamente,\n" +
-            "Equipe Sistema Java",
-            resetToken
-        );
-        
-        sendSimpleEmail(to, subject, text);
+    public boolean sendPasswordResetEmail(User user, String resetToken) {
+        validateNotNull(user, "user");
+        validateNotEmpty(resetToken, "resetToken");
+
+        if (!emailEnabled) {
+            logWarn("Email desabilitado - não enviando email de recuperação para: " + user.getEmail());
+            return false;
+        }
+
+        try {
+            String htmlContent = buildPasswordResetEmailHtml(user, resetToken);
+            String subject = "🔐 Recuperação de Senha - " + appName;
+
+            sendHtmlEmail(user.getEmail(), subject, htmlContent);
+            logInfo("Email de recuperação de senha enviado para: " + user.getEmail());
+            return true;
+
+        } catch (Exception e) {
+            logError("Erro ao enviar email de recuperação para: " + user.getEmail(), e);
+            return false;
+        }
     }
 
     /**
@@ -326,6 +334,19 @@ public class EmailService extends BaseService {
             return parts[0];
         }
         return "Usuário";
+    }
+
+    /**
+     * Constrói o HTML do email de recuperação de senha usando template Thymeleaf
+     */
+    private String buildPasswordResetEmailHtml(User user, String token) {
+        Context context = new Context();
+        context.setVariable("firstName", getFirstName(user));
+        context.setVariable("token", token);
+        context.setVariable("appName", appName);
+        context.setVariable("expiryHours", "1");
+        
+        return templateEngine.process("password-reset", context);
     }
 
     /**

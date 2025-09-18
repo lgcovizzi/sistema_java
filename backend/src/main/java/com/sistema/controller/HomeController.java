@@ -16,7 +16,12 @@ public class HomeController {
     }
     
     @GetMapping("/api-simple")
-    public String apiSimple() {
+    public String redirectToHome() {
         return "redirect:/";
+    }
+
+    @GetMapping("/reset-password")
+    public String resetPassword() {
+        return "reset-password";
     }
 }

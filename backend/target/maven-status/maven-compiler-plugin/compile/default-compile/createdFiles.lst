@@ -20,6 +20,7 @@ com/sistema/exception/ResourceNotFoundException.class
 com/sistema/controller/AuthController$UpdateRoleRequest.class
 com/sistema/security/JwtAuthenticationFilter.class
 com/sistema/entity/Role.class
+com/sistema/controller/AuthController$ResetPasswordRequest.class
 com/sistema/util/EmailMaskUtil.class
 com/sistema/config/SmtpConfig$SmtpConfiguration.class
 com/sistema/controller/AuthController$ValidateTokenRequest.class
@@ -74,6 +75,7 @@ com/sistema/service/CaptchaService$CaptchaStatistics.class
 com/sistema/service/EmailVerificationService.class
 com/sistema/repository/RefreshTokenRepository.class
 com/sistema/controller/AuthController.class
+com/sistema/service/PasswordResetService.class
 com/sistema/controller/AuthController$ResendVerificationRequest.class
 com/sistema/service/base/BaseUserService.class
 com/sistema/dto/ToastMessage.class

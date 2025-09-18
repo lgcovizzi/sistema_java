@@ -221,9 +221,46 @@ public interface UserRepository extends JpaRepository<User, Long> {
     /**
      * Busca usuários com tokens de verificação expirados.
      * 
-     * @param now data/hora atual para comparação
+     * @param now a data/hora atual
      * @return lista de usuários com tokens expirados
      */
     @Query("SELECT u FROM User u WHERE u.verificationTokenExpiresAt < :now AND u.emailVerified = false")
     List<User> findUsersWithExpiredVerificationTokens(@Param("now") LocalDateTime now);
+
+    // Métodos para reset de senha
+
+    /**
+     * Busca usuário por token de reset de senha.
+     * 
+     * @param resetPasswordToken o token de reset
+     * @return Optional contendo o usuário se encontrado
+     */
+    Optional<User> findByResetPasswordToken(String resetPasswordToken);
+
+    /**
+     * Busca usuários com tokens de reset de senha expirados.
+     * 
+     * @param now a data/hora atual
+     * @return lista de usuários com tokens expirados
+     */
+    @Query("SELECT u FROM User u WHERE u.resetPasswordTokenExpiresAt < :now AND u.resetPasswordToken IS NOT NULL")
+    List<User> findUsersWithExpiredResetPasswordTokens(@Param("now") LocalDateTime now);
+
+    /**
+     * Limpa tokens de reset de senha expirados.
+     * 
+     * @param now a data/hora atual
+     * @return número de registros atualizados
+     */
+    @Modifying
+    @Query("UPDATE User u SET u.resetPasswordToken = NULL, u.resetPasswordTokenExpiresAt = NULL WHERE u.resetPasswordTokenExpiresAt < :now")
+    int clearExpiredResetPasswordTokens(@Param("now") LocalDateTime now);
+
+    /**
+     * Conta usuários com tokens de reset ativos.
+     * 
+     * @return número de usuários com tokens ativos
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.resetPasswordToken IS NOT NULL AND u.resetPasswordTokenExpiresAt > CURRENT_TIMESTAMP")
+    long countUsersWithActiveResetTokens();
 }

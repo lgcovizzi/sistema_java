@@ -1,0 +1,1447 @@
+# Configuração de Desenvolvimento - Sistema Java
+# REGRA FUNDAMENTAL: Porta 8080 obrigatória
+# Logs ultra detalhados para desenvolvimento e debug
+
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: always
+    include-exception: true
+
+# Configuração de Logging Ultra Verboso
+logging:
+  level:
+    root: INFO
+    com.sistema: DEBUG
+    org.springframework: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.mail: DEBUG
+    org.springframework.data.redis: DEBUG
+    org.springframework.data.jpa: DEBUG
+    org.hibernate: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.hibernate.type.descriptor.sql.BasicExtractor: TRACE
+    org.springframework.transaction: DEBUG
+    org.springframework.orm.jpa: DEBUG
+    org.springframework.web.servlet.DispatcherServlet: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation: DEBUG
+    org.springframework.boot.autoconfigure: DEBUG
+    org.springframework.context: DEBUG
+    org.springframework.beans: DEBUG
+    org.springframework.aop: DEBUG
+    org.springframework.cache: DEBUG
+    org.springframework.scheduling: DEBUG
+    org.springframework.async: DEBUG
+    org.springframework.retry: DEBUG
+    org.springframework.validation: DEBUG
+    org.springframework.web.client: DEBUG
+    org.springframework.http: DEBUG
+    org.springframework.web.filter: DEBUG
+    org.springframework.security.web: DEBUG
+    org.springframework.security.authentication: DEBUG
+    org.springframework.security.authorization: DEBUG
+    org.springframework.boot.web: DEBUG
+    org.springframework.boot.context: DEBUG
+    org.springframework.boot.env: DEBUG
+    org.springframework.core.env: DEBUG
+    org.springframework.web.context: DEBUG
+    org.springframework.web.servlet.handler: DEBUG
+    org.springframework.web.servlet.view: DEBUG
+    org.springframework.web.servlet.resource: DEBUG
+    org.springframework.web.multipart: DEBUG
+    org.springframework.web.cors: DEBUG
+    org.springframework.web.bind: DEBUG
+    org.springframework.web.method: DEBUG
+    org.springframework.web.util: DEBUG
+    org.springframework.http.converter: DEBUG
+    org.springframework.http.codec: DEBUG
+    org.springframework.web.reactive: DEBUG
+    org.springframework.data: DEBUG
+    org.springframework.data.repository: DEBUG
+    org.springframework.data.convert: DEBUG
+    org.springframework.data.mapping: DEBUG
+    org.springframework.data.auditing: DEBUG
+    org.springframework.data.web: DEBUG
+    org.springframework.data.domain: DEBUG
+    org.springframework.data.util: DEBUG
+    org.springframework.data.projection: DEBUG
+    org.springframework.data.querydsl: DEBUG
+    org.springframework.data.history: DEBUG
+    org.springframework.data.rest: DEBUG
+    org.springframework.hateoas: DEBUG
+    org.springframework.plugin: DEBUG
+    org.springframework.format: DEBUG
+    org.springframework.expression: DEBUG
+    org.springframework.util: DEBUG
+    org.springframework.core: DEBUG
+    org.springframework.core.io: DEBUG
+    org.springframework.core.convert: DEBUG
+    org.springframework.core.serializer: DEBUG
+    org.springframework.core.codec: DEBUG
+    org.springframework.core.task: DEBUG
+    org.springframework.core.annotation: DEBUG
+    org.springframework.core.type: DEBUG
+    org.springframework.core.metrics: DEBUG
+    org.springframework.core.log: DEBUG
+    org.springframework.jmx: DEBUG
+    org.springframework.jndi: DEBUG
+    org.springframework.remoting: DEBUG
+    org.springframework.mail: DEBUG
+    org.springframework.mail.javamail: DEBUG
+    org.springframework.mail.javamail.JavaMailSenderImpl: DEBUG
+    org.springframework.mail.javamail.MimeMessageHelper: DEBUG
+    org.springframework.mail.javamail.SmtpFailureException: DEBUG
+    org.springframework.mail.MailException: DEBUG
+    org.springframework.mail.MailSendException: DEBUG
+    org.springframework.mail.MailAuthenticationException: DEBUG
+    org.springframework.mail.MailParseException: DEBUG
+    org.springframework.mail.MailPreparationException: DEBUG
+    org.springframework.mail.SimpleMailMessage: DEBUG
+    org.springframework.mail.javamail.ConfigurableMimeFileTypeMap: DEBUG
+    org.springframework.mail.javamail.InternetAddressEditor: DEBUG
+    org.springframework.mail.javamail.MimeMailMessage: DEBUG
+    org.springframework.mail.javamail.SmtpFailureException: DEBUG
+    com.sun.mail: DEBUG
+    com.sun.mail.smtp: DEBUG
+    com.sun.mail.smtp.SMTPTransport: DEBUG
+    com.sun.mail.util: DEBUG
+    javax.mail: DEBUG
+    javax.mail.internet: DEBUG
+    javax.mail.internet.MimeMessage: DEBUG
+    javax.mail.internet.InternetAddress: DEBUG
+    javax.mail.Session: DEBUG
+    javax.mail.Transport: DEBUG
+    javax.mail.Store: DEBUG
+    javax.mail.Folder: DEBUG
+    javax.mail.Message: DEBUG
+    javax.mail.Multipart: DEBUG
+    javax.mail.BodyPart: DEBUG
+    javax.mail.Part: DEBUG
+    javax.mail.Address: DEBUG
+    javax.mail.Authenticator: DEBUG
+    javax.mail.PasswordAuthentication: DEBUG
+    javax.mail.Provider: DEBUG
+    javax.mail.Service: DEBUG
+    javax.mail.URLName: DEBUG
+    javax.mail.event: DEBUG
+    javax.mail.search: DEBUG
+    javax.mail.util: DEBUG
+    mail.smtp: DEBUG
+    mail.smtp.auth: DEBUG
+    mail.smtp.starttls: DEBUG
+    mail.smtp.ssl: DEBUG
+    mail.debug: DEBUG
+
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+  
+  file:
+    name: logs/sistema-dev.log
+    max-size: 100MB
+    max-history: 30
+    total-size-cap: 3GB
+
+# Configuração do Spring Boot
+spring:
+  profiles:
+    active: dev
+  
+  # Configuração do Banco H2
+  datasource:
+    url: jdbc:h2:mem:sistema_dev;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    driverClassName: org.h2.Driver
+    username: sa
+    password: 
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-timeout: 20000
+      leak-detection-threshold: 60000
+      pool-name: HikariCP-Dev
+      auto-commit: true
+      connection-test-query: SELECT 1
+      validation-timeout: 5000
+      
+  # Configuração do H2 Console
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        trace: true
+        web-allow-others: true
+        
+  # Configuração JPA/Hibernate
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        generate_statistics: true
+        jdbc:
+          batch_size: 20
+          fetch_size: 50
+        cache:
+          use_second_level_cache: false
+          use_query_cache: false
+        connection:
+          provider_disables_autocommit: false
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+        
+  # Configuração Redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      timeout: 2000ms
+      database: 0
+      jedis:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 2000ms
+      connect-timeout: 2000ms
+      command-timeout: 5000ms
+      
+  # Configuração de Cache
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+      cache-null-values: false
+      key-prefix: "sistema:cache:"
+      use-key-prefix: true
+      
+  # Configuração de Email SMTP Ultra Detalhada
+  mail:
+    # Configuração Mailtrap (Desenvolvimento)
+    host: smtp.mailtrap.io
+    port: 587
+    username: ${MAILTRAP_USERNAME:default_user}
+    password: ${MAILTRAP_PASSWORD:default_pass}
+    protocol: smtp
+    test-connection: true
+    default-encoding: UTF-8
+    
+    # Propriedades SMTP Ultra Detalhadas
+    properties:
+      # Configurações de Autenticação
+      mail.smtp.auth: true
+      mail.smtp.user: ${MAILTRAP_USERNAME:default_user}
+      mail.smtp.password: ${MAILTRAP_PASSWORD:default_pass}
+      
+      # Configurações TLS/SSL
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
+      mail.smtp.ssl.enable: false
+      mail.smtp.ssl.trust: smtp.mailtrap.io
+      mail.smtp.ssl.protocols: TLSv1.2
+      mail.smtp.ssl.ciphersuites: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      
+      # Configurações de Timeout Ultra Detalhadas
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+      mail.smtp.sendpartial: false
+      
+      # Configurações de Debug Ultra Verboso
+      mail.debug: true
+      mail.debug.auth: true
+      mail.debug.quote: true
+      mail.smtp.debug: true
+      mail.smtp.debug.auth: true
+      
+      # Configurações de Transporte
+      mail.transport.protocol: smtp
+      mail.smtp.localhost: localhost
+      mail.smtp.localaddress: 
+      mail.smtp.localport: 25
+      mail.smtp.ehlo: true
+      mail.smtp.allow8bitmime: false
+      mail.smtp.dsn.notify: FAILURE,DELAY
+      mail.smtp.dsn.ret: FULL
+      
+      # Configurações de Conexão Avançadas
+      mail.smtp.connectionpoolsize: 10
+      mail.smtp.connectionpooltimeout: 300000
+      mail.smtp.submitter: 
+      mail.smtp.notify: 
+      mail.smtp.ret: 
+      mail.smtp.envid: 
+      mail.smtp.extension: 
+      mail.smtp.userset: false
+      mail.smtp.noop.strict: true
+      mail.smtp.quitwait: true
+      mail.smtp.reportsuccess: true
+      mail.smtp.socketFactory.class: 
+      mail.smtp.socketFactory.fallback: false
+      mail.smtp.socketFactory.port: 587
+      
+      # Configurações de Encoding
+      mail.mime.charset: UTF-8
+      mail.mime.decodetext.strict: false
+      mail.mime.encodeeol.strict: false
+      mail.mime.decodeparameters: true
+      mail.mime.encodefilename: false
+      mail.mime.decodefilename: false
+      mail.mime.multipart.ignoremissingboundaryparameter: false
+      mail.mime.multipart.ignoremissingendboundary: false
+      mail.mime.multipart.allowempty: false
+      mail.mime.address.strict: true
+      mail.mime.parameters.strict: true
+      mail.mime.applefilenames: false
+      mail.mime.ignoreunknownencoding: false
+      mail.mime.uudecode.ignoreerrors: false
+      mail.mime.uudecode.ignoremissingbeginend: false
+      mail.mime.base64.ignoreerrors: false
+      mail.mime.quotedprintable.ignoreerrors: false
+      
+      # Configurações de Headers
+      mail.mime.setdefaulttextcharset: true
+      mail.mime.setcontenttypefilename: true
+      mail.mime.windowsfilenames: false
+      mail.mime.foldtext: true
+      mail.mime.foldencodedwords: false
+      
+      # Configurações de Performance
+      mail.smtp.sendpartial: false
+      mail.smtp.sasl.enable: false
+      mail.smtp.sasl.mechanisms: 
+      mail.smtp.sasl.authorizationid: 
+      mail.smtp.sasl.realm: 
+      mail.smtp.sasl.usecanonicalhostname: false
+      
+      # Configurações de Retry e Resilência
+      mail.smtp.throwexception: true
+      mail.smtp.report.success: true
+      mail.smtp.class: com.sun.mail.smtp.SMTPTransport
+      
+  # Configuração Thymeleaf
+  thymeleaf:
+    cache: false
+    mode: HTML
+    encoding: UTF-8
+    prefix: classpath:/templates/
+    suffix: .html
+    servlet:
+      content-type: text/html
+    check-template: true
+    check-template-location: true
+    enable-spring-el-compiler: true
+    
+  # Configuração de Recursos Estáticos
+  web:
+    resources:
+      static-locations: classpath:/static/
+      cache:
+        period: 0
+        cachecontrol:
+          max-age: 0
+          no-cache: true
+          no-store: true
+          must-revalidate: true
+          
+  # Configuração de Servlet
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+      file-size-threshold: 2KB
+      location: ${java.io.tmpdir}
+      resolve-lazily: false
+      
+  # Configuração de Sessão
+  session:
+    store-type: redis
+    redis:
+      namespace: "sistema:session"
+      flush-mode: on_save
+      save-mode: on_set_attribute
+    timeout: 1800s
+    cookie:
+      name: JSESSIONID
+      domain: 
+      path: /
+      http-only: true
+      secure: false
+      same-site: lax
+      max-age: 1800s
+      
+  # Configuração de Segurança
+  security:
+    require-ssl: false
+    
+  # Configuração de Actuator
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: "*"
+        base-path: /actuator
+        cors:
+          allowed-origins: "*"
+          allowed-methods: "*"
+          allowed-headers: "*"
+    endpoint:
+      health:
+        show-details: always
+        show-components: always
+      info:
+        enabled: true
+      metrics:
+        enabled: true
+      loggers:
+        enabled: true
+      env:
+        enabled: true
+      configprops:
+        enabled: true
+      beans:
+        enabled: true
+      mappings:
+        enabled: true
+      scheduledtasks:
+        enabled: true
+      sessions:
+        enabled: true
+      shutdown:
+        enabled: false
+    info:
+      env:
+        enabled: true
+      java:
+        enabled: true
+      os:
+        enabled: true
+    metrics:
+      export:
+        simple:
+          enabled: true
+      distribution:
+        percentiles-histogram:
+          http.server.requests: true
+        percentiles:
+          http.server.requests: 0.5, 0.95, 0.99
+        sla:
+          http.server.requests: 100ms, 500ms, 1s
+    health:
+      redis:
+        enabled: true
+      db:
+        enabled: true
+      diskspace:
+        enabled: true
+        
+# Configurações da Aplicação
+app:
+  # Configurações de Email Ultra Detalhadas
+  email:
+    enabled: true
+    provider: MAILTRAP
+    async-enabled: true
+    retry-attempts: 3
+    retry-delay: 1000
+    
+    # Configurações de Remetente
+    from-email: noreply@sistema.com
+    from-name: Sistema Java
+    reply-to: support@sistema.com
+    
+    # URLs de Verificação
+    verification-base-url: http://localhost:8080
+    password-reset-base-url: http://localhost:8080
+    
+    # Configurações de Template
+    template-engine: thymeleaf
+    template-cache: false
+    
+    # Configurações de Timeout
+    connection-timeout: 10000
+    read-timeout: 10000
+    write-timeout: 10000
+    
+    # Configurações de Pool
+    max-pool-size: 10
+    min-pool-size: 2
+    pool-timeout: 30000
+    
+    # Configurações de Retry
+    max-retry-attempts: 3
+    retry-backoff-multiplier: 2
+    initial-retry-delay: 1000
+    max-retry-delay: 10000
+    
+    # Configurações de Rate Limiting
+    rate-limit-enabled: true
+    rate-limit-requests-per-minute: 60
+    rate-limit-requests-per-hour: 1000
+    
+    # Configurações de Validação
+    validate-addresses: true
+    validate-domains: true
+    blacklist-enabled: true
+    whitelist-enabled: false
+    
+    # Configurações de Monitoramento
+    metrics-enabled: true
+    health-check-enabled: true
+    health-check-interval: 60000
+    
+    # Configurações de Debug
+    debug-enabled: true
+    log-email-content: true
+    log-smtp-session: true
+    log-email-headers: true
+    
+  # Configurações de Segurança
+  security:
+    jwt:
+      secret: ${JWT_SECRET:minha-chave-secreta-super-segura-para-desenvolvimento-local-2024}
+      expiration: 86400000
+      refresh-expiration: 604800000
+      issuer: sistema-java
+      
+    # Configurações de Rate Limiting
+    rate-limiting:
+      enabled: true
+      requests-per-minute: 60
+      requests-per-hour: 1000
+      
+    # Configurações de Captcha
+    captcha:
+      enabled: true
+      length: 6
+      width: 200
+      height: 50
+      expiration: 300000
+      
+    # Configurações de Tentativas
+    attempts:
+      max-login-attempts: 5
+      lockout-duration: 900000
+      
+  # Configurações de Cache
+  cache:
+    enabled: true
+    default-ttl: 600
+    max-entries: 10000
+    
+  # Configurações de Desenvolvimento
+  dev:
+    auto-create-admin: true
+    admin-email: admin@sistema.com
+    admin-password: admin123
+    sample-data: true
+    debug-mode: true
+    
+  # Configurações de Monitoramento
+  monitoring:
+    enabled: true
+    metrics-enabled: true
+    health-checks-enabled: true
+    performance-logging: true
+    
+  # Configurações de Backup
+  backup:
+    enabled: false
+    interval: 3600000
+    retention-days: 7
+    
+  # Configurações de Notificações
+  notifications:
+    enabled: true
+    email-enabled: true
+    sms-enabled: false
+    push-enabled: false: DEBUG
+    org.springframework.scripting: DEBUG
+    org.springframework.ui: DEBUG
+    org.springframework.web.jsf: DEBUG
+    org.springframework.web.portlet: DEBUG
+    org.springframework.web.struts: DEBUG
+    org.springframework.web.tapestry: DEBUG
+    org.springframework.web.tiles: DEBUG
+    org.springframework.web.velocity: DEBUG
+    org.springframework.web.webflow: DEBUG
+    org.springframework.webflow: DEBUG
+    org.springframework.binding: DEBUG
+    org.springframework.js: DEBUG
+    org.springframework.flex: DEBUG
+    org.springframework.integration: DEBUG
+    org.springframework.batch: DEBUG
+    org.springframework.social: DEBUG
+    org.springframework.mobile: DEBUG
+    org.springframework.android: DEBUG
+    org.springframework.roo: DEBUG
+    org.springframework.shell: DEBUG
+    org.springframework.ide: DEBUG
+    org.springframework.tool: DEBUG
+    org.springframework.asm: DEBUG
+    org.springframework.cglib: DEBUG
+    org.springframework.objenesis: DEBUG
+    org.springframework.test: DEBUG
+    org.springframework.mock: DEBUG
+    org.springframework.web.testfixture: DEBUG
+    org.springframework.test.context: DEBUG
+    org.springframework.test.web: DEBUG
+    org.springframework.test.util: DEBUG
+    org.springframework.test.annotation: DEBUG
+    org.springframework.test.jdbc: DEBUG
+    org.springframework.test.jpa: DEBUG
+    org.springframework.test.transaction: DEBUG
+    org.springframework.boot.test: DEBUG
+    org.springframework.boot.test.autoconfigure: DEBUG
+    org.springframework.boot.test.context: DEBUG
+    org.springframework.boot.test.json: DEBUG
+    org.springframework.boot.test.mock: DEBUG
+    org.springframework.boot.test.web: DEBUG
+    org.springframework.boot.test.util: DEBUG
+    org.springframework.restdocs: DEBUG
+    org.springframework.cloud: DEBUG
+    org.springframework.retry: DEBUG
+    org.springframework.statemachine: DEBUG
+    org.springframework.vault: DEBUG
+    org.springframework.session: DEBUG
+    org.springframework.kafka: DEBUG
+    org.springframework.amqp: DEBUG
+    org.springframework.jms: DEBUG
+    org.springframework.messaging: DEBUG
+    org.springframework.websocket: DEBUG
+    org.springframework.stomp: DEBUG
+    org.springframework.sockjs: DEBUG
+    org.springframework.web.socket: DEBUG
+    org.springframework.graphql: DEBUG
+    org.springframework.r2dbc: DEBUG
+    org.springframework.data.r2dbc: DEBUG
+    org.springframework.data.mongodb: DEBUG
+    org.springframework.data.cassandra: DEBUG
+    org.springframework.data.couchbase: DEBUG
+    org.springframework.data.elasticsearch: DEBUG
+    org.springframework.data.neo4j: DEBUG
+    org.springframework.data.solr: DEBUG
+    org.springframework.data.gemfire: DEBUG
+    org.springframework.data.geode: DEBUG
+    org.springframework.data.hadoop: DEBUG
+    org.springframework.data.ldap: DEBUG
+    org.springframework.ldap: DEBUG
+    org.springframework.data.keyvalue: DEBUG
+    org.springframework.data.envers: DEBUG
+    org.springframework.data.commons: DEBUG
+    org.springframework.data.relational: DEBUG
+    org.springframework.data.jdbc: DEBUG
+    org.springframework.jdbc: DEBUG
+    org.springframework.jdbc.core: DEBUG
+    org.springframework.jdbc.datasource: DEBUG
+    org.springframework.jdbc.support: DEBUG
+    org.springframework.jdbc.object: DEBUG
+    org.springframework.dao: DEBUG
+    org.springframework.transaction.support: DEBUG
+    org.springframework.transaction.interceptor: DEBUG
+    org.springframework.transaction.annotation: DEBUG
+    org.springframework.transaction.aspectj: DEBUG
+    org.springframework.transaction.jta: DEBUG
+    org.springframework.transaction.reactive: DEBUG
+    org.springframework.orm: DEBUG
+    org.springframework.orm.hibernate5: DEBUG
+    org.springframework.orm.jpa.vendor: DEBUG
+    org.springframework.orm.jpa.support: DEBUG
+    org.springframework.orm.jpa.persistenceunit: DEBUG
+    org.springframework.orm.jpa.hibernate: DEBUG
+    org.springframework.orm.jpa.eclipselink: DEBUG
+    org.springframework.orm.jpa.openjpa: DEBUG
+    org.springframework.orm.jpa.toplink: DEBUG
+    org.springframework.orm.toplink: DEBUG
+    org.springframework.orm.ibatis: DEBUG
+    org.springframework.orm.ojb: DEBUG
+    org.springframework.orm.jdo: DEBUG
+    org.springframework.oxm: DEBUG
+    org.springframework.ws: DEBUG
+    org.springframework.xml: DEBUG
+    org.springframework.jca: DEBUG
+    org.springframework.ejb: DEBUG
+    org.springframework.context.support: DEBUG
+    org.springframework.context.annotation: DEBUG
+    org.springframework.context.event: DEBUG
+    org.springframework.context.expression: DEBUG
+    org.springframework.context.i18n: DEBUG
+    org.springframework.context.weaving: DEBUG
+    org.springframework.instrument: DEBUG
+    org.springframework.instrument.classloading: DEBUG
+    org.springframework.asm: DEBUG
+    org.springframework.cglib: DEBUG
+    org.springframework.objenesis: DEBUG
+    org.springframework.lang: DEBUG
+    org.springframework.stereotype: DEBUG
+    org.springframework.beans.factory: DEBUG
+    org.springframework.beans.factory.annotation: DEBUG
+    org.springframework.beans.factory.config: DEBUG
+    org.springframework.beans.factory.parsing: DEBUG
+    org.springframework.beans.factory.support: DEBUG
+    org.springframework.beans.factory.xml: DEBUG
+    org.springframework.beans.factory.groovy: DEBUG
+    org.springframework.beans.factory.serviceloader: DEBUG
+    org.springframework.beans.propertyeditors: DEBUG
+    org.springframework.beans.support: DEBUG
+    org.springframework.beans.annotation: DEBUG
+    org.springframework.beans.factory.wiring: DEBUG
+    org.springframework.beans.factory.access: DEBUG
+    org.springframework.beans.factory.aspectj: DEBUG
+    org.springframework.beans.factory.generic: DEBUG
+    org.springframework.beans.factory.ListableBeanFactory: DEBUG
+    org.springframework.beans.factory.HierarchicalBeanFactory: DEBUG
+    org.springframework.beans.factory.BeanFactory: DEBUG
+    org.springframework.beans.factory.ObjectFactory: DEBUG
+    org.springframework.beans.factory.ObjectProvider: DEBUG
+    org.springframework.beans.factory.SmartFactoryBean: DEBUG
+    org.springframework.beans.factory.FactoryBean: DEBUG
+    org.springframework.beans.factory.InitializingBean: DEBUG
+    org.springframework.beans.factory.DisposableBean: DEBUG
+    org.springframework.beans.factory.Aware: DEBUG
+    org.springframework.beans.factory.BeanNameAware: DEBUG
+    org.springframework.beans.factory.BeanFactoryAware: DEBUG
+    org.springframework.beans.factory.BeanClassLoaderAware: DEBUG
+    org.springframework.context.ApplicationContextAware: DEBUG
+    org.springframework.context.ApplicationEventPublisherAware: DEBUG
+    org.springframework.context.MessageSourceAware: DEBUG
+    org.springframework.context.ResourceLoaderAware: DEBUG
+    org.springframework.context.EnvironmentAware: DEBUG
+    org.springframework.context.EmbeddedValueResolverAware: DEBUG
+    org.springframework.web.context.ServletContextAware: DEBUG
+    org.springframework.web.context.ServletConfigAware: DEBUG
+    org.springframework.web.servlet.config.annotation: DEBUG
+    org.springframework.web.servlet.config: DEBUG
+    org.springframework.web.servlet.support: DEBUG
+    org.springframework.web.servlet.tags: DEBUG
+    org.springframework.web.servlet.theme: DEBUG
+    org.springframework.web.servlet.i18n: DEBUG
+    org.springframework.web.servlet.mvc.condition: DEBUG
+    org.springframework.web.servlet.mvc.support: DEBUG
+    org.springframework.web.servlet.mvc.method: DEBUG
+    org.springframework.web.servlet.mvc.multiaction: DEBUG
+    org.springframework.web.servlet.mvc.throwaway: DEBUG
+    org.springframework.web.servlet.mvc.annotation: DEBUG
+    org.springframework.web.servlet.mvc.Controller: DEBUG
+    org.springframework.web.servlet.mvc.AbstractController: DEBUG
+    org.springframework.web.servlet.mvc.BaseCommandController: DEBUG
+    org.springframework.web.servlet.mvc.AbstractCommandController: DEBUG
+    org.springframework.web.servlet.mvc.AbstractFormController: DEBUG
+    org.springframework.web.servlet.mvc.SimpleFormController: DEBUG
+    org.springframework.web.servlet.mvc.AbstractWizardFormController: DEBUG
+    org.springframework.web.servlet.mvc.CancellableFormController: DEBUG
+    org.springframework.web.servlet.mvc.ParameterizableViewController: DEBUG
+    org.springframework.web.servlet.mvc.UrlFilenameViewController: DEBUG
+    org.springframework.web.servlet.mvc.ServletForwardingController: DEBUG
+    org.springframework.web.servlet.mvc.ServletWrappingController: DEBUG
+    org.springframework.web.servlet.view.AbstractView: DEBUG
+    org.springframework.web.servlet.view.AbstractUrlBasedView: DEBUG
+    org.springframework.web.servlet.view.InternalResourceView: DEBUG
+    org.springframework.web.servlet.view.JstlView: DEBUG
+    org.springframework.web.servlet.view.RedirectView: DEBUG
+    org.springframework.web.servlet.view.AbstractTemplateView: DEBUG
+    org.springframework.web.servlet.view.velocity.VelocityView: DEBUG
+    org.springframework.web.servlet.view.freemarker.FreeMarkerView: DEBUG
+    org.springframework.web.servlet.view.tiles2.TilesView: DEBUG
+    org.springframework.web.servlet.view.tiles3.TilesView: DEBUG
+    org.springframework.web.servlet.view.jasperreports: DEBUG
+    org.springframework.web.servlet.view.document: DEBUG
+    org.springframework.web.servlet.view.feed: DEBUG
+    org.springframework.web.servlet.view.json: DEBUG
+    org.springframework.web.servlet.view.xml: DEBUG
+    org.springframework.web.servlet.view.xslt: DEBUG
+    org.springframework.web.servlet.view.script: DEBUG
+    org.springframework.web.servlet.view.groovy: DEBUG
+    org.springframework.web.servlet.view.AbstractCachingViewResolver: DEBUG
+    org.springframework.web.servlet.view.UrlBasedViewResolver: DEBUG
+    org.springframework.web.servlet.view.InternalResourceViewResolver: DEBUG
+    org.springframework.web.servlet.view.velocity.VelocityViewResolver: DEBUG
+    org.springframework.web.servlet.view.freemarker.FreeMarkerViewResolver: DEBUG
+    org.springframework.web.servlet.view.tiles2.TilesViewResolver: DEBUG
+    org.springframework.web.servlet.view.tiles3.TilesViewResolver: DEBUG
+    org.springframework.web.servlet.view.jasperreports.JasperReportsViewResolver: DEBUG
+    org.springframework.web.servlet.view.XmlViewResolver: DEBUG
+    org.springframework.web.servlet.view.ResourceBundleViewResolver: DEBUG
+    org.springframework.web.servlet.view.BeanNameViewResolver: DEBUG
+    org.springframework.web.servlet.view.ContentNegotiatingViewResolver: DEBUG
+    org.springframework.web.servlet.view.ViewResolverComposite: DEBUG
+    org.springframework.web.servlet.LocaleResolver: DEBUG
+    org.springframework.web.servlet.ThemeResolver: DEBUG
+    org.springframework.web.servlet.HandlerMapping: DEBUG
+    org.springframework.web.servlet.HandlerAdapter: DEBUG
+    org.springframework.web.servlet.HandlerExceptionResolver: DEBUG
+    org.springframework.web.servlet.RequestToViewNameTranslator: DEBUG
+    org.springframework.web.servlet.FlashMapManager: DEBUG
+    org.springframework.web.servlet.handler.AbstractHandlerMapping: DEBUG
+    org.springframework.web.servlet.handler.AbstractUrlHandlerMapping: DEBUG
+    org.springframework.web.servlet.handler.SimpleUrlHandlerMapping: DEBUG
+    org.springframework.web.servlet.handler.AbstractDetectingUrlHandlerMapping: DEBUG
+    org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping: DEBUG
+    org.springframework.web.servlet.handler.AbstractHandlerMethodMapping: DEBUG
+    org.springframework.web.servlet.handler.AbstractHandlerExceptionResolver: DEBUG
+    org.springframework.web.servlet.handler.SimpleMappingExceptionResolver: DEBUG
+    org.springframework.web.servlet.handler.AbstractHandlerMethodExceptionResolver: DEBUG
+    org.springframework.web.servlet.handler.ResponseStatusExceptionResolver: DEBUG
+    org.springframework.web.servlet.handler.DefaultHandlerExceptionResolver: DEBUG
+    org.springframework.web.servlet.handler.HandlerExceptionResolverComposite: DEBUG
+    org.springframework.web.servlet.handler.UserRoleAuthorizationInterceptor: DEBUG
+    org.springframework.web.servlet.handler.WebRequestHandlerInterceptorAdapter: DEBUG
+    org.springframework.web.servlet.handler.MappedInterceptor: DEBUG
+    org.springframework.web.servlet.handler.ConversionServiceExposingInterceptor: DEBUG
+    org.springframework.web.servlet.handler.ResourceHttpRequestHandler: DEBUG
+    org.springframework.web.servlet.resource: DEBUG
+    org.springframework.web.servlet.resource.ResourceHttpRequestHandler: DEBUG
+    org.springframework.web.servlet.resource.DefaultServletHttpRequestHandler: DEBUG
+    org.springframework.web.servlet.resource.ResourceUrlProvider: DEBUG
+    org.springframework.web.servlet.resource.ResourceResolver: DEBUG
+    org.springframework.web.servlet.resource.ResourceTransformer: DEBUG
+    org.springframework.web.servlet.resource.PathResourceResolver: DEBUG
+    org.springframework.web.servlet.resource.VersionResourceResolver: DEBUG
+    org.springframework.web.servlet.resource.ContentVersionStrategy: DEBUG
+    org.springframework.web.servlet.resource.FixedVersionStrategy: DEBUG
+    org.springframework.web.servlet.resource.CachingResourceResolver: DEBUG
+    org.springframework.web.servlet.resource.CachingResourceTransformer: DEBUG
+    org.springframework.web.servlet.resource.CssLinkResourceTransformer: DEBUG
+    org.springframework.web.servlet.resource.AppCacheManifestTransformer: DEBUG
+    org.springframework.web.servlet.resource.GzipResourceResolver: DEBUG
+    org.springframework.web.servlet.resource.EncodedResourceResolver: DEBUG
+    org.springframework.web.servlet.resource.WebJarsResourceResolver: DEBUG
+    org.springframework.web.servlet.tags.form: DEBUG
+    org.springframework.web.servlet.tags.RequestContextAwareTag: DEBUG
+    org.springframework.web.servlet.tags.HtmlEscapingAwareTag: DEBUG
+    org.springframework.web.servlet.tags.Param: DEBUG
+    org.springframework.web.servlet.tags.ParamTag: DEBUG
+    org.springframework.web.servlet.tags.NestedPathTag: DEBUG
+    org.springframework.web.servlet.tags.BindTag: DEBUG
+    org.springframework.web.servlet.tags.TransformTag: DEBUG
+    org.springframework.web.servlet.tags.HtmlEscapeTag: DEBUG
+    org.springframework.web.servlet.tags.MessageTag: DEBUG
+    org.springframework.web.servlet.tags.ThemeTag: DEBUG
+    org.springframework.web.servlet.tags.UrlTag: DEBUG
+    org.springframework.web.servlet.tags.EvalTag: DEBUG
+    org.springframework.web.servlet.tags.ArgumentTag: DEBUG
+    org.springframework.web.servlet.tags.form.AbstractFormTag: DEBUG
+    org.springframework.web.servlet.tags.form.AbstractDataBoundFormElementTag: DEBUG
+    org.springframework.web.servlet.tags.form.AbstractSingleCheckedElementTag: DEBUG
+    org.springframework.web.servlet.tags.form.AbstractMultiCheckedElementTag: DEBUG
+    org.springframework.web.servlet.tags.form.AbstractCheckedElementTag: DEBUG
+    org.springframework.web.servlet.tags.form.AbstractHtmlElementTag: DEBUG
+    org.springframework.web.servlet.tags.form.AbstractHtmlInputElementTag: DEBUG
+    org.springframework.web.servlet.tags.form.FormTag: DEBUG
+    org.springframework.web.servlet.tags.form.InputTag: DEBUG
+    org.springframework.web.servlet.tags.form.HiddenInputTag: DEBUG
+    org.springframework.web.servlet.tags.form.PasswordInputTag: DEBUG
+    org.springframework.web.servlet.tags.form.TextareaTag: DEBUG
+    org.springframework.web.servlet.tags.form.CheckboxTag: DEBUG
+    org.springframework.web.servlet.tags.form.CheckboxesTag: DEBUG
+    org.springframework.web.servlet.tags.form.RadioButtonTag: DEBUG
+    org.springframework.web.servlet.tags.form.RadioButtonsTag: DEBUG
+    org.springframework.web.servlet.tags.form.SelectTag: DEBUG
+    org.springframework.web.servlet.tags.form.OptionTag: DEBUG
+    org.springframework.web.servlet.tags.form.OptionsTag: DEBUG
+    org.springframework.web.servlet.tags.form.ButtonTag: DEBUG
+    org.springframework.web.servlet.tags.form.LabelTag: DEBUG
+    org.springframework.web.servlet.tags.form.ErrorsTag: DEBUG
+    org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver: DEBUG
+    org.springframework.web.servlet.i18n.FixedLocaleResolver: DEBUG
+    org.springframework.web.servlet.i18n.SessionLocaleResolver: DEBUG
+    org.springframework.web.servlet.i18n.CookieLocaleResolver: DEBUG
+    org.springframework.web.servlet.i18n.LocaleChangeInterceptor: DEBUG
+    org.springframework.web.servlet.theme.FixedThemeResolver: DEBUG
+    org.springframework.web.servlet.theme.SessionThemeResolver: DEBUG
+    org.springframework.web.servlet.theme.CookieThemeResolver: DEBUG
+    org.springframework.web.servlet.theme.ThemeChangeInterceptor: DEBUG
+    org.springframework.web.multipart.commons.CommonsMultipartResolver: DEBUG
+    org.springframework.web.multipart.support.StandardServletMultipartResolver: DEBUG
+    org.springframework.web.multipart.support.MultipartFilter: DEBUG
+    org.springframework.web.multipart.support.RequestPartServletServerHttpRequest: DEBUG
+    org.springframework.web.multipart.support.StandardMultipartHttpServletRequest: DEBUG
+    org.springframework.web.util.UrlPathHelper: DEBUG
+    org.springframework.web.util.WebUtils: DEBUG
+    org.springframework.web.util.HtmlUtils: DEBUG
+    org.springframework.web.util.UriUtils: DEBUG
+    org.springframework.web.util.UriComponentsBuilder: DEBUG
+    org.springframework.web.util.UriTemplate: DEBUG
+    org.springframework.web.util.DefaultUriTemplateHandler: DEBUG
+    org.springframework.web.util.ContentCachingRequestWrapper: DEBUG
+    org.springframework.web.util.ContentCachingResponseWrapper: DEBUG
+    org.springframework.web.util.CookieGenerator: DEBUG
+    org.springframework.web.util.IntrospectorCleanupListener: DEBUG
+    org.springframework.web.util.Log4jConfigListener: DEBUG
+    org.springframework.web.util.WebAppRootListener: DEBUG
+    org.springframework.web.util.JavaScriptUtils: DEBUG
+    org.springframework.web.util.TagUtils: DEBUG
+    org.springframework.web.util.ExpressionEvaluationUtils: DEBUG
+    org.springframework.web.util.pattern: DEBUG
+    org.springframework.web.util.pattern.PathPattern: DEBUG
+    org.springframework.web.util.pattern.PathPatternParser: DEBUG
+    org.springframework.web.util.pattern.PatternParseException: DEBUG
+    org.springframework.web.context.request.RequestContextHolder: DEBUG
+    org.springframework.web.context.request.RequestContextListener: DEBUG
+    org.springframework.web.context.request.RequestScope: DEBUG
+    org.springframework.web.context.request.SessionScope: DEBUG
+    org.springframework.web.context.request.ServletRequestAttributes: DEBUG
+    org.springframework.web.context.request.FacesRequestAttributes: DEBUG
+    org.springframework.web.context.request.async.WebAsyncManager: DEBUG
+    org.springframework.web.context.request.async.StandardServletAsyncWebRequest: DEBUG
+    org.springframework.web.context.request.async.DeferredResult: DEBUG
+    org.springframework.web.context.request.async.CallableProcessingInterceptor: DEBUG
+    org.springframework.web.context.request.async.DeferredResultProcessingInterceptor: DEBUG
+    org.springframework.web.context.request.async.TimeoutCallableProcessingInterceptor: DEBUG
+    org.springframework.web.context.request.async.TimeoutDeferredResultProcessingInterceptor: DEBUG
+    org.springframework.web.context.support.WebApplicationContextUtils: DEBUG
+    org.springframework.web.context.support.ServletContextScope: DEBUG
+    org.springframework.web.context.support.ServletContextAttributeExporter: DEBUG
+    org.springframework.web.context.support.ServletContextParameterFactoryBean: DEBUG
+    org.springframework.web.context.support.ServletContextAttributeFactoryBean: DEBUG
+    org.springframework.web.context.support.ServletContextPropertyPlaceholderConfigurer: DEBUG
+    org.springframework.web.context.support.ServletContextResource: DEBUG
+    org.springframework.web.context.support.ServletContextResourceLoader: DEBUG
+    org.springframework.web.context.support.ServletContextResourcePatternResolver: DEBUG
+    org.springframework.web.context.support.RequestHandledEvent: DEBUG
+    org.springframework.web.context.support.ServletRequestHandledEvent: DEBUG
+    org.springframework.web.context.support.HttpRequestHandlerServlet: DEBUG
+    org.springframework.web.context.support.WebApplicationObjectSupport: DEBUG
+    org.springframework.web.context.support.XmlWebApplicationContext: DEBUG
+    org.springframework.web.context.support.AnnotationConfigWebApplicationContext: DEBUG
+    org.springframework.web.context.support.GroovyWebApplicationContext: DEBUG
+    org.springframework.web.context.support.GenericWebApplicationContext: DEBUG
+    org.springframework.web.context.support.StaticWebApplicationContext: DEBUG
+    org.springframework.web.context.ContextLoader: DEBUG
+    org.springframework.web.context.ContextLoaderListener: DEBUG
+    org.springframework.web.context.ContextCleanupListener: DEBUG
+    org.springframework.web.context.ConfigurableWebApplicationContext: DEBUG
+    org.springframework.web.context.WebApplicationContext: DEBUG
+    org.springframework.web.context.ServletContextAware: DEBUG
+    org.springframework.web.context.ServletConfigAware: DEBUG
+    org.springframework.web.filter.OncePerRequestFilter: DEBUG
+    org.springframework.web.filter.GenericFilterBean: DEBUG
+    org.springframework.web.filter.DelegatingFilterProxy: DEBUG
+    org.springframework.web.filter.RequestContextFilter: DEBUG
+    org.springframework.web.filter.CharacterEncodingFilter: DEBUG
+    org.springframework.web.filter.HiddenHttpMethodFilter: DEBUG
+    org.springframework.web.filter.HttpPutFormContentFilter: DEBUG
+    org.springframework.web.filter.ShallowEtagHeaderFilter: DEBUG
+    org.springframework.web.filter.CorsFilter: DEBUG
+    org.springframework.web.filter.ForwardedHeaderFilter: DEBUG
+    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
+    org.springframework.web.filter.ServletContextRequestLoggingFilter: DEBUG
+    org.springframework.web.bind.annotation.InitBinder: DEBUG
+    org.springframework.web.bind.annotation.ModelAttribute: DEBUG
+    org.springframework.web.bind.annotation.RequestMapping: DEBUG
+    org.springframework.web.bind.annotation.RequestParam: DEBUG
+    org.springframework.web.bind.annotation.RequestHeader: DEBUG
+    org.springframework.web.bind.annotation.RequestBody: DEBUG
+    org.springframework.web.bind.annotation.ResponseBody: DEBUG
+    org.springframework.web.bind.annotation.PathVariable: DEBUG
+    org.springframework.web.bind.annotation.CookieValue: DEBUG
+    org.springframework.web.bind.annotation.RequestAttribute: DEBUG
+    org.springframework.web.bind.annotation.SessionAttribute: DEBUG
+    org.springframework.web.bind.annotation.SessionAttributes: DEBUG
+    org.springframework.web.bind.annotation.RequestPart: DEBUG
+    org.springframework.web.bind.annotation.CrossOrigin: DEBUG
+    org.springframework.web.bind.annotation.ExceptionHandler: DEBUG
+    org.springframework.web.bind.annotation.ResponseStatus: DEBUG
+    org.springframework.web.bind.annotation.ControllerAdvice: DEBUG
+    org.springframework.web.bind.annotation.RestController: DEBUG
+    org.springframework.web.bind.annotation.RestControllerAdvice: DEBUG
+    org.springframework.web.bind.annotation.GetMapping: DEBUG
+    org.springframework.web.bind.annotation.PostMapping: DEBUG
+    org.springframework.web.bind.annotation.PutMapping: DEBUG
+    org.springframework.web.bind.annotation.DeleteMapping: DEBUG
+    org.springframework.web.bind.annotation.PatchMapping: DEBUG
+    org.springframework.web.bind.annotation.Mapping: DEBUG
+    org.springframework.web.bind.annotation.ValueConstants: DEBUG
+    org.springframework.web.bind.support.ConfigurableWebBindingInitializer: DEBUG
+    org.springframework.web.bind.support.DefaultDataBinderFactory: DEBUG
+    org.springframework.web.bind.support.WebDataBinderFactory: DEBUG
+    org.springframework.web.bind.support.WebRequestDataBinder: DEBUG
+    org.springframework.web.bind.support.WebExchangeDataBinder: DEBUG
+    org.springframework.web.bind.support.SessionStatus: DEBUG
+    org.springframework.web.bind.support.SimpleSessionStatus: DEBUG
+    org.springframework.web.bind.support.SessionAttributeStore: DEBUG
+    org.springframework.web.bind.support.DefaultSessionAttributeStore: DEBUG
+    org.springframework.web.bind.WebDataBinder: DEBUG
+    org.springframework.web.bind.ServletRequestDataBinder: DEBUG
+    org.springframework.web.bind.ServletRequestParameterPropertyValues: DEBUG
+    org.springframework.web.bind.ServletRequestUtils: DEBUG
+    org.springframework.web.bind.RequestUtils: DEBUG
+    org.springframework.web.bind.EscapedErrors: DEBUG
+    org.springframework.web.bind.MissingServletRequestParameterException: DEBUG
+    org.springframework.web.bind.ServletRequestBindingException: DEBUG
+    org.springframework.web.bind.UnsatisfiedServletRequestParameterException: DEBUG
+    org.springframework.web.bind.MissingRequestHeaderException: DEBUG
+    org.springframework.web.bind.MissingRequestCookieException: DEBUG
+    org.springframework.web.bind.MissingPathVariableException: DEBUG
+    org.springframework.web.bind.MissingMatrixVariableException: DEBUG
+    org.springframework.web.bind.MethodArgumentNotValidException: DEBUG
+    org.springframework.web.method.annotation.AbstractNamedValueMethodArgumentResolver: DEBUG
+    org.springframework.web.method.annotation.RequestParamMethodArgumentResolver: DEBUG
+    org.springframework.web.method.annotation.RequestHeaderMethodArgumentResolver: DEBUG
+    org.springframework.web.method.annotation.PathVariableMethodArgumentResolver: DEBUG
+    org.springframework.web.method.annotation.MatrixVariableMethodArgumentResolver: DEBUG
+    org.springframework.web.method.annotation.RequestAttributeMethodArgumentResolver: DEBUG
+    org.springframework.web.method.annotation.SessionAttributeMethodArgumentResolver: DEBUG
+    org.springframework.web.method.annotation.ExpressionValueMethodArgumentResolver: DEBUG
+    org.springframework.web.method.annotation.MapMethodProcessor: DEBUG
+    org.springframework.web.method.annotation.ModelMethodProcessor: DEBUG
+    org.springframework.web.method.annotation.ErrorsMethodArgumentResolver: DEBUG
+    org.springframework.web.method.annotation.SessionStatusMethodArgumentResolver: DEBUG
+    org.springframework.web.method.annotation.UriComponentsBuilderMethodArgumentResolver: DEBUG
+    org.springframework.web.method.annotation.AbstractCookieValueMethodArgumentResolver: DEBUG
+    org.springframework.web.method.annotation.ServletCookieValueMethodArgumentResolver: DEBUG
+    org.springframework.web.method.annotation.AbstractWebArgumentResolverAdapter: DEBUG
+    org.springframework.web.method.annotation.ModelAttributeMethodProcessor: DEBUG
+    org.springframework.web.method.annotation.RequestResponseBodyMethodProcessor: DEBUG
+    org.springframework.web.method.annotation.HttpEntityMethodProcessor: DEBUG
+    org.springframework.web.method.annotation.ServletModelAttributeMethodProcessor: DEBUG
+    org.springframework.web.method.annotation.ServletRequestMethodArgumentResolver: DEBUG
+    org.springframework.web.method.annotation.ServletResponseMethodArgumentResolver: DEBUG
+    org.springframework.web.method.annotation.RedirectAttributesMethodArgumentResolver: DEBUG
+    org.springframework.web.method.support.HandlerMethodArgumentResolver: DEBUG
+    org.springframework.web.method.support.HandlerMethodReturnValueHandler: DEBUG
+    org.springframework.web.method.support.ModelAndViewContainer: DEBUG
+    org.springframework.web.method.support.InvocableHandlerMethod: DEBUG
+    org.springframework.web.method.support.HandlerMethodArgumentResolverComposite: DEBUG
+    org.springframework.web.method.support.HandlerMethodReturnValueHandlerComposite: DEBUG
+    org.springframework.web.method.support.CompositeUriComponentsContributor: DEBUG
+    org.springframework.web.method.HandlerMethod: DEBUG
+    org.springframework.web.method.ControllerAdviceBean: DEBUG
+    org.springframework.web.method.HandlerTypePredicate: DEBUG
+    org.springframework.web.cors.CorsConfiguration: DEBUG
+    org.springframework.web.cors.CorsConfigurationSource: DEBUG
+    org.springframework.web.cors.UrlBasedCorsConfigurationSource: DEBUG
+    org.springframework.web.cors.DefaultCorsProcessor: DEBUG
+    org.springframework.web.cors.CorsProcessor: DEBUG
+    org.springframework.web.cors.CorsUtils: DEBUG
+    org.springframework.web.accept.ContentNegotiationManager: DEBUG
+    org.springframework.web.accept.ContentNegotiationStrategy: DEBUG
+    org.springframework.web.accept.HeaderContentNegotiationStrategy: DEBUG
+    org.springframework.web.accept.FixedContentNegotiationStrategy: DEBUG
+    org.springframework.web.accept.ParameterContentNegotiationStrategy: DEBUG
+    org.springframework.web.accept.PathExtensionContentNegotiationStrategy: DEBUG
+    org.springframework.web.accept.ServletPathExtensionContentNegotiationStrategy: DEBUG
+    org.springframework.web.accept.ContentNegotiationManagerFactoryBean: DEBUG
+    org.springframework.http.HttpMethod: DEBUG
+    org.springframework.http.HttpStatus: DEBUG
+    org.springframework.http.HttpHeaders: DEBUG
+    org.springframework.http.HttpEntity: DEBUG
+    org.springframework.http.HttpInputMessage: DEBUG
+    org.springframework.http.HttpOutputMessage: DEBUG
+    org.springframework.http.ResponseEntity: DEBUG
+    org.springframework.http.RequestEntity: DEBUG
+    org.springframework.http.MediaType: DEBUG
+    org.springframework.http.InvalidMediaTypeException: DEBUG
+    org.springframework.http.HttpMediaTypeException: DEBUG
+    org.springframework.http.HttpMediaTypeNotSupportedException: DEBUG
+    org.springframework.http.HttpMediaTypeNotAcceptableException: DEBUG
+    org.springframework.http.HttpRequestMethodNotSupportedException: DEBUG
+    org.springframework.http.converter.HttpMessageConverter: DEBUG
+    org.springframework.http.converter.AbstractHttpMessageConverter: DEBUG
+    org.springframework.http.converter.GenericHttpMessageConverter: DEBUG
+    org.springframework.http.converter.HttpMessageNotReadableException: DEBUG
+    org.springframework.http.converter.HttpMessageNotWritableException: DEBUG
+    org.springframework.http.converter.HttpMessageConversionException: DEBUG
+    org.springframework.http.converter.StringHttpMessageConverter: DEBUG
+    org.springframework.http.converter.FormHttpMessageConverter: DEBUG
+    org.springframework.http.converter.ByteArrayHttpMessageConverter: DEBUG
+    org.springframework.http.converter.ResourceHttpMessageConverter: DEBUG
+    org.springframework.http.converter.ResourceRegionHttpMessageConverter: DEBUG
+    org.springframework.http.converter.AllEncompassingFormHttpMessageConverter: DEBUG
+    org.springframework.http.converter.ObjectToStringHttpMessageConverter: DEBUG
+    org.springframework.http.converter.BufferedImageHttpMessageConverter: DEBUG
+    org.springframework.http.converter.json.AbstractJackson2HttpMessageConverter: DEBUG
+    org.springframework.http.converter.json.MappingJackson2HttpMessageConverter: DEBUG
+    org.springframework.http.converter.json.MappingJacksonHttpMessageConverter: DEBUG
+    org.springframework.http.converter.json.GsonHttpMessageConverter: DEBUG
+    org.springframework.http.converter.json.JsonbHttpMessageConverter: DEBUG
+    org.springframework.http.converter.json.Jackson2ObjectMapperBuilder: DEBUG
+    org.springframework.http.converter.json.SpringHandlerInstantiator: DEBUG
+    org.springframework.http.converter.xml.AbstractXmlHttpMessageConverter: DEBUG
+    org.springframework.http.converter.xml.SourceHttpMessageConverter: DEBUG
+    org.springframework.http.converter.xml.MarshallingHttpMessageConverter: DEBUG
+    org.springframework.http.converter.xml.AbstractJaxb2HttpMessageConverter: DEBUG
+    org.springframework.http.converter.xml.Jaxb2RootElementHttpMessageConverter: DEBUG
+    org.springframework.http.converter.xml.Jaxb2CollectionHttpMessageConverter: DEBUG
+    org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter: DEBUG
+    org.springframework.http.converter.feed.AbstractWireFeedHttpMessageConverter: DEBUG
+    org.springframework.http.converter.feed.AtomFeedHttpMessageConverter: DEBUG
+    org.springframework.http.converter.feed.RssChannelHttpMessageConverter: DEBUG
+    org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter: DEBUG
+    org.springframework.http.converter.support.AllEncompassingFormHttpMessageConverter: DEBUG
+    org.springframework.http.client.ClientHttpRequest: DEBUG
+    org.springframework.http.client.ClientHttpResponse: DEBUG
+    org.springframework.http.client.ClientHttpRequestFactory: DEBUG
+    org.springframework.http.client.ClientHttpRequestExecution: DEBUG
+    org.springframework.http.client.ClientHttpRequestInterceptor: DEBUG
+    org.springframework.http.client.AsyncClientHttpRequest: DEBUG
+    org.springframework.http.client.AsyncClientHttpRequestFactory: DEBUG
+    org.springframework.http.client.SimpleClientHttpRequestFactory: DEBUG
+    org.springframework.http.client.HttpComponentsClientHttpRequestFactory: DEBUG
+    org.springframework.http.client.HttpComponentsAsyncClientHttpRequestFactory: DEBUG
+    org.springframework.http.client.OkHttp3ClientHttpRequestFactory: DEBUG
+    org.springframework.http.client.OkHttpClientHttpRequestFactory: DEBUG
+    org.springframework.http.client.Netty4ClientHttpRequestFactory: DEBUG
+    org.springframework.http.client.BufferingClientHttpRequestWrapper: DEBUG
+    org.springframework.http.client.BufferingClientHttpResponseWrapper: DEBUG
+    org.springframework.http.client.InterceptingClientHttpRequestFactory: DEBUG
+    org.springframework.http.client.InterceptingAsyncClientHttpRequestFactory: DEBUG
+    org.springframework.http.client.support.HttpRequestWrapper: DEBUG
+    org.springframework.http.client.support.HttpAccessor: DEBUG
+    org.springframework.http.client.support.BasicAuthorizationInterceptor: DEBUG
+    org.springframework.http.client.support.InterceptingHttpAccessor: DEBUG
+    org.springframework.http.client.support.HttpRequestExecutingMessageSender: DEBUG
+    org.springframework.http.server.ServerHttpRequest: DEBUG
+    org.springframework.http.server.ServerHttpResponse: DEBUG
+    org.springframework.http.server.ServerHttpAsyncRequestControl: DEBUG
+    org.springframework.http.server.ServletServerHttpRequest: DEBUG
+    org.springframework.http.server.ServletServerHttpResponse: DEBUG
+    org.springframework.http.server.ServletServerHttpAsyncRequestControl: DEBUG
+    org.springframework.http.server.reactive.ServerHttpRequest: DEBUG
+    org.springframework.http.server.reactive.ServerHttpResponse: DEBUG
+    org.springframework.http.server.reactive.HttpHandler: DEBUG
+    org.springframework.http.server.reactive.ServerHttpRequestDecorator: DEBUG
+    org.springframework.http.server.reactive.ServerHttpResponseDecorator: DEBUG
+    org.springframework.http.server.reactive.ServletHttpHandlerAdapter: DEBUG
+    org.springframework.http.server.reactive.ReactorHttpHandlerAdapter: DEBUG
+    org.springframework.http.server.reactive.UndertowHttpHandlerAdapter: DEBUG
+    org.springframework.http.server.reactive.TomcatHttpHandlerAdapter: DEBUG
+    org.springframework.http.server.reactive.JettyHttpHandlerAdapter: DEBUG
+    org.springframework.http.server.reactive.NettyHttpHandlerAdapter: DEBUG
+    org.springframework.http.server.reactive.AbstractServerHttpRequest: DEBUG
+    org.springframework.http.server.reactive.AbstractServerHttpResponse: DEBUG
+    org.springframework.http.server.reactive.AbstractListenerReadPublisher: DEBUG
+    org.springframework.http.server.reactive.AbstractListenerWriteProcessor: DEBUG
+    org.springframework.http.server.reactive.AbstractListenerWriteFlushProcessor: DEBUG
+    org.springframework.http.server.reactive.ChannelSendOperator: DEBUG
+    org.springframework.http.server.reactive.DefaultServerHttpRequestBuilder: DEBUG
+    org.springframework.http.server.reactive.DefaultServerHttpResponseBuilder: DEBUG
+    org.springframework.http.server.reactive.HttpHeadResponseDecorator: DEBUG
+    org.springframework.http.server.reactive.SslInfo: DEBUG
+    org.springframework.http.codec.HttpMessageReader: DEBUG
+    org.springframework.http.codec.HttpMessageWriter: DEBUG
+    org.springframework.http.codec.DecoderHttpMessageReader: DEBUG
+    org.springframework.http.codec.EncoderHttpMessageWriter: DEBUG
+    org.springframework.http.codec.FormHttpMessageReader: DEBUG
+    org.springframework.http.codec.FormHttpMessageWriter: DEBUG
+    org.springframework.http.codec.LoggingCodecSupport: DEBUG
+    org.springframework.http.codec.CodecConfigurer: DEBUG
+    org.springframework.http.codec.ServerCodecConfigurer: DEBUG
+    org.springframework.http.codec.ClientCodecConfigurer: DEBUG
+    org.springframework.http.codec.support.DefaultServerCodecConfigurer: DEBUG
+    org.springframework.http.codec.support.DefaultClientCodecConfigurer: DEBUG
+    org.springframework.http.codec.multipart.MultipartHttpMessageReader: DEBUG
+    org.springframework.http.codec.multipart.MultipartHttpMessageWriter: DEBUG
+    org.springframework.http.codec.multipart.Part: DEBUG
+    org.springframework.http.codec.multipart.FilePart: DEBUG
+    org.springframework.http.codec.multipart.FormFieldPart: DEBUG
+    org.springframework.http.codec.multipart.DefaultMultipartMessageReader: DEBUG
+    org.springframework.http.codec.multipart.DefaultPartHttpMessageReader: DEBUG
+    org.springframework.http.codec.multipart.MultipartUtils: DEBUG
+    org.springframework.http.codec.multipart.SynchronossPartHttpMessageReader: DEBUG
+    org.springframework.http.codec.json.AbstractJackson2Decoder: DEBUG
+    org.springframework.http.codec.json.AbstractJackson2Encoder: DEBUG
+    org.springframework.http.codec.json.Jackson2JsonDecoder: DEBUG
+    org.springframework.http.codec.json.Jackson2JsonEncoder: DEBUG
+    org.springframework.http.codec.json.Jackson2SmileDecoder: DEBUG
+    org.springframework.http.codec.json.Jackson2SmileEncoder: DEBUG
+    org.springframework.http.codec.json.Jackson2CborDecoder: DEBUG
+    org.springframework.http.codec.json.Jackson2CborEncoder: DEBUG
+    org.springframework.http.codec.xml.Jaxb2XmlDecoder: DEBUG
+    org.springframework.http.codec.xml.Jaxb2XmlEncoder: DEBUG
+    org.springframework.http.codec.protobuf.ProtobufDecoder: DEBUG
+    org.springframework.http.codec.protobuf.ProtobufEncoder: DEBUG
+    org.springframework.http.codec.protobuf.ProtobufHttpMessageWriter: DEBUG
+    org.springframework.http.codec.ServerSentEvent: DEBUG
+    org.springframework.http.codec.ServerSentEventHttpMessageWriter: DEBUG
+    org.springframework.core.codec.Decoder: DEBUG
+    org.springframework.core.codec.Encoder: DEBUG
+    org.springframework.core.codec.AbstractDecoder: DEBUG
+    org.springframework.core.codec.AbstractEncoder: DEBUG
+    org.springframework.core.codec.AbstractDataBufferDecoder: DEBUG
+    org.springframework.core.codec.AbstractSingleValueEncoder: DEBUG
+    org.springframework.core.codec.ByteArrayDecoder: DEBUG
+    org.springframework.core.codec.ByteArrayEncoder: DEBUG
+    org.springframework.core.codec.ByteBufferDecoder: DEBUG
+    org.springframework.core.codec.ByteBufferEncoder: DEBUG
+    org.springframework.core.codec.DataBufferDecoder: DEBUG
+    org.springframework.core.codec.DataBufferEncoder: DEBUG
+    org.springframework.core.codec.ResourceDecoder: DEBUG
+    org.springframework.core.codec.ResourceEncoder: DEBUG
+    org.springframework.core.codec.ResourceRegionEncoder: DEBUG
+    org.springframework.core.codec.StringDecoder: DEBUG
+    org.springframework.core.codec.StringEncoder: DEBUG
+    org.springframework.core.codec.CharSequenceEncoder: DEBUG
+    org.springframework.core.codec.CodecException: DEBUG
+    org.springframework.core.codec.DecodingException: DEBUG
+    org.springframework.core.codec.EncodingException: DEBUG
+    org.springframework.core.codec.Hints: DEBUG
+    org.springframework.core.io.buffer.DataBuffer: DEBUG
+    org.springframework.core.io.buffer.DataBufferFactory: DEBUG
+    org.springframework.core.io.buffer.DataBufferUtils: DEBUG
+    org.springframework.core.io.buffer.DefaultDataBuffer: DEBUG
+    org.springframework.core.io.buffer.DefaultDataBufferFactory: DEBUG
+    org.springframework.core.io.buffer.NettyDataBuffer: DEBUG
+    org.springframework.core.io.buffer.NettyDataBufferFactory: DEBUG
+    org.springframework.core.io.buffer.PooledDataBuffer: DEBUG
+    org.springframework.core.io.buffer.LimitedDataBufferList: DEBUG
+    org.springframework.core.io.buffer.TouchableDataBuffer: DEBUG
+    org.springframework.core.io.Resource: DEBUG
+    org.springframework.core.io.ResourceLoader: DEBUG
+    org.springframework.core.io.DefaultResourceLoader: DEBUG
+    org.springframework.core.io.FileSystemResourceLoader: DEBUG
+    org.springframework.core.io.ClassPathResource: DEBUG
+    org.springframework.core.io.FileSystemResource: DEBUG
+    org.springframework.core.io.FileUrlResource: DEBUG
+    org.springframework.core.io.UrlResource: DEBUG
+    org.springframework.core.io.ByteArrayResource: DEBUG
+    org.springframework.core.io.InputStreamResource: DEBUG
+    org.springframework.core.io.AbstractResource: DEBUG
+    org.springframework.core.io.AbstractFileResolvingResource: DEBUG
+    org.springframework.core.io.VfsResource: DEBUG
+    org.springframework.core.io.DescriptiveResource: DEBUG
+    org.springframework.core.io.WritableResource: DEBUG
+    org.springframework.core.io.ContextResource: DEBUG
+    org.springframework.core.io.ResourceEditor: DEBUG
+    org.springframework.core.io.support.ResourcePatternResolver: DEBUG
+    org.springframework.core.io.support.PathMatchingResourcePatternResolver: DEBUG
+    org.springframework.core.io.support.ResourceArrayPropertyEditor: DEBUG
+    org.springframework.core.io.support.PropertiesLoaderSupport: DEBUG
+    org.springframework.core.io.support.PropertiesLoaderUtils: DEBUG
+    org.springframework.core.io.support.ResourcePropertiesPersister: DEBUG
+    org.springframework.core.io.support.DefaultPropertiesPersister: DEBUG
+    org.springframework.core.io.support.LocalizedResourceHelper: DEBUG
+    org.springframework.core.io.support.PathMatchingResourcePatternResolver: DEBUG
+    org.springframework.core.io.support.ResourcePatternUtils: DEBUG
+    org.springframework.core.io.support.SpringFactoriesLoader: DEBUG
+    org.springframework.core.io.support.EncodedResource: DEBUG
+    org.springframework.core.env.Environment: DEBUG
+    org.springframework.core.env.PropertyResolver: DEBUG
+    org.springframework.core.env.ConfigurableEnvironment: DEBUG
+    org.springframework.core.env.ConfigurablePropertyResolver: DEBUG
+    org.springframework.core.env.AbstractEnvironment: DEBUG
+    org.springframework.core.env.StandardEnvironment: DEBUG
+    org.springframework.core.env.AbstractPropertyResolver: DEBUG
+    org.springframework.core.env.PropertySourcesPropertyResolver: DEBUG
+    org.springframework.core.env.PropertySource: DEBUG
+    org.springframework.core.env.PropertySources: DEBUG
+    org.springframework.core.env.MutablePropertySources: DEBUG
+    org.springframework.core.env.CompositePropertySource: DEBUG
+    org.springframework.core.env.EnumerablePropertySource: DEBUG
+    org.springframework.core.env.MapPropertySource: DEBUG
+    org.springframework.core.env.SystemEnvironmentPropertySource: DEBUG
+    org.springframework.core.env.CommandLinePropertySource: DEBUG
+    org.springframework.core.env.JOptCommandLinePropertySource: DEBUG
+    org.springframework.core.env.SimpleCommandLinePropertySource: DEBUG
+    org.springframework.core.env.PropertiesPropertySource: DEBUG
+    org.springframework.core.env.ResourcePropertySource: DEBUG
+    org.springframework.core.env.PropertySourcesPlaceholderConfigurer: DEBUG
+    org.springframework.core.env.PropertyPlaceholderHelper: DEBUG
+    org.springframework.core.env.Profiles: DEBUG
+    org.springframework.core.env.ProfilesParser: DEBUG
+    org.springframework.core.convert.ConversionService: DEBUG
+    org.springframework.core.convert.support.DefaultConversionService: DEBUG
+    org.springframework.core.convert.support.GenericConversionService: DEBUG
+    org.springframework.core.convert.support.ConfigurableConversionService: DEBUG
+    org.springframework.core.convert.converter.Converter: DEBUG
+    org.springframework.core.convert.converter.ConverterFactory: DEBUG
+    org.springframework.core.convert.converter.GenericConverter: DEBUG
+    org.springframework.core.convert.converter.ConditionalConverter: DEBUG
+    org.springframework.core.convert.converter.ConditionalGenericConverter: DEBUG
+    org.springframework.core.convert.TypeDescriptor: DEBUG
+    org.springframework.core.convert.ConversionException: DEBUG
+    org.springframework.core.convert.ConverterNotFoundException: DEBUG
+    org.springframework.core.convert.ConversionFailedException: DEBUG
+    org.springframework.core.convert.Property: DEBUG
+    org.springframework.core.serializer.Serializer: DEBUG
+    org.springframework.core.serializer.Deserializer: DEBUG
+    org.springframework.core.serializer.DefaultSerializer: DEBUG
+    org.springframework.core.serializer.DefaultDeserializer: DEBUG
+    org.springframework.core.serializer.support.SerializingConverter: DEBUG
+    org.springframework.core.serializer.support.DeserializingConverter: DEBUG
+    org.springframework.core.serializer.support.SerializationDelegate: DEBUG
+    org.springframework.core.serializer.support.SerializationFailedException: DEBUG
+    org.springframework.core.task.TaskExecutor: DEBUG
+    org.springframework.core.task.AsyncTaskExecutor: DEBUG
+    org.springframework.core.task.TaskRejectedException: DEBUG
+    org.springframework.core.task.TaskTimeoutException: DEBUG
+    org.springframework.core.task.support.TaskExecutorAdapter: DEBUG
+    org.springframework.core.task.support.ConcurrentExecutorAdapter: DEBUG
+    org.springframework.core.task.support.ExecutorServiceAdapter: DEBUG
+    org.springframework.scheduling.TaskScheduler: DEBUG
+    org.springframework.scheduling.SchedulingTaskExecutor: DEBUG
+    org.springframework.scheduling.Trigger: DEBUG
+    org.springframework.scheduling.TriggerContext: DEBUG
+    org.springframework.scheduling.SchedulingException: DEBUG
+    org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor: DEBUG
+    org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler: DEBUG
+    org.springframework.scheduling.concurrent.ConcurrentTaskExecutor: DEBUG
+    org.springframework.scheduling.concurrent.ConcurrentTaskScheduler: DEBUG
+    org.springframework.scheduling.concurrent.DefaultManagedTaskExecutor: DEBUG
+    org.springframework.scheduling.concurrent.DefaultManagedTaskScheduler: DEBUG
+    org.springframework.scheduling.concurrent.ExecutorConfigurationSupport: DEBUG
+    org.springframework.scheduling.concurrent.ScheduledExecutorFactoryBean: DEBUG
+    org.springframework.scheduling.concurrent.ThreadPoolExecutorFactoryBean: DEBUG
+    org.springframework.scheduling.concurrent.CustomizableThreadFactory: DEBUG
+    org.springframework.scheduling.concurrent.ReschedulingRunnable: DEBUG
+    org.springframework.scheduling.support.CronTrigger: DEBUG
+    org.springframework.scheduling.support.PeriodicTrigger: DEBUG
+    org.springframework.scheduling.support.CronSequenceGenerator: DEBUG
+    org.springframework.scheduling.support.CronExpression: DEBUG
+    org.springframework.scheduling.support.DelegatingErrorHandlingRunnable: DEBUG
+    org.springframework.scheduling.support.ScheduledMethodRunnable: DEBUG
+    org.springframework.scheduling.support.SimpleTriggerContext: DEBUG
+    org.springframework.scheduling.annotation.EnableScheduling: DEBUG
+    org.springframework.scheduling.annotation.Scheduled: DEBUG
+    org.springframework.scheduling.annotation.Async: DEBUG
+    org.springframework.scheduling.annotation.EnableAsync: DEBUG
+    org.springframework.scheduling.annotation.AsyncResult: DEBUG
+    org.springframework.scheduling.annotation.ScheduledAnnotationBeanPostProcessor: DEBUG
+    org.springframework.scheduling.annotation.AsyncAnnotationBeanPostProcessor: DEBUG
+    org.springframework.scheduling.annotation.AsyncAnnotationAdvisor: DEBUG
+    org.springframework.scheduling.annotation.AnnotationAsyncExecutionInterceptor: DEBUG
+    org.springframework.scheduling.annotation.AsyncConfigurationSelector: DEBUG
+    org.springframework.scheduling.annotation.ProxyAsyncConfiguration: DEBUG
+    org.springframework.scheduling.annotation.AsyncConfigurer: DEBUG
+    org.springframework.scheduling.annotation.SchedulingConfigurer: DEBUG
+    org.springframework.scheduling.annotation.SchedulingConfiguration: DEBUG
+    org.springframework.scheduling.config.ScheduledTaskRegistrar: DEBUG
+    org.springframework.scheduling.config.Task: DEBUG
+    org.springframework.scheduling.config.TriggerTask: DEBUG
+    org.springframework.scheduling.config.CronTask: DEBUG
+    org.springframework.scheduling.config.IntervalTask: DEBUG
+    org.springframework.scheduling.config.FixedDelayTask: DEBUG
+    org.springframework.scheduling.config.FixedRateTask: DEBUG
+    org.springframework.scheduling.config.ScheduledTaskHolder: DEBUG
+    org.springframework.scheduling.config.ContextLifecycleScheduledTaskRegistrar: DEBUG
+    org.springframework.scheduling.commonj.WorkManagerTaskExecutor: DEBUG
+    org.springframework.scheduling.commonj.TimerManagerTaskScheduler: DEBUG
+    org.springframework.scheduling.commonj.DelegatingWork: DEBUG
+    org.springframework.scheduling.commonj.ScheduledTimerListener: DEBUG
+    org.springframework.scheduling.commonj.TimerManagerAccessor: DEBUG
+    org.springframework.scheduling.quartz.QuartzJobBean: DEBUG
+    org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean: DEBUG
+    org.springframework.scheduling.quartz.JobDetailFactoryBean: DEBUG
+    org.springframework.scheduling.quartz.SimpleTriggerFactoryBean: DEBUG
+    org.springframework.scheduling.quartz.CronTriggerFactoryBean: DEBUG
+    org.springframework.scheduling.quartz.SchedulerFactoryBean: DEBUG
+    org.springframework.scheduling.quartz.SchedulerAccessor: DEBUG
+    org.springframework.scheduling.quartz.SchedulerAccessorBean: DEBUG
+    org.springframework.scheduling.quartz.SpringBeanJobFactory: DEBUG
+    org.springframework.scheduling.quartz.AdaptableJobFactory: DEBUG
+    org.springframework.scheduling.quartz.QuartzJobUtils: DEBUG
+    org.springframework.scheduling.quartz.DelegatingJob: DEBUG
+    org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean: DEBUG
+    org.springframework.scheduling.quartz.LocalDataSourceJobStore: DEBUG
+    org.springframework.scheduling.quartz.LocalTaskExecutorThreadPool: DEBUG
+    org.springframework.scheduling.quartz.ResourceLoaderClassLoadHelper: DEBUG
+    org.springframework.cache.Cache: DEBUG
+    org.springframework.cache.CacheManager: DEBUG
+    org.springframework.cache.support.AbstractCacheManager: DEBUG
+    org.springframework.cache.support.SimpleCacheManager: DEBUG
+    org.springframework.cache.support.CompositeCacheManager: DEBUG
+    org.springframework.cache.support.NoOpCacheManager: DEBUG
+    org.springframework.cache.concurrent.ConcurrentMapCache: DEBUG
+    org.springframework.cache.concurrent.ConcurrentMapCacheManager: DEBUG
+    org.springframework.cache.concurrent.ConcurrentMapCacheFactoryBean: DEBUG
+    org.springframework.cache.ehcache.EhCacheCache: DEBUG
+    org.springframework.cache.ehcache.EhCacheCacheManager: DEBUG
+    org.springframework.cache.ehcache.EhCacheManagerFactoryBean: DEBUG
+    org.springframework.cache.ehcache.EhCacheFactoryBean: DEBUG
+    org.springframework.cache.ehcache.EhCacheManagerUtils: DEBUG
+    org.springframework.cache.jcache.JCacheCache: DEBUG
+    org.springframework.cache.jcache.JCacheCacheManager: DEBUG
+    org.springframework.cache.jcache.JCacheManagerCustomizer: DEBUG
+    org.springframework.cache.caffeine.CaffeineCache: DEBUG
+    org.springframework.cache.caffeine.CaffeineCacheManager: DEBUG
+    org.springframework.cache.transaction.AbstractTransactionSupportingCacheManager: DEBUG
+    org.springframework.cache.transaction.TransactionAwareCacheDecorator: DEBUG
+    org.springframework.cache.transaction.TransactionAwareCacheManagerProxy: DEBUG
+    org.springframework.cache.interceptor.CacheInterceptor: DEBUG
+    org.springframework.cache.interceptor.CacheAspectSupport: DEBUG
+    org.springframework.cache.interceptor.CacheOperationInvoker: DEBUG
+    org.springframework.cache.interceptor.CacheEvictOperation: DEBUG
+    org.springframework.cache.interceptor.CachePutOperation: DEBUG
+    org.springframework.cache.interceptor.CacheableOperation: DEBUG
+    org.springframework.cache.interceptor.CacheOperation: DEBUG
+    org.springframework.cache.interceptor.CacheOperationSource: DEBUG
+    org.springframework.cache.interceptor.MethodBasedCacheOperationSource: DEBUG
+    org.springframework.cache.interceptor.AnnotationCacheOperationSource: DEBUG
+    org.springframework.cache.interceptor.CompositeCacheOperationSource: DEBUG
+    org.springframework.cache.interceptor.NamedCacheResolver: DEBUG
+    org.springframework.cache.interceptor.SimpleCacheResolver: DEBUG
+    org.springframework.cache.interceptor.AbstractCacheResolver: DEBUG
+    org.springframework.cache.interceptor.CacheResolver: DEBUG
+    org.springframework.cache.interceptor.KeyGenerator: DEBUG
+    org.springframework.cache.interceptor.SimpleKeyGenerator: DEBUG
+    org.springframework.cache.interceptor.SimpleKey: DEBUG
+    org.springframework.cache.interceptor.CacheErrorHandler: DEBUG
+    org.springframework.cache.interceptor.SimpleCacheErrorHandler: DEBUG
+    org.springframework.cache.interceptor.LoggingCacheErrorHandler: DEBUG
+    org.springframework.cache.interceptor.CacheProxyFactoryBean: DEBUG
+    org.springframework.cache.interceptor.BeanFactoryCacheOperationSourceAdvisor: DEBUG
+    org.springframework.cache.interceptor.CacheOperationSourcePointcut: DEBUG
+    org.springframework.cache.annotation.EnableCaching: DEBUG
+    org.springframework.cache.annotation.Cacheable: DEBUG
+    org.springframework.cache.annotation.CacheEvict: DEBUG
+    org.springframework.cache.annotation.CachePut: DEBUG
+    org.springframework.cache.annotation.Caching: DEBUG
+    org.springframework.cache.annotation.CacheConfig: DEBUG
+    org.springframework.cache.annotation.CachingConfigurer: DEBUG
+    org.springframework.cache.annotation.CachingConfigurerSupport: DEBUG
+    org.springframework.cache.annotation.AnnotationCacheOperationSource: DEBUG
+    org.springframework.cache.annotation.SpringCacheAnnotationParser: DEBUG
+    org.springframework.cache.annotation.CachingConfigurationSelector: DEBUG
+    org.springframework.cache.annotation.ProxyCachingConfiguration: DEBUG
+    org.springframework.cache.annotation.AspectJCachingConfiguration: DEBUG
+    org.springframework.cache.config.CacheAdviceParser: DEBUG
+    org.springframework.cache.config.CacheNamespaceHandler: DEBUG
+    org.springframework.cache.config.AnnotationDrivenCacheBeanDefinitionParser: DEBUG
+    org.springframework.cache.config.CacheManagerBeanDefinitionParser: DEBUG
+    org.springframework.jndi.JndiTemplate: DEBUG
+    org.springframework.jndi.JndiLocatorSupport: DEBUG
+    org.springframework.jndi.JndiAccessor: DEBUG
+    org.springframework.jndi.JndiCallback: DEBUG
+    org.springframework.jndi.JndiObjectFactoryBean: DEBUG
+    org.springframework.jndi.JndiObjectTargetSource: DEBUG
+    org.springframework.jndi.JndiLookupFailureException: DEBUG
+    org.springframework.jndi.TypeMismatchNamingException: DEBUG
+    org.springframework.jndi.support.SimpleJndiBeanFactory: DEBUG
+    org.springframework.remoting.RemoteAccessException: DEBUG
+    org.springframework.remoting.RemoteConnectFailureException: DEBUG
+    org.springframework.remoting.RemoteInvocationFailureException: DEBUG
+    org.springframework.remoting.RemoteLookupFailureException: DEBUG
+    org.springframework.remoting.RemoteProxyFailureException: DEBUG
+    org.springframework.remoting.RemoteTimeoutException: DEBUG
+    org.springframework.remoting.support.RemoteInvocation: DEBUG
+    org.springframework.remoting.support.RemoteInvocationResult: DEBUG
+    org.springframework.remoting.support.RemoteInvocationBasedAccessor: DEBUG
+    org.springframework.remoting.support.RemoteInvocationBasedExporter: DEBUG
+    org.springframework.remoting.support.RemoteInvocationExecutor: DEBUG
+    org.springframework.remoting.support.DefaultRemoteInvocationExecutor: DEBUG
+    org.springframework.remoting.support.DefaultRemoteInvocationFactory: DEBUG
+    org.springframework.remoting.support.RemoteInvocationFactory: DEBUG
+    org.springframework.remoting.support.RemoteInvocationTraceInterceptor: DEBUG
+    org.springframework.remoting.support.UrlBasedRemoteAccessor: DEBUG
+    org.springframework.remoting.rmi.RmiClientInterceptor: DEBUG
+    org.springframework.remoting.rmi.RmiProxyFactoryBean: DEBUG
+    org.springframework.remoting.rmi.RmiServiceExporter: DEBUG
+    org.springframework.remoting.rmi.RmiBasedExporter: DEBUG
+    org.springframework.remoting.rmi.RmiInvocationHandler: DEBUG
+    org.springframework.remoting

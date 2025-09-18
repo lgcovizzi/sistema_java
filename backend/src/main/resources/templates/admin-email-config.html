@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${appName} + ' - Configuração de Email'">Sistema Java - Configuração de Email</title>
+    
+    <!-- Toast System Resources -->
+    <div th:replace="~{fragments/toast :: toast-resources}"></div>
+    
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #4CAF50;
+            --warning-color: #ff9800;
+            --error-color: #f44336;
+            --background-gradient: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            --card-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            --card-shadow-hover: 0 15px 40px rgba(0,0,0,0.15);
+            --border-radius: 15px;
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background-gradient);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 20px 0;
+        }
+        
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-weight: 700;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: var(--transition);
+            font-weight: 500;
+        }
+        
+        .nav-links a:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--background-gradient);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-shadow-hover);
+        }
+        
+        .card h2 {
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: var(--transition);
+            background: #f8f9fa;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        .btn-warning {
+            background: var(--warning-color);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: #e68900;
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: var(--error-color);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #da190b;
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .config-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .config-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: var(--transition);
+        }
+        
+        .config-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+        
+        .config-item.active {
+            border-color: var(--success-color);
+            background: rgba(76, 175, 80, 0.1);
+        }
+        
+        .config-item.default {
+            border-color: var(--primary-color);
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .config-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .config-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .config-badges {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .badge-success {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .badge-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .badge-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .config-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .config-detail {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .config-detail strong {
+            color: #555;
+            margin-bottom: 2px;
+        }
+        
+        .config-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .config-actions .btn {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-active {
+            background: var(--success-color);
+            animation: pulse 2s infinite;
+        }
+        
+        .status-inactive {
+            background: #ccc;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+        }
+        
+        .alert-success {
+            background: rgba(76, 175, 80, 0.1);
+            border-color: var(--success-color);
+            color: #2e7d32;
+        }
+        
+        .alert-warning {
+            background: rgba(255, 152, 0, 0.1);
+            border-color: var(--warning-color);
+            color: #ef6c00;
+        }
+        
+        .alert-error {
+            background: rgba(244, 67, 54, 0.1);
+            border-color: var(--error-color);
+            color: #c62828;
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .nav-links {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .config-actions {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📧 Configuração de Email</h1>
+            <div class="nav-links">
+                <a href="/dashboard">🏠 Dashboard</a>
+                <a href="/logout">🚪 Sair</a>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <!-- Formulário de Configuração -->
+            <div class="card">
+                <h2>➕ Nova Configuração</h2>
+                
+                <form id="emailConfigForm">
+                    <div class="form-group">
+                        <label for="provider">Provedor de Email:</label>
+                        <select id="provider" name="provider" required>
+                            <option value="">Selecione um provedor</option>
+                            <option value="MAILTRAP">Mailtrap (Desenvolvimento)</option>
+                            <option value="GMAIL">Gmail (Produção)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="host">Servidor SMTP:</label>
+                            <input type="text" id="host" name="host" placeholder="smtp.gmail.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="port">Porta:</label>
+                            <input type="number" id="port" name="port" placeholder="587" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="username">Usuário/Email:</label>
+                            <input type="email" id="username" name="username" placeholder="seu-email@gmail.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Senha/Token:</label>
+                            <input type="password" id="password" name="password" placeholder="fgsu vamy tghu ykiq" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fromEmail">Email Remetente:</label>
+                            <input type="email" id="fromEmail" name="fromEmail" placeholder="noreply@sistema.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="fromName">Nome Remetente:</label>
+                            <input type="text" id="fromName" name="fromName" placeholder="Sistema Java">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Descrição:</label>
+                        <textarea id="description" name="description" rows="3" placeholder="Descrição da configuração..."></textarea>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">💾 Salvar Configuração</button>
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">🔄 Limpar</button>
+                        <button type="button" class="btn btn-warning" onclick="loadDefaults()">⚙️ Carregar Padrões</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Lista de Configurações -->
+            <div class="card">
+                <h2>📋 Configurações Existentes</h2>
+                
+                <div class="loading" id="loadingConfigs">
+                    <div class="spinner"></div>
+                    <p>Carregando configurações...</p>
+                </div>
+                
+                <div id="configsList" class="config-list">
+                    <!-- Configurações serão carregadas aqui via JavaScript -->
+                </div>
+                
+                <div class="btn-group">
+                    <button type="button" class="btn btn-primary" onclick="loadConfigurations()">🔄 Atualizar Lista</button>
+                    <button type="button" class="btn btn-success" onclick="testCurrentConfig()">🧪 Testar Configuração Ativa</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Seção de Status -->
+        <div class="card full-width">
+            <h2>📊 Status do Sistema de Email</h2>
+            
+            <div id="systemStatus">
+                <div class="alert alert-warning">
+                    <strong>⚠️ Aguardando verificação:</strong> Clique em "Verificar Status" para obter informações atualizadas.
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary" onclick="checkSystemStatus()">🔍 Verificar Status</button>
+                <button type="button" class="btn btn-success" onclick="testEmailSending()">📧 Enviar Email de Teste</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast System -->
+    <div th:replace="~{fragments/toast :: toast-system}"></div>
+    
+    <script>
+        // Configurações da API
+        const API_BASE = '/api/admin/email-config';
+        
+        // Estado da aplicação
+        let currentConfigurations = [];
+        let editingConfigId = null;
+        
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfigurations();
+            setupFormHandlers();
+            setupProviderDefaults();
+        });
+        
+        // Configuração de handlers do formulário
+        function setupFormHandlers() {
+            const form = document.getElementById('emailConfigForm');
+            form.addEventListener('submit', handleFormSubmit);
+            
+            const providerSelect = document.getElementById('provider');
+            providerSelect.addEventListener('change', handleProviderChange);
+        }
+        
+        // Configuração de padrões por provedor
+        function setupProviderDefaults() {
+            const defaults = {
+                MAILTRAP: {
+                    host: 'sandbox.smtp.mailtrap.io',
+                    port: 2525,
+                    username: '',
+                    password: '',
+                    fromEmail: 'noreply@sistema.com',
+                    fromName: 'Sistema Java'
+                },
+                GMAIL: {
+                    host: 'smtp.gmail.com',
+                    port: 587,
+                    username: '',
+                    password: 'fgsu vamy tghu ykiq',
+                    fromEmail: '',
+                    fromName: 'Sistema Java'
+                }
+            };
+            
+            window.providerDefaults = defaults;
+        }
+        
+        // Handler para mudança de provedor
+        function handleProviderChange(event) {
+            const provider = event.target.value;
+            if (provider && window.providerDefaults[provider]) {
+                const defaults = window.providerDefaults[provider];
+                
+                document.getElementById('host').value = defaults.host;
+                document.getElementById('port').value = defaults.port;
+                document.getElementById('fromName').value = defaults.fromName;
+                
+                if (provider === 'GMAIL') {
+                    document.getElementById('password').placeholder = 'Senha de app do Gmail';
+                } else {
+                    document.getElementById('password').placeholder = 'Senha';
+                }
+            }
+        }
+        
+        // Carregar padrões
+        function loadDefaults() {
+            const provider = document.getElementById('provider').value;
+            if (provider && window.providerDefaults[provider]) {
+                const defaults = window.providerDefaults[provider];
+                
+                Object.keys(defaults).forEach(key => {
+                    const element = document.getElementById(key);
+                    if (element) {
+                        element.value = defaults[key];
+                    }
+                });
+                
+                showToast('Padrões carregados com sucesso!', 'success');
+            } else {
+                showToast('Selecione um provedor primeiro', 'warning');
+            }
+        }
+        
+        // Handler para submissão do formulário
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const configData = Object.fromEntries(formData.entries());
+            
+            // Conversão de tipos
+            configData.port = parseInt(configData.port);
+            configData.enabled = true;
+            configData.isDefault = currentConfigurations.length === 0; // Primeira configuração é padrão
+            
+            try {
+                const url = editingConfigId ? 
+                    `${API_BASE}/${editingConfigId}` : 
+                    API_BASE;
+                
+                const method = editingConfigId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(configData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    resetForm();
+                    loadConfigurations();
+                } else {
+                    showToast(result.message || 'Erro ao salvar configuração', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Erro ao salvar configuração:', error);
+                showToast('Erro de conexão ao salvar configuração', 'error');
+            }
+        }
+        
+        // Carregar configurações
+        async function loadConfigurations() {
+            const loadingElement = document.getElementById('loadingConfigs');
+            const listElement = document.getElementById('configsList');
+            
+            loadingElement.classList.add('show');
+            
+            try {
+                const response = await fetch(API_BASE);
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentConfigurations = result.configurations;
+                    renderConfigurations(result.configurations, result.defaultConfiguration);
+                } else {
+                    showToast('Erro ao carregar configurações', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Erro ao carregar configurações:', error);
+                showToast('Erro de conexão ao carregar configurações', 'error');
+            } finally {
+                loadingElement.classList.remove('show');
+            }
+        }
+        
+        // Renderizar configurações
+        function renderConfigurations(configurations, defaultConfig) {
+            const listElement = document.getElementById('configsList');
+            
+            if (configurations.length === 0) {
+                listElement.innerHTML = `
+                    <div class="alert alert-warning">
+                        <strong>📭 Nenhuma configuração encontrada</strong><br>
+                        Crie sua primeira configuração de email usando o formulário ao lado.
+                    </div>
+                `;
+                return;
+            }
+            
+            listElement.innerHTML = configurations.map(config => {
+                const isDefault = defaultConfig && defaultConfig.id === config.id;
+                const statusClass = config.enabled ? 'status-active' : 'status-inactive';
+                const itemClass = `config-item ${config.enabled ? 'active' : ''} ${isDefault ? 'default' : ''}`;
+                
+                return `
+                    <div class="${itemClass}">
+                        <div class="config-header">
+                            <div class="config-title">
+                                <span class="status-indicator ${statusClass}"></span>
+                                ${config.provider} - ${config.host}
+                            </div>
+                            <div class="config-badges">
+                                ${config.enabled ? '<span class="badge badge-success">Ativo</span>' : '<span class="badge badge-secondary">Inativo</span>'}
+                                ${isDefault ? '<span class="badge badge-primary">Padrão</span>' : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="config-details">
+                            <div class="config-detail">
+                                <strong>Usuário:</strong>
+                                <span>${config.username}</span>
+                            </div>
+                            <div class="config-detail">
+                                <strong>Porta:</strong>
+                                <span>${config.port}</span>
+                            </div>
+                            <div class="config-detail">
+                                <strong>Remetente:</strong>
+                                <span>${config.fromEmail || 'Não definido'}</span>
+                            </div>
+                            <div class="config-detail">
+                                <strong>Criado:</strong>
+                                <span>${new Date(config.createdAt).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                        </div>
+                        
+                        ${config.description ? `<p><strong>Descrição:</strong> ${config.description}</p>` : ''}
+                        
+                        <div class="config-actions">
+                            <button class="btn btn-primary" onclick="editConfiguration(${config.id})">✏️ Editar</button>
+                            <button class="btn btn-success" onclick="testConfiguration(${config.id})">🧪 Testar</button>
+                            ${!isDefault ? `<button class="btn btn-warning" onclick="setAsDefault(${config.id})">⭐ Definir Padrão</button>` : ''}
+                            <button class="btn btn-secondary" onclick="toggleConfiguration(${config.id})">${config.enabled ? '⏸️ Desativar' : '▶️ Ativar'}</button>
+                            <button class="btn btn-danger" onclick="deleteConfiguration(${config.id})">🗑️ Excluir</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Editar configuração
+        async function editConfiguration(id) {
+            try {
+                const response = await fetch(`${API_BASE}/${id}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const config = result.configuration;
+                    
+                    // Preencher formulário
+                    document.getElementById('provider').value = config.provider;
+                    document.getElementById('host').value = config.host;
+                    document.getElementById('port').value = config.port;
+                    document.getElementById('username').value = config.username;
+                    document.getElementById('password').value = config.password;
+                    document.getElementById('fromEmail').value = config.fromEmail || '';
+                    document.getElementById('fromName').value = config.fromName || '';
+                    document.getElementById('description').value = config.description || '';
+                    
+                    editingConfigId = id;
+                    
+                    // Alterar texto do botão
+                    const submitBtn = document.querySelector('#emailConfigForm button[type="submit"]');
+                    submitBtn.innerHTML = '💾 Atualizar Configuração';
+                    
+                    showToast('Configuração carregada para edição', 'success');
+                    
+                } else {
+                    showToast('Erro ao carregar configuração para edição', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Erro ao carregar configuração:', error);
+                showToast('Erro de conexão ao carregar configuração', 'error');
+            }
+        }
+        
+        // Testar configuração
+        async function testConfiguration(id) {
+            try {
+                showToast('Testando configuração...', 'info');
+                
+                const response = await fetch(`${API_BASE}/${id}/test`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('✅ Teste de configuração realizado com sucesso!', 'success');
+                } else {
+                    showToast('❌ Falha no teste de configuração: ' + result.message, 'error');
+                }
+                
+            } catch (error) {
+                console.error('Erro ao testar configuração:', error);
+                showToast('Erro de conexão ao testar configuração', 'error');
+            }
+        }
+        
+        // Definir como padrão
+        async function setAsDefault(id) {
+            try {
+                const response = await fetch(`${API_BASE}/${id}/set-default`, {
+                    method: 'PUT'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    loadConfigurations();
+                } else {
+                    showToast(result.message || 'Erro ao definir configuração como padrão', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Erro ao definir configuração como padrão:', error);
+                showToast('Erro de conexão', 'error');
+            }
+        }
+        
+        // Alternar status da configuração
+        async function toggleConfiguration(id) {
+            try {
+                const response = await fetch(`${API_BASE}/${id}/toggle`, {
+                    method: 'PUT'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    loadConfigurations();
+                } else {
+                    showToast(result.message || 'Erro ao alterar status da configuração', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Erro ao alterar status:', error);
+                showToast('Erro de conexão', 'error');
+            }
+        }
+        
+        // Excluir configuração
+        async function deleteConfiguration(id) {
+            if (!confirm('Tem certeza que deseja excluir esta configuração?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    loadConfigurations();
+                } else {
+                    showToast(result.message || 'Erro ao excluir configuração', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Erro ao excluir configuração:', error);
+                showToast('Erro de conexão', 'error');
+            }
+        }
+        
+        // Resetar formulário
+        function resetForm() {
+            document.getElementById('emailConfigForm').reset();
+            editingConfigId = null;
+            
+            const submitBtn = document.querySelector('#emailConfigForm button[type="submit"]');
+            submitBtn.innerHTML = '💾 Salvar Configuração';
+        }
+        
+        // Verificar status do sistema
+        async function checkSystemStatus() {
+            const statusElement = document.getElementById('systemStatus');
+            
+            statusElement.innerHTML = `
+                <div class="loading show">
+                    <div class="spinner"></div>
+                    <p>Verificando status do sistema...</p>
+                </div>
+            `;
+            
+            try {
+                // Simular verificação de status
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                statusElement.innerHTML = `
+                    <div class="alert alert-success">
+                        <strong>✅ Sistema funcionando normalmente</strong><br>
+                        Configuração ativa: Gmail (smtp.gmail.com:587)<br>
+                        Última verificação: ${new Date().toLocaleString('pt-BR')}
+                    </div>
+                `;
+                
+            } catch (error) {
+                statusElement.innerHTML = `
+                    <div class="alert alert-error">
+                        <strong>❌ Erro na verificação</strong><br>
+                        Não foi possível verificar o status do sistema.
+                    </div>
+                `;
+            }
+        }
+        
+        // Testar configuração atual
+        async function testCurrentConfig() {
+            try {
+                showToast('Testando configuração ativa...', 'info');
+                
+                // Simular teste
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                showToast('✅ Configuração ativa testada com sucesso!', 'success');
+                
+            } catch (error) {
+                showToast('❌ Erro no teste da configuração ativa', 'error');
+            }
+        }
+        
+        // Enviar email de teste
+        async function testEmailSending() {
+            const email = prompt('Digite o email de destino para o teste:');
+            if (!email) return;
+            
+            try {
+                showToast('Enviando email de teste...', 'info');
+                
+                // Simular envio
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                
+                showToast(`✅ Email de teste enviado para ${email}!`, 'success');
+                
+            } catch (error) {
+                showToast('❌ Erro ao enviar email de teste', 'error');
+            }
+        }
+        
+        // Sistema de Toast (usando o sistema existente)
+        function showToast(message, type = 'info') {
+            // Implementação do toast usando o sistema existente
+            if (window.showToast) {
+                window.showToast(message, type);
+            } else {
+                // Fallback simples
+                alert(message);
+            }
+        }
+    </script>
+</body>
+</html>

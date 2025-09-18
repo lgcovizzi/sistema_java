@@ -1,12 +1,15 @@
 package com.sistema.service;
 
 import com.sistema.config.SmtpConfig;
+import com.sistema.entity.EmailConfiguration;
+import com.sistema.entity.EmailProvider;
 import com.sistema.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
@@ -15,11 +18,13 @@ import jakarta.mail.internet.MimeMessage;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
 /**
  * Serviço SMTP dedicado para envio de emails.
- * Desacoplado do EmailService para maior flexibilidade e manutenibilidade.
+ * Agora suporta configurações dinâmicas (Mailtrap, Gmail) através do EmailConfigurationService.
  */
 @Service
 public class SmtpService extends BaseService {
@@ -29,6 +34,9 @@ public class SmtpService extends BaseService {
 
     @Autowired
     private SmtpConfig.SmtpConfiguration smtpConfiguration;
+
+    @Autowired
+    private EmailConfigurationService emailConfigurationService;
 
     @Value("${app.email.enabled:true}")
     private boolean emailEnabled;
@@ -41,6 +49,74 @@ public class SmtpService extends BaseService {
 
     @Value("${app.email.retry.delay:1000}")
     private long retryDelay;
+
+    /**
+     * Obtém o JavaMailSender configurado dinamicamente.
+     * Usa a configuração padrão do banco ou fallback para configuração estática.
+     * 
+     * @return JavaMailSender configurado
+     */
+    private JavaMailSender getConfiguredMailSender() {
+        Optional<EmailConfiguration> configOpt = emailConfigurationService.getDefaultConfiguration();
+        
+        if (configOpt.isPresent()) {
+            EmailConfiguration config = configOpt.get();
+            logDebug("Usando configuração dinâmica: {}", config.getProviderDisplayName());
+            return createMailSender(config);
+        } else {
+            logDebug("Usando configuração estática (fallback)");
+            return mailSender;
+        }
+    }
+
+    /**
+     * Cria um JavaMailSender baseado na configuração fornecida.
+     * 
+     * @param config configuração de email
+     * @return JavaMailSender configurado
+     */
+    private JavaMailSender createMailSender(EmailConfiguration config) {
+        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+        
+        mailSender.setHost(config.getHost());
+        mailSender.setPort(config.getPort());
+        mailSender.setUsername(config.getUsername());
+        mailSender.setPassword(config.getPassword());
+        
+        Properties props = mailSender.getJavaMailProperties();
+        props.put("mail.transport.protocol", "smtp");
+        props.put("mail.smtp.auth", "true");
+        
+        // Configurações específicas por provedor
+        if (config.getProvider() == EmailProvider.GMAIL) {
+            props.put("mail.smtp.starttls.enable", "true");
+            props.put("mail.smtp.ssl.trust", config.getHost());
+            props.put("mail.debug", "false");
+            logDebug("Configurações Gmail aplicadas");
+        } else if (config.getProvider() == EmailProvider.MAILTRAP) {
+            props.put("mail.smtp.starttls.enable", "false");
+            props.put("mail.smtp.ssl.enable", "false");
+            props.put("mail.debug", "false");
+            logDebug("Configurações Mailtrap aplicadas");
+        }
+        
+        return mailSender;
+    }
+
+    /**
+     * Obtém o username padrão para envio de emails.
+     * 
+     * @return username configurado
+     */
+    private String getDefaultFromEmail() {
+        Optional<EmailConfiguration> configOpt = emailConfigurationService.getDefaultConfiguration();
+        
+        if (configOpt.isPresent()) {
+            return configOpt.get().getUsername();
+        } else {
+            return smtpConfiguration.getUsername();
+        }
+    }
 
     /**
      * Envia email simples de forma síncrona.
@@ -74,16 +150,18 @@ public class SmtpService extends BaseService {
         validateNotEmpty(text, "text");
 
         try {
+            JavaMailSender configuredSender = getConfiguredMailSender();
+            
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(from != null ? from : smtpConfiguration.getUsername());
+            message.setFrom(from != null ? from : getDefaultFromEmail());
             message.setTo(to);
             message.setSubject(subject);
             message.setText(text);
             message.setSentDate(new java.util.Date());
 
             return sendWithRetry(() -> {
-                mailSender.send(message);
-                logInfo("Email simples enviado com sucesso para: " + to);
+                configuredSender.send(message);
+                logInfo("Email simples enviado com sucesso para: {} usando configuração dinâmica", to);
                 return true;
             });
 
@@ -125,18 +203,20 @@ public class SmtpService extends BaseService {
         validateNotEmpty(htmlContent, "htmlContent");
 
         try {
-            MimeMessage message = mailSender.createMimeMessage();
+            JavaMailSender configuredSender = getConfiguredMailSender();
+            
+            MimeMessage message = configuredSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, smtpConfiguration.getDefaultEncoding());
 
-            helper.setFrom(from != null ? from : smtpConfiguration.getUsername());
+            helper.setFrom(from != null ? from : getDefaultFromEmail());
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlContent, true);
             helper.setSentDate(new java.util.Date());
 
             return sendWithRetry(() -> {
-                mailSender.send(message);
-                logInfo("Email HTML enviado com sucesso para: " + to);
+                configuredSender.send(message);
+                logInfo("Email HTML enviado com sucesso para: {} usando configuração dinâmica", to);
                 return true;
             });
 
@@ -219,11 +299,25 @@ public class SmtpService extends BaseService {
      */
     public boolean testConnection() {
         try {
-            mailSender.createMimeMessage();
-            logInfo("Teste de conexão SMTP bem-sucedido");
-            return true;
+            logInfo("Testando conexão SMTP com configuração dinâmica...");
+            
+            // Obtém a configuração ativa
+            String testEmail = getDefaultFromEmail();
+            String subject = "Teste de Conexão SMTP - " + new java.util.Date();
+            String content = "Este é um email de teste para verificar a conectividade SMTP com configuração dinâmica.";
+            
+            boolean result = sendSimpleEmail(testEmail, testEmail, subject, content);
+            
+            if (result) {
+                logInfo("Teste de conexão SMTP realizado com sucesso com configuração dinâmica");
+            } else {
+                logWarn("Falha no teste de conexão SMTP com configuração dinâmica");
+            }
+            
+            return result;
+            
         } catch (Exception e) {
-            logError("Erro no teste de conexão SMTP", e);
+            logError("Erro durante teste de conexão SMTP", e);
             return false;
         }
     }

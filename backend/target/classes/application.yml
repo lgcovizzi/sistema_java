@@ -74,11 +74,33 @@ app:
   
   # Configurações de verificação de email
   email:
+    enabled: true
     verification:
-      enabled: true
+      url: "http://localhost:8080/verify-email"
       token:
         expiration:
           hours: 24
+    
+    # Configuração de provedor padrão
+    default-provider: mailtrap
+    
+    # Configurações de fallback
+    fallback:
+      enabled: true
+      provider: mailtrap
+      
+    # Configurações de retry para envio
+    retry:
+      enabled: true
+      max-attempts: 3
+      delay-ms: 2000
+      backoff-multiplier: 2.0
+      
+    # Configurações de template
+    templates:
+      base-path: "classpath:/templates/email/"
+      encoding: "UTF-8"
+      cache-enabled: false
   
   # Configurações SMTP específicas
   smtp:
@@ -100,11 +122,17 @@ app:
       min-connections: 2
       idle-timeout-ms: 300000
     
-    # Configurações de email
+    # Configurações de email padrão
     email:
       from: noreply@sistema.com
       reply-to: support@sistema.com
       bounce-address: bounce@sistema.com
+      
+    # Configurações de validação
+    validation:
+      test-email-on-startup: false
+      validate-ssl-certificates: true
+      connection-test-timeout-ms: 10000
     
     # Configurações por provedor
     providers:
@@ -117,22 +145,40 @@ app:
         auth: true
         starttls: true
         ssl: false
+        description: "Mailtrap - Ambiente de desenvolvimento para testes de email"
+        from-email: "noreply@sistema.com"
       
       gmail:
-        enabled: false
+        enabled: true
         host: smtp.gmail.com
         port: 587
+        username: ${GMAIL_USERNAME:}
+        password: ${GMAIL_APP_PASSWORD:fgsu vamy tghu ykiq}
         auth: true
         starttls: true
         ssl: false
+        description: "Gmail SMTP - Produção com senha de aplicativo"
+        from-email: ${GMAIL_FROM_EMAIL:sistema@gmail.com}
+        properties:
+          mail:
+            smtp:
+              ssl:
+                trust: smtp.gmail.com
+              socketFactory:
+                class: javax.net.ssl.SSLSocketFactory
+                fallback: false
       
       outlook:
         enabled: false
         host: smtp-mail.outlook.com
         port: 587
+        username: ${OUTLOOK_USERNAME:}
+        password: ${OUTLOOK_PASSWORD:}
         auth: true
         starttls: true
         ssl: false
+        description: "Outlook/Hotmail SMTP"
+        from-email: ${OUTLOOK_FROM_EMAIL:sistema@outlook.com}
 
 server:
   port: 8080
@@ -148,8 +194,52 @@ management:
     health:
       show-details: always
 
+# Configurações de logging
 logging:
   level:
     com.sistema: DEBUG
     org.springframework.web: DEBUG
     org.hibernate.SQL: DEBUG
+    org.springframework.mail: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Configurações específicas por ambiente
+---
+spring:
+  config:
+    activate:
+      on-profile: development
+      
+app:
+  email:
+    default-provider: mailtrap
+    smtp:
+      validation:
+        test-email-on-startup: true
+        
+logging:
+  level:
+    com.sistema: DEBUG
+    org.springframework.mail: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: production
+      
+app:
+  email:
+    default-provider: gmail
+    smtp:
+      validation:
+        test-email-on-startup: false
+        validate-ssl-certificates: true
+        
+logging:
+  level:
+    com.sistema: INFO
+    org.springframework.mail: WARN
+    org.hibernate.SQL: WARN

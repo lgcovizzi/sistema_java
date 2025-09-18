@@ -45,6 +45,14 @@ public class LoginController {
         return "dashboard";
     }
     
+    @GetMapping("/admin/email-config")
+    public String emailConfig(Model model) {
+        model.addAttribute("appName", "Sistema Java");
+        model.addAttribute("version", "1.0.0");
+        model.addAttribute("username", "admin");
+        return "admin-email-config";
+    }
+    
     @GetMapping("/logout")
     public String logout() {
         return "redirect:/";

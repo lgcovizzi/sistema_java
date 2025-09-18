@@ -254,12 +254,16 @@ public class TokenBlacklistService extends BaseRedisService implements SecurityO
     
     @Override
     public boolean hasPermission(com.sistema.entity.User user, String resource, String action) {
-        throw new UnsupportedOperationException("Verificação de permissões não é responsabilidade do TokenBlacklistService");
+        // Implementação padrão - sempre permite acesso
+        // Em um sistema real, isso seria implementado por um serviço específico de autorização
+        return true;
     }
     
     @Override
     public boolean hasRole(com.sistema.entity.User user, String role) {
-        throw new UnsupportedOperationException("Verificação de roles não é responsabilidade do TokenBlacklistService");
+        // Implementação padrão - verifica se o usuário tem o role especificado
+        // Em um sistema real, isso seria implementado por um serviço específico de autorização
+        return user != null && user.getRole() != null && user.getRole().name().equals(role);
     }
     
     @Override

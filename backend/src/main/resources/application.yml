@@ -72,6 +72,14 @@ app:
     keys:
       directory: ./keys
   
+  # Configurações de verificação de email
+  email:
+    verification:
+      enabled: true
+      token:
+        expiration:
+          hours: 24
+  
   # Configurações SMTP específicas
   smtp:
     # Configurações de retry

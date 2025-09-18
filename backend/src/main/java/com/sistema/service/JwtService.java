@@ -370,18 +370,20 @@ public class JwtService extends BaseService implements TokenOperations {
         return generateToken(claims, email, expirationSeconds);
     }
     
-    public String generateAccessToken(String email) {
-        // Para compatibilidade, criamos um User temporário
-        User tempUser = new User();
-        tempUser.setEmail(email);
-        return generateAccessToken(tempUser);
-    }
+
     
     public String generateRefreshToken(String email) {
         // Para compatibilidade, criamos um User temporário
         User tempUser = new User();
         tempUser.setEmail(email);
         return generateRefreshToken(tempUser);
+    }
+    
+    public String generateAccessToken(String email) {
+        // Para compatibilidade, criamos um User temporário
+        User tempUser = new User();
+        tempUser.setEmail(email);
+        return generateAccessToken(tempUser);
     }
     
     public String extractSubject(String token) {

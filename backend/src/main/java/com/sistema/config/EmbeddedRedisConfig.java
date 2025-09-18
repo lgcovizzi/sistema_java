@@ -1,5 +1,26 @@
 package com.sistema.config;
 
+/*
+ * CLASSE COMENTADA: EmbeddedRedisConfig
+ * 
+ * Esta classe foi comentada porque depende da biblioteca redis.embedded
+ * que foi removida do projeto para evitar conflitos de porta.
+ * 
+ * O projeto agora usa Redis externo rodando na porta 6379.
+ * Para desenvolvimento local, inicie o Redis manualmente:
+ * - redis-server --daemonize yes
+ * 
+ * Caso queira reativar o Redis embarcado no futuro, descomente esta classe
+ * e adicione a dependência no pom.xml:
+ * 
+ * <dependency>
+ *     <groupId>it.ozimov</groupId>
+ *     <artifactId>embedded-redis</artifactId>
+ *     <version>0.7.3</version>
+ * </dependency>
+ */
+
+/*
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -9,10 +30,6 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.IOException;
 
-/**
- * Configuração do Redis embarcado para desenvolvimento local.
- * Esta configuração é ativada apenas quando o profile 'local' está ativo.
- */
 @Configuration
 @Profile("local")
 public class EmbeddedRedisConfig {
@@ -22,9 +39,6 @@ public class EmbeddedRedisConfig {
 
     private RedisServer redisServer;
 
-    /**
-     * Inicia o servidor Redis embarcado após a construção do bean.
-     */
     @PostConstruct
     public void startRedis() throws IOException {
         try {
@@ -33,7 +47,6 @@ public class EmbeddedRedisConfig {
             System.out.println("Redis embarcado iniciado na porta: " + redisPort);
         } catch (Exception e) {
             System.err.println("Erro ao iniciar Redis embarcado: " + e.getMessage());
-            // Se não conseguir iniciar na porta padrão, tenta uma porta alternativa
             try {
                 redisPort = 6380;
                 redisServer = new RedisServer(redisPort);
@@ -45,9 +58,6 @@ public class EmbeddedRedisConfig {
         }
     }
 
-    /**
-     * Para o servidor Redis embarcado antes da destruição do bean.
-     */
     @PreDestroy
     public void stopRedis() {
         if (redisServer != null && redisServer.isActive()) {
@@ -56,3 +66,4 @@ public class EmbeddedRedisConfig {
         }
     }
 }
+*/

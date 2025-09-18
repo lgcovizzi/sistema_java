@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${appName} + ' - Dashboard'">Sistema Java - Dashboard</title>
+    
+    <!-- Toast System Resources -->
+    <div th:replace="~{fragments/toast :: toast-resources}"></div>
     <style>
         :root {
             --primary-color: #667eea;
@@ -294,5 +297,8 @@
             <p>Acesse <a href="/" style="color: #fff;">localhost:8080</a> para voltar à página inicial</p>
         </div>
     </div>
+    
+    <!-- Toast System -->
+    <div th:replace="~{fragments/toast :: toast-system}"></div>
 </body>
 </html>

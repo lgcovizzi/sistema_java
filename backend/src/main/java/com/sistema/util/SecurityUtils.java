@@ -65,7 +65,7 @@ public final class SecurityUtils {
      * @return hash em hexadecimal
      */
     public static String generateHash(String input) {
-        ValidationUtils.validateNotEmpty(input, "input");
+        ValidationUtils.validateNotNull(input, "input");
         
         try {
             MessageDigest digest = MessageDigest.getInstance(HASH_ALGORITHM);
@@ -169,10 +169,17 @@ public final class SecurityUtils {
             return null;
         }
         
-        return input.trim()
+        String sanitized = input.trim()
                    .replaceAll("[<>\"'&]", "") // Remove caracteres HTML perigosos
                    .replaceAll("\\s+", " ")    // Normaliza espaços
                    .replaceAll("[\\x00-\\x1F\\x7F]", ""); // Remove caracteres de controle
+        
+        // Remove padrões SQL injection comuns (case insensitive)
+        sanitized = sanitized.replaceAll("(?i)(DROP\\s+TABLE|DELETE\\s+FROM|INSERT\\s+INTO|UPDATE\\s+SET|UNION\\s+SELECT|SELECT\\s+\\*)", "");
+        // Remove comentários SQL
+        sanitized = sanitized.replaceAll("--.*", "");
+        
+        return sanitized.trim();
     }
     
     /**
@@ -298,6 +305,22 @@ public final class SecurityUtils {
     }
     
     /**
+     * Converte uma string hexadecimal em array de bytes.
+     * 
+     * @param hex string hexadecimal
+     * @return array de bytes
+     */
+    private static byte[] hexToBytes(String hex) {
+        int len = hex.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
+                                 + Character.digit(hex.charAt(i+1), 16));
+        }
+        return data;
+    }
+    
+    /**
      * Gera um número aleatório seguro dentro de um intervalo.
      * 
      * @param min valor mínimo (inclusivo)
@@ -342,15 +365,68 @@ public final class SecurityUtils {
             return false;
         }
         
-        // Validação básica de IPv4
-        String ipv4Pattern = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
-        if (ip.matches(ipv4Pattern)) {
+        ip = ip.trim();
+        
+        // Validação de IPv4
+        if (isValidIpv4(ip)) {
             return true;
         }
         
-        // Validação básica de IPv6
-        String ipv6Pattern = "^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$";
-        return ip.matches(ipv6Pattern);
+        // Validação de IPv6
+        return isValidIpv6(ip);
+    }
+    
+    private static boolean isValidIpv4(String ip) {
+        // Padrão básico para IPv4
+        String ipv4Pattern = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
+        if (!ip.matches(ipv4Pattern)) {
+            return false;
+        }
+        
+        // Verificação adicional para evitar leading zeros inválidos
+        String[] parts = ip.split("\\.");
+        for (String part : parts) {
+            // Não permitir leading zeros exceto para "0"
+            if (part.length() > 1 && part.startsWith("0")) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    private static boolean isValidIpv6(String ip) {
+        // Casos especiais
+        if ("::".equals(ip) || "::1".equals(ip)) {
+            return true;
+        }
+        
+        // Formato completo: 8 grupos de 4 dígitos hexadecimais
+        String fullPattern = "^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$";
+        
+        // Formato com :: (compressão de zeros) - padrões mais específicos
+        String[] compressedPatterns = {
+            "^([0-9a-fA-F]{1,4}:){1,7}:$",                    // fe80::
+            "^:([0-9a-fA-F]{1,4}:){1,7}[0-9a-fA-F]{1,4}$",   // ::1234:5678
+            "^([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}$",   // 2001:db8::1
+            "^([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}$", // 2001:db8::8a2e:370:7334
+            "^([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}$",
+            "^([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}$",
+            "^([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}$",
+            "^[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})$"
+        };
+        
+        if (ip.matches(fullPattern)) {
+            return true;
+        }
+        
+        for (String pattern : compressedPatterns) {
+            if (ip.matches(pattern)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     /**
@@ -448,14 +524,18 @@ public final class SecurityUtils {
      * @return texto criptografado em base64
      */
     public static String encrypt(String plaintext, String key) {
-        if (plaintext == null || key == null) {
-            throw new IllegalArgumentException("Plaintext and key cannot be null");
+        if (plaintext == null || key == null || key.trim().isEmpty()) {
+            throw new IllegalArgumentException("Plaintext and key cannot be null or empty");
         }
         
         try {
             // Gera uma chave AES a partir da string fornecida
-            byte[] keyBytes = hashSHA256(key).substring(0, 32).getBytes(StandardCharsets.UTF_8);
-            SecretKeySpec secretKey = new SecretKeySpec(keyBytes, "AES");
+            String hashedKey = hashSHA256(key);
+            // Converte hex string para bytes e pega os primeiros 32 bytes (256 bits)
+            byte[] keyBytes = hexToBytes(hashedKey);
+            byte[] key32 = new byte[32];
+            System.arraycopy(keyBytes, 0, key32, 0, Math.min(keyBytes.length, 32));
+            SecretKeySpec secretKey = new SecretKeySpec(key32, "AES");
             
             // Gera um IV aleatório
             byte[] iv = new byte[16];
@@ -489,8 +569,8 @@ public final class SecurityUtils {
      * @return texto descriptografado
      */
     public static String decrypt(String encryptedText, String key) {
-        if (encryptedText == null || key == null) {
-            throw new IllegalArgumentException("Encrypted text and key cannot be null");
+        if (encryptedText == null || key == null || key.trim().isEmpty()) {
+            throw new IllegalArgumentException("Encrypted text and key cannot be null or empty");
         }
         
         try {
@@ -507,8 +587,12 @@ public final class SecurityUtils {
             System.arraycopy(encryptedWithIv, 16, encrypted, 0, encrypted.length);
             
             // Gera a chave AES
-            byte[] keyBytes = hashSHA256(key).substring(0, 32).getBytes(StandardCharsets.UTF_8);
-            SecretKeySpec secretKey = new SecretKeySpec(keyBytes, "AES");
+            String hashedKey = hashSHA256(key);
+            // Converte hex string para bytes e pega os primeiros 32 bytes (256 bits)
+            byte[] keyBytes = hexToBytes(hashedKey);
+            byte[] key32 = new byte[32];
+            System.arraycopy(keyBytes, 0, key32, 0, Math.min(keyBytes.length, 32));
+            SecretKeySpec secretKey = new SecretKeySpec(key32, "AES");
             
             // Configura o cipher
             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
@@ -520,7 +604,7 @@ public final class SecurityUtils {
             return new String(decrypted, StandardCharsets.UTF_8);
             
         } catch (Exception e) {
-            throw new RuntimeException("Erro na descriptografia: " + e.getMessage(), e);
+            throw new SecurityException("Erro na descriptografia: " + e.getMessage(), e);
         }
     }
     
@@ -537,19 +621,42 @@ public final class SecurityUtils {
         
         String lowerInput = input.toLowerCase();
         
-        // Padrões suspeitos comuns
-        String[] suspiciousPatterns = {
-            "script", "javascript", "vbscript", "onload", "onerror",
-            "alert", "confirm", "prompt", "document.cookie",
-            "eval", "expression", "iframe", "object", "embed",
-            "form", "input", "select", "textarea", "button",
-            "drop", "delete", "insert", "update", "union",
-            "select", "from", "where", "order", "group",
-            "../", "..\\", "/etc/", "c:\\", "cmd.exe",
-            "powershell", "bash", "sh", "/bin/", "system"
+        // Padrões de script malicioso
+        String[] scriptPatterns = {
+            "<script", "javascript:", "vbscript:", "onload=", "onerror=",
+            "alert(", "confirm(", "prompt(", "document.cookie",
+            "eval(", "expression(", "<iframe", "<object", "<embed"
         };
         
-        for (String pattern : suspiciousPatterns) {
+        // Padrões de SQL injection mais específicos
+        String[] sqlPatterns = {
+            "' or ", "' and ", "' union ", "' select ", "' drop ",
+            "' delete ", "' insert ", "' update ", "-- ", "/*", "*/",
+            "drop table", "delete from", "insert into", "update set"
+        };
+        
+        // Padrões de path traversal
+        String[] pathPatterns = {
+            "../", "..\\", "/etc/passwd", "c:\\windows", "cmd.exe",
+            "powershell.exe", "/bin/bash", "/bin/sh"
+        };
+        
+        // Verifica padrões de script
+        for (String pattern : scriptPatterns) {
+            if (lowerInput.contains(pattern)) {
+                return true;
+            }
+        }
+        
+        // Verifica padrões de SQL injection
+        for (String pattern : sqlPatterns) {
+            if (lowerInput.contains(pattern)) {
+                return true;
+            }
+        }
+        
+        // Verifica padrões de path traversal
+        for (String pattern : pathPatterns) {
             if (lowerInput.contains(pattern)) {
                 return true;
             }

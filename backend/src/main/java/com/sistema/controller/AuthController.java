@@ -26,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -113,6 +114,30 @@ public class AuthController {
             logger.info("Login realizado com sucesso para: {}", loginRequest.getEmail());
             return ResponseEntity.ok(authResponse);
             
+        } catch (org.springframework.security.authentication.BadCredentialsException e) {
+            // Registrar tentativa falhada
+            attemptService.recordLoginAttempt(clientIp);
+            
+            logger.warn("Falha no login para: {} (IP: {}) - {}", loginRequest.getEmail(), clientIp, e.getMessage());
+            
+            Map<String, Object> errorResponse;
+            HttpStatus status;
+            
+            // Verificar se é erro de email não verificado
+            if (e.getMessage().contains("Email não verificado")) {
+                errorResponse = createErrorResponse(e.getMessage(), "EMAIL_NOT_VERIFIED");
+                errorResponse.put("success", false);
+                status = HttpStatus.BAD_REQUEST;
+            } else {
+                errorResponse = createErrorResponse("Credenciais inválidas", "INVALID_CREDENTIALS");
+                status = HttpStatus.UNAUTHORIZED;
+            }
+            
+            // Verificar se captcha será necessário na próxima tentativa
+            boolean willRequireCaptcha = attemptService.isCaptchaRequiredForLogin(clientIp);
+            errorResponse.put("requiresCaptcha", willRequireCaptcha);
+            
+            return ResponseEntity.status(status).body(errorResponse);
         } catch (Exception e) {
             // Registrar tentativa falhada
             attemptService.recordLoginAttempt(clientIp);
@@ -605,40 +630,7 @@ public class AuthController {
         }
     }
 
-    /**
-     * Endpoint para verificação de email através de token.
-     * 
-     * @param token token de verificação
-     * @return resposta de sucesso ou erro
-     */
-    @GetMapping("/verify-email")
-    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
-        try {
-            logger.info("Tentativa de verificação de email com token: {}", token.substring(0, Math.min(token.length(), 10)) + "...");
-            
-            boolean verified = emailVerificationService.verifyEmailToken(token);
-            
-            if (verified) {
-                Map<String, Object> response = new HashMap<>();
-                response.put("message", "Email verificado com sucesso! Agora você pode fazer login.");
-                response.put("verified", true);
-                
-                logger.info("Email verificado com sucesso para token: {}", token.substring(0, Math.min(token.length(), 10)) + "...");
-                return ResponseEntity.ok(response);
-            } else {
-                Map<String, Object> errorResponse = createErrorResponse(
-                    "Token de verificação inválido ou expirado", 
-                    "INVALID_VERIFICATION_TOKEN"
-                );
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
-            }
-            
-        } catch (Exception e) {
-            logger.error("Erro ao verificar email", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
-        }
-    }
+
 
     /**
      * Endpoint para reenvio de email de verificação.

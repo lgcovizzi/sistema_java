@@ -1,0 +1,71 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:e2etestdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+  redis:
+    host: localhost
+    port: 6379
+    database: 1  # Database diferente para testes E2E
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+  mail:
+    host: sandbox.smtp.mailtrap.io
+    port: 2525
+    username: 67af468e706c8e
+    password: c9c83240f6d045
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          ssl:
+            trust: sandbox.smtp.mailtrap.io
+
+server:
+  port: 0  # Porta aleatória para evitar conflitos
+
+logging:
+  level:
+    com.sistema: INFO
+    org.springframework.web: WARN
+    org.hibernate: WARN
+    org.springframework.security: WARN
+    org.springframework.data.redis: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+app:
+  jwt:
+    access-token-expiration: 300000  # 5 minutos para testes
+    refresh-token-expiration: 600000  # 10 minutos para testes
+  captcha:
+    expiration: 300000  # 5 minutos para testes
+  attempt:
+    max-attempts: 3  # Reduzido para testes
+    lockout-duration: 60000  # 1 minuto para testes
+  email:
+    enabled: true
+    verification:
+      url: "http://localhost:8080/verify-email"
+      token:
+        expiration:
+          hours: 1  # Reduzido para testes
+  rsa:
+    keys:
+      directory: ./keys-e2e  # Diretório separado para testes E2E

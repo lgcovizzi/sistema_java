@@ -74,6 +74,8 @@ public class SecurityConfig {
                     "/api/auth/verify-email",
                     "/api/auth/resend-verification",
                     "/api/email/**",
+                    "/web/**",
+                    "/verify-email",
                     "/actuator/**",
                     "/error",
                     "/login",
@@ -81,7 +83,8 @@ public class SecurityConfig {
                     "/logout",
                     "/dashboard",
                     "/news",
-                    "/h2-console/**"
+                    "/h2-console/**",
+                    "/favicon.ico"
                 ).permitAll()
                 
                 // Endpoints administrativos - requerem role ADMIN

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${appName} + ' - Demonstração Toast'">Sistema Java - Demonstração Toast</title>
+    
+    <!-- Toast System Resources -->
+    <div th:replace="~{fragments/toast :: toast-resources}"></div>
+    
+    <!-- Bootstrap CSS para estilização dos botões -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container {
+            padding: 40px 20px;
+        }
+        
+        .demo-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .demo-title {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .btn-group-demo {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .form-demo {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .api-demo {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        
+        .back-link {
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .back-link:hover {
+            background: rgba(255,255,255,0.3);
+            color: white;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/dashboard" class="back-link">← Voltar ao Dashboard</a>
+        
+        <div class="demo-card">
+            <h1 class="demo-title">🍞 Sistema de Toast - Demonstração Completa</h1>
+            <p class="text-center text-muted">
+                Teste todas as funcionalidades do sistema de notificações toast
+            </p>
+        </div>
+        
+        <!-- Demonstração Básica -->
+        <div class="demo-card">
+            <h2>📱 Tipos Básicos de Toast</h2>
+            <p>Clique nos botões abaixo para testar diferentes tipos de notificação:</p>
+            
+            <div class="btn-group-demo">
+                <button type="button" class="btn btn-success" 
+                        data-toast-click="true"
+                        data-toast-type="success"
+                        data-toast-message="Operação realizada com sucesso!"
+                        data-toast-title="Sucesso">
+                    ✅ Sucesso
+                </button>
+                
+                <button type="button" class="btn btn-danger" 
+                        data-toast-click="true"
+                        data-toast-type="error"
+                        data-toast-message="Ocorreu um erro durante a operação."
+                        data-toast-title="Erro">
+                    ❌ Erro
+                </button>
+                
+                <button type="button" class="btn btn-warning" 
+                        data-toast-click="true"
+                        data-toast-type="warning"
+                        data-toast-message="Atenção: Esta ação não pode ser desfeita."
+                        data-toast-title="Atenção">
+                    ⚠️ Aviso
+                </button>
+                
+                <button type="button" class="btn btn-info" 
+                        data-toast-click="true"
+                        data-toast-type="info"
+                        data-toast-message="Informação importante sobre o sistema."
+                        data-toast-title="Informação">
+                    ℹ️ Info
+                </button>
+            </div>
+            
+            <div class="text-center">
+                <button type="button" class="btn btn-secondary" onclick="window.Toast.hideAll()">
+                    🗑️ Limpar Todos
+                </button>
+            </div>
+        </div>
+        
+        <!-- Demonstração de Formulário -->
+        <div class="demo-card">
+            <h2>📝 Integração com Formulários</h2>
+            <p>Formulários com integração automática de toast:</p>
+            
+            <div class="form-demo">
+                <h4>Formulário de Sucesso</h4>
+                <form data-toast="true" 
+                      data-toast-success="Mensagem enviada com sucesso!"
+                      action="/api/toast/success" 
+                      method="post">
+                    <div class="mb-3">
+                        <label for="successMessage" class="form-label">Mensagem:</label>
+                        <input type="text" class="form-control" id="successMessage" name="message" 
+                               value="Teste de formulário com toast de sucesso">
+                    </div>
+                    <button type="submit" class="btn btn-success">Enviar (Sucesso)</button>
+                </form>
+            </div>
+            
+            <div class="form-demo">
+                <h4>Formulário de Erro</h4>
+                <form data-toast="true" 
+                      data-toast-success="Erro simulado enviado!"
+                      action="/api/toast/error" 
+                      method="post">
+                    <div class="mb-3">
+                        <label for="errorMessage" class="form-label">Mensagem de Erro:</label>
+                        <input type="text" class="form-control" id="errorMessage" name="message" 
+                               value="Simulação de erro no sistema">
+                    </div>
+                    <button type="submit" class="btn btn-danger">Enviar (Erro)</button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Demonstração de API -->
+        <div class="demo-card">
+            <h2>🔌 API REST</h2>
+            <p>Teste as APIs do sistema de toast:</p>
+            
+            <div class="api-demo">
+                <h4>Endpoints Disponíveis</h4>
+                <div class="code-block">
+GET  /api/toast/messages        - Obtém e limpa mensagens
+GET  /api/toast/messages/peek   - Obtém mensagens sem limpar
+POST /api/toast/message         - Adiciona mensagem genérica
+POST /api/toast/success         - Adiciona mensagem de sucesso
+POST /api/toast/error           - Adiciona mensagem de erro
+POST /api/toast/warning         - Adiciona mensagem de aviso
+POST /api/toast/info            - Adiciona mensagem de informação
+DELETE /api/toast/messages      - Limpa todas as mensagens
+GET  /api/toast/has-messages    - Verifica se há mensagens
+                </div>
+                
+                <div class="btn-group-demo">
+                    <button type="button" class="btn btn-primary" onclick="testAPI('success')">
+                        Testar API Sucesso
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="testAPI('error')">
+                        Testar API Erro
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="testAPI('warning')">
+                        Testar API Aviso
+                    </button>
+                    <button type="button" class="btn btn-info" onclick="testAPI('info')">
+                        Testar API Info
+                    </button>
+                </div>
+                
+                <div class="btn-group-demo">
+                    <button type="button" class="btn btn-secondary" onclick="checkMessages()">
+                        Verificar Mensagens
+                    </button>
+                    <button type="button" class="btn btn-outline-danger" onclick="clearMessages()">
+                        Limpar via API
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Demonstração Avançada -->
+        <div class="demo-card">
+            <h2>⚡ Funcionalidades Avançadas</h2>
+            
+            <div class="btn-group-demo">
+                <button type="button" class="btn btn-outline-primary" onclick="showCustomToast()">
+                    Toast Customizado
+                </button>
+                <button type="button" class="btn btn-outline-success" onclick="showLongToast()">
+                    Toast Longo
+                </button>
+                <button type="button" class="btn btn-outline-warning" onclick="showPersistentToast()">
+                    Toast Persistente
+                </button>
+                <button type="button" class="btn btn-outline-info" onclick="showMultipleToasts()">
+                    Múltiplos Toasts
+                </button>
+            </div>
+        </div>
+        
+        <!-- Documentação -->
+        <div class="demo-card">
+            <h2>📚 Como Usar</h2>
+            
+            <h4>1. JavaScript Direto</h4>
+            <div class="code-block">
+// Tipos básicos
+window.Toast.success('Mensagem de sucesso');
+window.Toast.error('Mensagem de erro');
+window.Toast.warning('Mensagem de aviso');
+window.Toast.info('Mensagem de informação');
+
+// Com opções customizadas
+window.Toast.show('Mensagem', 'success', {
+    title: 'Título Customizado',
+    duration: 10000,
+    closable: true,
+    progress: true
+});
+            </div>
+            
+            <h4>2. Atributos HTML</h4>
+            <div class="code-block">
+&lt;button data-toast-click="true"
+        data-toast-type="success"
+        data-toast-message="Mensagem"
+        data-toast-title="Título"&gt;
+    Clique para Toast
+&lt;/button&gt;
+
+&lt;form data-toast="true" 
+      data-toast-success="Sucesso!"&gt;
+    &lt;!-- campos do formulário --&gt;
+&lt;/form&gt;
+            </div>
+            
+            <h4>3. Integração com Thymeleaf</h4>
+            <div class="code-block">
+&lt;!-- No head --&gt;
+&lt;div th:replace="~{fragments/toast :: toast-resources}"&gt;&lt;/div&gt;
+
+&lt;!-- No body --&gt;
+&lt;div th:replace="~{fragments/toast :: toast-system}"&gt;&lt;/div&gt;
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast System -->
+    <div th:replace="~{fragments/toast :: toast-system}"></div>
+    
+    <!-- Scripts de demonstração -->
+    <script>
+        function testAPI(type) {
+            const messages = {
+                success: 'API de sucesso testada!',
+                error: 'API de erro testada!',
+                warning: 'API de aviso testada!',
+                info: 'API de informação testada!'
+            };
+            
+            fetch(`/api/toast/${type}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: messages[type],
+                    title: `Teste ${type.toUpperCase()}`
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('API Response:', data);
+                // A mensagem aparecerá automaticamente via polling ou refresh
+                setTimeout(() => {
+                    fetch('/api/toast/messages')
+                        .then(r => r.json())
+                        .then(messages => {
+                            messages.forEach(msg => {
+                                window.Toast.show(msg.message, msg.type, {
+                                    title: msg.title
+                                });
+                            });
+                        });
+                }, 100);
+            })
+            .catch(error => {
+                window.Toast.error('Erro ao testar API: ' + error.message);
+            });
+        }
+        
+        function checkMessages() {
+            fetch('/api/toast/has-messages')
+                .then(response => response.json())
+                .then(data => {
+                    window.Toast.info(`Mensagens na sessão: ${data.count}`, {
+                        title: 'Status da Sessão'
+                    });
+                });
+        }
+        
+        function clearMessages() {
+            fetch('/api/toast/messages', { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    window.Toast.success('Mensagens da sessão limpas!');
+                });
+        }
+        
+        function showCustomToast() {
+            window.Toast.show('Esta é uma mensagem customizada com configurações especiais!', 'info', {
+                title: '🎨 Toast Customizado',
+                duration: 8000,
+                closable: true,
+                progress: true
+            });
+        }
+        
+        function showLongToast() {
+            window.Toast.show('Esta é uma mensagem muito longa que demonstra como o sistema de toast lida com textos extensos. O toast se adapta automaticamente ao conteúdo e mantém a legibilidade em diferentes tamanhos de tela.', 'warning', {
+                title: '📝 Mensagem Longa',
+                duration: 10000
+            });
+        }
+        
+        function showPersistentToast() {
+            window.Toast.show('Este toast não desaparece automaticamente. Clique no X para fechá-lo.', 'error', {
+                title: '📌 Toast Persistente',
+                duration: 0,
+                closable: true,
+                progress: false
+            });
+        }
+        
+        function showMultipleToasts() {
+            const messages = [
+                { msg: 'Primeira mensagem', type: 'info' },
+                { msg: 'Segunda mensagem', type: 'success' },
+                { msg: 'Terceira mensagem', type: 'warning' },
+                { msg: 'Quarta mensagem', type: 'error' }
+            ];
+            
+            messages.forEach((item, index) => {
+                setTimeout(() => {
+                    window.Toast.show(item.msg, item.type, {
+                        title: `Toast ${index + 1}`
+                    });
+                }, index * 500);
+            });
+        }
+    </script>
+</body>
+</html>

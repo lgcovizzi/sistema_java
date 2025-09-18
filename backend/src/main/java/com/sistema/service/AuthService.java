@@ -235,11 +235,15 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         user.setLastName(lastName);
         user.setCpf(cpf);
         
-        // Verificar se é o email especial para auto-promoção a admin
-        if ("lgcovizzi@gmail.com".equalsIgnoreCase(email)) {
+        // Verificar se é o primeiro usuário ou email especial para auto-promoção a admin
+        if (userRepository.isFirstUser() || "lgcovizzi@gmail.com".equalsIgnoreCase(email)) {
             user.setRole(UserRole.ADMIN);
             user.setEmailVerified(true); // Admin é verificado automaticamente
-            logger.info("Usuário {} promovido automaticamente para ADMIN devido ao email especial", email);
+            if (userRepository.isFirstUser()) {
+                logger.info("Primeiro usuário {} promovido automaticamente para ADMIN", email);
+            } else {
+                logger.info("Usuário {} promovido automaticamente para ADMIN devido ao email especial", email);
+            }
         } else {
             user.setRole(UserRole.USER);
             user.setEmailVerified(false); // Usuários normais precisam verificar email
@@ -284,8 +288,35 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         // Registrar o usuário
         User user = register(email, password, firstName, lastName, cpf);
         
-        // Autenticar automaticamente
-        return authenticate(email, password, request);
+        // Autenticar automaticamente sem verificar se o email foi verificado
+        // (já que o usuário acabou de se registrar)
+        try {
+            // Validar entrada
+            ValidationUtils.validateNotBlank(email, "Email é obrigatório");
+            ValidationUtils.validateNotBlank(password, "Senha é obrigatória");
+            
+            // Autentica usando Spring Security
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, password)
+            );
+
+            User authenticatedUser = (User) authentication.getPrincipal();
+            
+            // Atualiza último login
+            updateLastLogin(authenticatedUser.getId());
+            
+            // Gera tokens
+            String accessToken = jwtService.generateAccessToken(authenticatedUser);
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(authenticatedUser, request);
+            
+            logger.info("Usuário registrado e autenticado com sucesso: {}", authenticatedUser.getEmail());
+            
+            return createAuthResponse(authenticatedUser, accessToken, refreshToken.getToken());
+            
+        } catch (AuthenticationException e) {
+            logger.error("Erro na autenticação após registro para usuário: {}", email, e);
+            throw new RuntimeException("Erro interno do servidor durante autenticação");
+        }
     }
 
 

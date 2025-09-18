@@ -1,6 +1,7 @@
 package com.sistema.util;
 
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.time.LocalDate;
@@ -28,11 +29,18 @@ public final class FormatUtils {
     private static final DateTimeFormatter ISO_DATE_TIME_FORMATTER = 
         DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
     
+    // Configuração de símbolos brasileiros
+    private static final DecimalFormatSymbols BRAZILIAN_SYMBOLS = new DecimalFormatSymbols(new Locale("pt", "BR"));
+    static {
+        BRAZILIAN_SYMBOLS.setDecimalSeparator(',');
+        BRAZILIAN_SYMBOLS.setGroupingSeparator('.');
+    }
+    
     private static final DecimalFormat CURRENCY_FORMATTER = 
-        new DecimalFormat("R$ #,##0.00");
+        new DecimalFormat("R$ #,##0.00", BRAZILIAN_SYMBOLS);
     
     private static final DecimalFormat PERCENTAGE_FORMATTER = 
-        new DecimalFormat("#,##0.00%");
+        new DecimalFormat("#,##0.00%", BRAZILIAN_SYMBOLS);
     
     private static final NumberFormat NUMBER_FORMATTER = 
         NumberFormat.getNumberInstance(new Locale("pt", "BR"));
@@ -48,7 +56,7 @@ public final class FormatUtils {
      * @return string formatada ou null se entrada for null
      */
     public static String formatDateTime(LocalDateTime dateTime) {
-        return dateTime != null ? dateTime.format(DEFAULT_DATE_TIME_FORMATTER) : null;
+        return dateTime != null ? dateTime.format(DEFAULT_DATE_TIME_FORMATTER) : "";
     }
     
     /**
@@ -68,7 +76,7 @@ public final class FormatUtils {
      * @return string formatada ou null se entrada for null
      */
     public static String formatDate(LocalDate date) {
-        return date != null ? date.format(DATE_FORMATTER) : null;
+        return date != null ? date.format(DATE_FORMATTER) : "";
     }
     
     /**
@@ -80,7 +88,7 @@ public final class FormatUtils {
      */
     public static String formatDate(LocalDate date, String pattern) {
         if (date == null || pattern == null) {
-            return null;
+            return "";
         }
         return date.format(DateTimeFormatter.ofPattern(pattern));
     }
@@ -140,18 +148,23 @@ public final class FormatUtils {
      * @return string formatada ou null se entrada for null
      */
     public static String formatCurrency(Number value) {
-        return value != null ? CURRENCY_FORMATTER.format(value.doubleValue()) : null;
+        return value != null ? CURRENCY_FORMATTER.format(value.doubleValue()) : "R$ 0,00";
     }
     
     /**
-     * Formata um valor monetário em reais com símbolo customizado.
+     * Formata um valor monetário com símbolo customizado.
      * 
      * @param value valor a formatar
-     * @param currencySymbol símbolo da moeda (ignorado, mantém R$)
+     * @param currencySymbol símbolo da moeda
      * @return string formatada ou null se entrada for null
      */
     public static String formatCurrency(Number value, String currencySymbol) {
-        return formatCurrency(value);
+        if (value == null) {
+            return currencySymbol + " 0,00";
+        }
+        
+        DecimalFormat customFormatter = new DecimalFormat(currencySymbol + " #,##0.00", BRAZILIAN_SYMBOLS);
+        return customFormatter.format(value.doubleValue());
     }
     
     /**
@@ -194,7 +207,7 @@ public final class FormatUtils {
             }
         }
         
-        DecimalFormat formatter = new DecimalFormat(pattern.toString());
+        DecimalFormat formatter = new DecimalFormat(pattern.toString(), BRAZILIAN_SYMBOLS);
         return formatter.format(value.doubleValue());
     }
     
@@ -420,14 +433,16 @@ public final class FormatUtils {
         
         String[] units = {"KB", "MB", "GB", "TB", "PB"};
         int unitIndex = 0;
-        double size = bytes;
+        double size = bytes / 1024.0; // Converte para KB
         
+        // Continue dividindo se necessário para unidades maiores
         while (size >= 1024 && unitIndex < units.length - 1) {
             size /= 1024;
             unitIndex++;
         }
         
-        return String.format("%.2f %s", size, units[unitIndex]);
+        DecimalFormat formatter = new DecimalFormat("#,##0.00", BRAZILIAN_SYMBOLS);
+        return formatter.format(size) + " " + units[unitIndex];
     }
     
     /**
@@ -474,7 +489,7 @@ public final class FormatUtils {
         try {
             return LocalDate.parse(dateString, DATE_FORMATTER);
         } catch (DateTimeParseException e) {
-            return null;
+            throw new RuntimeException("Invalid date format: " + dateString, e);
         }
     }
     
@@ -497,7 +512,7 @@ public final class FormatUtils {
     }
     
     /**
-     * Capitaliza apenas a primeira letra da string.
+     * Capitaliza apenas a primeira letra do texto.
      * 
      * @param text texto a capitalizar
      * @return texto com primeira letra maiúscula ou null se entrada for null
@@ -507,8 +522,13 @@ public final class FormatUtils {
             return text;
         }
         
+        // Para strings que são apenas espaços, retorna como está
+        if (text.trim().isEmpty()) {
+            return text;
+        }
+        
         return Character.toUpperCase(text.charAt(0)) + 
-               (text.length() > 1 ? text.substring(1).toLowerCase() : "");
+               (text.length() > 1 ? text.substring(1) : "");
     }
     
     /**
@@ -553,7 +573,8 @@ public final class FormatUtils {
      * @return string formatada
      */
     public static String formatDecimal(double value) {
-        return String.format("%.2f", value);
+        DecimalFormat formatter = new DecimalFormat("#,##0.00", BRAZILIAN_SYMBOLS);
+        return formatter.format(value);
     }
     
     /**
@@ -564,7 +585,15 @@ public final class FormatUtils {
      * @return string formatada
      */
     public static String formatDecimal(double value, int decimalPlaces) {
-        return String.format("%." + decimalPlaces + "f", value);
+        StringBuilder pattern = new StringBuilder("#,##0");
+        if (decimalPlaces > 0) {
+            pattern.append(".");
+            for (int i = 0; i < decimalPlaces; i++) {
+                pattern.append("0");
+            }
+        }
+        DecimalFormat formatter = new DecimalFormat(pattern.toString(), BRAZILIAN_SYMBOLS);
+        return formatter.format(value);
     }
     
     /**

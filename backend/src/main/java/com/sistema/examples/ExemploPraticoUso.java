@@ -1,3 +1,5 @@
+package com.sistema.examples;
+
 import com.sistema.util.CpfGenerator;
 import com.sistema.util.ValidationUtils;
 import java.util.List;

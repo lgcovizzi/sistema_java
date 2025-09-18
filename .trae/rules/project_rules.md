@@ -84,6 +84,71 @@ email,
 cpf, 
 senha
 
+### Sistema de Ativação por Email
+
+**REGRA OBRIGATÓRIA**: Todo usuário cadastrado deve ativar sua conta através de email antes de poder fazer login.
+
+#### Fluxo de Ativação:
+
+1. **Cadastro de Usuário**:
+   - Ao se cadastrar, o usuário recebe automaticamente um email de verificação
+   - O campo `emailVerified` é definido como `false` por padrão
+   - Um token de verificação é gerado e armazenado no campo `verificationToken`
+   - O token tem expiração definida em `verificationTokenExpiresAt`
+
+2. **Validação no Login**:
+   - **OBRIGATÓRIO**: O sistema deve verificar se `user.isEmailVerified()` é `true` antes de permitir login
+   - Se o email não estiver verificado, o login deve falhar com a mensagem: "Email não verificado. Verifique sua caixa de entrada e clique no link de verificação."
+   - Esta validação está implementada no método `authenticate()` do `AuthService`
+
+3. **Endpoints de Verificação**:
+   - `POST /api/auth/verify-email`: Verifica o token de ativação
+   - `POST /api/auth/resend-verification`: Reenvia o email de verificação
+
+#### Componentes Implementados:
+
+**EmailVerificationService** (`com.sistema.service.EmailVerificationService`)
+- `generateVerificationToken()`: Gera token de verificação
+- `verifyEmailToken()`: Valida e ativa a conta do usuário
+- `needsEmailVerification()`: Verifica se o usuário precisa verificar email
+
+**EmailService** (`com.sistema.service.EmailService`)
+- `sendVerificationEmail()`: Envia email de verificação inicial
+- `resendVerificationEmail()`: Reenvia email de verificação
+
+**SmtpService** (`com.sistema.service.SmtpService`)
+- Responsável pelo envio físico dos emails
+- Configurado para usar Mailtrap em desenvolvimento
+
+#### Configurações de Email:
+
+```yaml
+app:
+  email:
+    enabled: true
+    verification:
+      url: "http://localhost:8080/verify-email"
+      token:
+        expiration:
+          hours: 24
+```
+
+#### Templates de Email:
+- `email-verification.html`: Template para email inicial de verificação
+- `email-verification-resend.html`: Template para reenvio de verificação
+
+#### Campos da Entidade User:
+- `emailVerified`: Boolean indicando se o email foi verificado
+- `verificationToken`: Token único para verificação
+- `verificationTokenExpiresAt`: Data de expiração do token
+
+#### Regras de Negócio:
+1. Usuários ADMIN são automaticamente verificados (`emailVerified = true`)
+2. Usuários comuns devem verificar o email antes do primeiro login
+3. Tokens de verificação expiram em 24 horas
+4. É possível reenviar o email de verificação quantas vezes necessário
+5. Após verificação bem-sucedida, o token é limpo e `emailVerified` é definido como `true`
+
 
 ##### Utilitários Compartilhados
 
@@ -600,6 +665,353 @@ O projeto possui uma estrutura completa de documentação na pasta `docs/`:
 
 O Test-Driven Development é uma metodologia de desenvolvimento onde os testes são escritos antes do código de produção. O projeto Sistema Java adota TDD como prática fundamental para garantir qualidade, confiabilidade e manutenibilidade do código.
 
+## Testes de Sistema (End-to-End)
+
+### Visão Geral dos Testes E2E
+
+Os Testes End-to-End (E2E) são testes que verificam o funcionamento completo do sistema, simulando o comportamento real do usuário através de todas as camadas da aplicação. No projeto Sistema Java, os testes E2E garantem que toda a funcionalidade esteja funcionando corretamente desde a interface até o banco de dados.
+
+### Características dos Testes E2E
+
+#### 1. Cobertura Completa
+- **Fluxo completo**: Testam desde a entrada do usuário até a resposta final
+- **Integração real**: Usam banco de dados real (H2) e Redis real
+- **Ambiente próximo à produção**: Configuração similar ao ambiente de produção
+- **Validação de regras de negócio**: Verificam se as regras estão sendo aplicadas corretamente
+
+#### 2. Simulação de Usuário Real
+- **Comportamento real**: Simulam ações que um usuário real faria
+- **Sequência de operações**: Testam fluxos completos de uso
+- **Dados realistas**: Usam dados de teste que representam casos reais
+- **Cenários complexos**: Testam situações que envolvem múltiplas funcionalidades
+
+#### 3. Validação de Integração
+- **Spring Boot completo**: Aplicação Spring Boot real em execução
+- **Banco de dados**: H2 Database com dados persistidos
+- **Cache Redis**: Operações reais de cache
+- **SMTP**: Envio real de emails (configurado para Mailtrap)
+- **Segurança**: Validação real de tokens JWT e autenticação
+
+### Estrutura de Testes E2E
+
+#### Organização de Diretórios
+
+```
+src/test/java/com/sistema/e2e/
+├── config/                    # Configurações específicas para E2E
+│   ├── E2ETestConfiguration.java
+│   └── TestDataInitializer.java
+├── scenarios/                 # Cenários de teste específicos
+│   ├── AuthenticationE2ETest.java
+│   ├── UserManagementE2ETest.java
+│   ├── ApiIntegrationE2ETest.java
+│   └── WebInterfaceE2ETest.java
+├── utils/                     # Utilitários para testes E2E
+│   ├── E2ETestHelper.java
+│   ├── TestDataBuilder.java
+│   └── AssertionHelper.java
+└── base/                      # Classes base para testes E2E
+    ├── BaseE2ETest.java
+    └── E2ETestContext.java
+```
+
+#### Configuração de Ambiente
+
+**E2ETestConfiguration.java**:
+```java
+@Configuration
+@Profile("e2e")
+public class E2ETestConfiguration {
+    
+    @Bean
+    @Primary
+    public TestRestTemplate testRestTemplate() {
+        return new TestRestTemplate();
+    }
+    
+    @Bean
+    public TestDataInitializer testDataInitializer() {
+        return new TestDataInitializer();
+    }
+}
+```
+
+**application-e2e.yml**:
+```yaml
+spring:
+  profiles:
+    active: e2e
+  datasource:
+    url: jdbc:h2:mem:e2etestdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  redis:
+    host: localhost
+    port: 6379
+    database: 1  # Database diferente para testes E2E
+  mail:
+    host: sandbox.smtp.mailtrap.io
+    port: 2525
+    username: 67af468e706c8e
+    password: c9c83240f6d045
+
+logging:
+  level:
+    com.sistema: INFO
+    org.springframework.web: WARN
+    org.hibernate: WARN
+
+app:
+  jwt:
+    access-token-expiration: 300000  # 5 minutos para testes
+    refresh-token-expiration: 600000  # 10 minutos para testes
+  captcha:
+    expiration: 300000  # 5 minutos para testes
+  attempt:
+    max-attempts: 3  # Reduzido para testes
+    lockout-duration: 60000  # 1 minuto para testes
+```
+
+### Tipos de Testes E2E
+
+#### 1. Testes de Autenticação E2E
+
+**Cenários testados**:
+- Cadastro completo de usuário com verificação de email
+- Login com credenciais válidas
+- Login com credenciais inválidas
+- Controle de tentativas e captcha
+- Renovação de tokens
+- Logout e invalidação de tokens
+- Recuperação de senha
+
+#### 2. Testes de API E2E
+
+**Cenários testados**:
+- Health checks e monitoramento
+- Endpoints de autenticação
+- Endpoints de captcha
+- Validação de autorização
+- Tratamento de erros
+- Performance básica
+
+#### 3. Testes de Interface Web E2E
+
+**Cenários testados**:
+- Carregamento da página inicial
+- Navegação entre páginas
+- Formulários de login
+- Dashboard após autenticação
+- Responsividade básica
+
+### Utilitários para Testes E2E
+
+#### E2ETestHelper
+
+```java
+@Component
+public class E2ETestHelper {
+    
+    @Autowired
+    private TestRestTemplate restTemplate;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    public String authenticateAndGetToken() {
+        // Criar usuário de teste
+        User testUser = createTestUser();
+        
+        // Fazer login
+        LoginRequest request = new LoginRequest(testUser.getEmail(), "senha123");
+        ResponseEntity<LoginResponse> response = restTemplate.postForEntity(
+            "/api/auth/login", request, LoginResponse.class);
+        
+        return response.getBody().getAccessToken();
+    }
+    
+    public User createTestUser() {
+        User user = new User();
+        user.setEmail("teste@e2e.com");
+        user.setPassword(passwordEncoder.encode("senha123"));
+        user.setEmailVerified(true);
+        user.setEnabled(true);
+        return userRepository.save(user);
+    }
+    
+    public void cleanupTestData() {
+        userRepository.deleteAll();
+        // Limpar cache Redis se necessário
+    }
+}
+```
+
+#### TestDataBuilder
+
+```java
+public class TestDataBuilder {
+    
+    public static RegisterRequestBuilder aRegisterRequest() {
+        return new RegisterRequestBuilder();
+    }
+    
+    public static LoginRequestBuilder aLoginRequest() {
+        return new LoginRequestBuilder();
+    }
+    
+    public static class RegisterRequestBuilder {
+        private String email = "teste@email.com";
+        private String password = "senha123";
+        private String name = "Usuário Teste";
+        private String lastName = "E2E";
+        private String cpf = CpfGenerator.generateCpfWithMask();
+        
+        public RegisterRequestBuilder withEmail(String email) {
+            this.email = email;
+            return this;
+        }
+        
+        public RegisterRequestBuilder withPassword(String password) {
+            this.password = password;
+            return this;
+        }
+        
+        public RegisterRequest build() {
+            return new RegisterRequest(name, lastName, email, cpf, password);
+        }
+    }
+}
+```
+
+### Configuração de Execução
+
+#### Maven Configuration
+
+**pom.xml**:
+```xml
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-failsafe-plugin</artifactId>
+    <version>3.0.0-M9</version>
+    <executions>
+        <execution>
+            <id>e2e-tests</id>
+            <phase>integration-test</phase>
+            <goals>
+                <goal>integration-test</goal>
+            </goals>
+            <configuration>
+                <includes>
+                    <include>**/*E2ETest.java</include>
+                </includes>
+                <systemPropertyVariables>
+                    <spring.profiles.active>e2e</spring.profiles.active>
+                </systemPropertyVariables>
+            </configuration>
+        </execution>
+        <execution>
+            <id>verify</id>
+            <phase>verify</phase>
+            <goals>
+                <goal>verify</goal>
+            </goals>
+        </execution>
+    </executions>
+</plugin>
+```
+
+#### Execução dos Testes
+
+**Comandos para executar testes E2E**:
+```bash
+# Executar apenas testes E2E
+mvn verify -Dtest="*E2ETest"
+
+# Executar com perfil específico
+mvn verify -Dspring.profiles.active=e2e
+
+# Executar com logs detalhados
+mvn verify -Dtest="*E2ETest" -X
+
+# Executar em paralelo
+mvn verify -Dtest="*E2ETest" -T 4
+```
+
+### Boas Práticas para Testes E2E
+
+#### 1. Isolamento de Testes
+- **Cleanup**: Limpar dados entre testes
+- **Dados únicos**: Usar dados únicos para cada teste
+- **Estado limpo**: Garantir estado inicial consistente
+
+#### 2. Performance
+- **Execução paralela**: Configurar execução paralela quando possível
+- **Timeouts**: Definir timeouts apropriados
+- **Recursos**: Gerenciar recursos adequadamente
+
+#### 3. Manutenibilidade
+- **Page Objects**: Usar padrão Page Object para interface web
+- **Helpers**: Criar utilitários reutilizáveis
+- **Configuração**: Centralizar configurações de teste
+
+#### 4. Relatórios
+- **Logs**: Gerar logs detalhados para debugging
+- **Screenshots**: Capturar screenshots em caso de falha
+- **Métricas**: Coletar métricas de performance
+
+### Integração com CI/CD
+
+#### Pipeline de Testes E2E
+
+```yaml
+# .github/workflows/e2e-tests.yml
+name: E2E Tests
+on: [push, pull_request]
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+      
+      - name: Run E2E Tests
+        run: mvn verify -Dtest="*E2ETest" -Dspring.profiles.active=e2e
+      
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: e2e-test-reports
+          path: target/surefire-reports/
+```
+
+### Métricas e Monitoramento
+
+#### KPIs dos Testes E2E
+- **Taxa de sucesso**: % de testes que passam
+- **Tempo de execução**: Duração total dos testes E2E
+- **Cobertura de cenários**: % de fluxos de usuário testados
+- **Detecção de bugs**: Bugs encontrados pelos testes E2E
+
+#### Relatórios
+- **Surefire Reports**: Relatórios padrão do Maven
+- **Allure Reports**: Relatórios detalhados com Allure
+- **Custom Reports**: Relatórios customizados para métricas específicas
+
 ### Princípios Fundamentais
 
 #### 1. Ciclo Red-Green-Refactor
@@ -904,7 +1316,7 @@ jobs:
 
 ### Troubleshooting de Testes
 
-#### Problemas Comuns
+#### Problemas Conuns
 
 **1. Testes Flaky (Instáveis)**:
 - Dependência de tempo ou ordem
@@ -1388,7 +1800,6 @@ Descrição do endpoint.
 **Exemplo de uso**:
 ```bash
 curl http://localhost:8080/endpoint
-```
 ```
 
 #### 4. Documentação de Configuração

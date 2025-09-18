@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- Fragment para incluir CSS e JS do sistema de toast -->
+<head th:fragment="toast-resources">
+    <!-- Toast CSS -->
+    <link rel="stylesheet" th:href="@{/css/toast.css}">
+    
+    <!-- Toast JavaScript -->
+    <script th:src="@{/js/toast.js}" defer></script>
+</head>
+
+<!-- Fragment para container de toast -->
+<body>
+    <!-- Container de toast (será criado automaticamente pelo JavaScript) -->
+    <div th:fragment="toast-container" class="toast-container" aria-live="polite" aria-atomic="false">
+        <!-- Toasts serão inseridos aqui dinamicamente -->
+    </div>
+    
+    <!-- Fragment para mensagens flash do servidor -->
+    <div th:fragment="flash-messages" th:if="${toastMessages != null and !toastMessages.isEmpty()}">
+        <div th:each="message : ${toastMessages}" 
+             th:attr="data-flash-message=${message.message}, data-flash-type=${message.type}"
+             style="display: none;">
+        </div>
+    </div>
+    
+    <!-- Script para inicialização automática -->
+    <script th:fragment="toast-init">
+        document.addEventListener('DOMContentLoaded', function() {
+            // Verifica se há mensagens do servidor para exibir
+            const flashMessages = document.querySelectorAll('[data-flash-message]');
+            flashMessages.forEach(function(element) {
+                const message = element.getAttribute('data-flash-message');
+                const type = element.getAttribute('data-flash-type') || 'info';
+                
+                if (window.Toast && message) {
+                    window.Toast.show(message, type);
+                }
+                
+                // Remove o elemento após processar
+                element.remove();
+            });
+            
+            // Configura interceptação de formulários com data-toast
+            const toastForms = document.querySelectorAll('form[data-toast]');
+            toastForms.forEach(function(form) {
+                const successMessage = form.getAttribute('data-toast-success') || 
+                                     'Operação realizada com sucesso!';
+                
+                if (window.Toast) {
+                    window.Toast.handleFormSubmission(form, successMessage);
+                }
+            });
+            
+            // Configura interceptação de botões com data-toast
+            const toastButtons = document.querySelectorAll('[data-toast-click]');
+            toastButtons.forEach(function(button) {
+                button.addEventListener('click', function(e) {
+                    const message = button.getAttribute('data-toast-message');
+                    const type = button.getAttribute('data-toast-type') || 'info';
+                    const title = button.getAttribute('data-toast-title');
+                    
+                    if (window.Toast && message) {
+                        const options = title ? { title: title } : {};
+                        window.Toast.show(message, type, options);
+                    }
+                });
+            });
+            
+            // Configura polling para mensagens do servidor (opcional)
+            const enablePolling = document.body.getAttribute('data-toast-polling');
+            if (enablePolling === 'true' && window.Toast) {
+                setInterval(function() {
+                    fetch('/api/toast/messages')
+                        .then(response => response.json())
+                        .then(messages => {
+                            messages.forEach(function(message) {
+                                window.Toast.show(message.message, message.type, {
+                                    title: message.title
+                                });
+                            });
+                        })
+                        .catch(error => {
+                            console.warn('Erro ao buscar mensagens toast:', error);
+                        });
+                }, 5000); // Verifica a cada 5 segundos
+            }
+        });
+    </script>
+    
+    <!-- Fragment completo para incluir em páginas -->
+    <div th:fragment="toast-system">
+        <!-- Container será criado automaticamente pelo JavaScript -->
+        
+        <!-- Mensagens flash do servidor -->
+        <div th:replace="~{fragments/toast :: flash-messages}"></div>
+        
+        <!-- Script de inicialização -->
+        <script th:replace="~{fragments/toast :: toast-init}"></script>
+    </div>
+    
+    <!-- Fragment para demonstração/teste -->
+    <div th:fragment="toast-demo" class="toast-demo" style="padding: 20px; margin: 20px; border: 1px solid #ddd; border-radius: 8px;">
+        <h3>Demonstração do Sistema de Toast</h3>
+        <p>Use os botões abaixo para testar diferentes tipos de toast:</p>
+        
+        <div style="margin: 10px 0;">
+            <button type="button" class="btn btn-success" 
+                    data-toast-click="true"
+                    data-toast-type="success"
+                    data-toast-message="Operação realizada com sucesso!"
+                    data-toast-title="Sucesso">
+                Toast de Sucesso
+            </button>
+            
+            <button type="button" class="btn btn-danger" 
+                    data-toast-click="true"
+                    data-toast-type="error"
+                    data-toast-message="Ocorreu um erro durante a operação."
+                    data-toast-title="Erro">
+                Toast de Erro
+            </button>
+            
+            <button type="button" class="btn btn-warning" 
+                    data-toast-click="true"
+                    data-toast-type="warning"
+                    data-toast-message="Atenção: Esta ação não pode ser desfeita."
+                    data-toast-title="Atenção">
+                Toast de Aviso
+            </button>
+            
+            <button type="button" class="btn btn-info" 
+                    data-toast-click="true"
+                    data-toast-type="info"
+                    data-toast-message="Informação importante sobre o sistema."
+                    data-toast-title="Informação">
+                Toast de Info
+            </button>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <button type="button" class="btn btn-secondary" onclick="window.Toast.hideAll()">
+                Limpar Todos os Toasts
+            </button>
+        </div>
+        
+        <!-- Exemplo de formulário com toast -->
+        <form data-toast="true" 
+              data-toast-success="Formulário enviado com sucesso!"
+              action="/api/toast/success" 
+              method="post"
+              style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+            <h4>Formulário de Teste</h4>
+            <div style="margin: 10px 0;">
+                <label for="testMessage">Mensagem:</label>
+                <input type="text" id="testMessage" name="message" 
+                       value="Teste de formulário com toast" 
+                       style="width: 100%; padding: 5px; margin-top: 5px;">
+            </div>
+            <button type="submit" class="btn btn-primary">Enviar com Toast</button>
+        </form>
+    </div>
+</body>
+</html>

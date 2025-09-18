@@ -80,7 +80,10 @@ public class EmailVerificationService extends BaseService {
      * @return true se token é válido e usuário foi verificado
      */
     public boolean verifyEmailToken(String token) {
-        validateNotEmpty(token, "token");
+        if (token == null || token.trim().isEmpty()) {
+            logWarn("Token de verificação é nulo ou vazio");
+            return false;
+        }
 
         if (!emailVerificationEnabled) {
             logWarn("Verificação de email está desabilitada");

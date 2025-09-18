@@ -1,8 +1,60 @@
-# Estrutura de Testes - Sistema Java
+# Testes do Sistema de Mensagens Toast
 
-## Visão Geral
+Este diretório contém todos os testes unitários e de integração para o sistema de mensagens toast da aplicação.
 
-Este projeto implementa uma estrutura completa de testes seguindo as melhores práticas de TDD (Test-Driven Development) e cobertura de código.
+## Estrutura dos Testes
+
+### Testes Java (Backend)
+
+#### Testes Unitários
+- **`ToastServiceTest.java`**: Testes unitários para o serviço de toast
+  - Métodos de criação de mensagens (success, error, warning, info)
+  - Gerenciamento de mensagens (adicionar, recuperar, limpar)
+  - Integração com sessão HTTP
+  - Tratamento de exceções
+
+- **`ToastControllerTest.java`**: Testes unitários para o controlador REST
+  - Endpoints REST e validações
+  - Métodos HTTP (GET, POST, DELETE)
+  - Validação de entrada de dados
+  - Tratamento de erros e exceções
+  - Testes de concorrência
+
+- **`GlobalExceptionHandlerToastTest.java`**: Testes de integração com exception handler
+  - Integração com sistema de toast
+  - Tratamento de diferentes tipos de exceção
+  - Verificação de respostas HTTP
+
+#### Testes de Integração
+- **`ToastIntegrationTest.java`**: Testes de integração do sistema completo
+  - Fluxo completo de mensagens via API REST
+  - Isolamento entre sessões
+  - Validação de entrada
+  - Requisições concorrentes
+  - Integração com GlobalExceptionHandler
+
+- **`ToastEndToEndTest.java`**: Testes end-to-end
+  - Cenários completos de uso
+  - Múltiplas abas/sessões
+  - Operações assíncronas
+  - Performance com muitas mensagens
+
+### Testes JavaScript (Frontend)
+
+#### Testes Unitários
+- **`toast.test.js`**: Testes unitários para ToastManager
+  - Inicialização e configuração
+  - Métodos de criação de toast
+  - Gerenciamento de DOM
+  - Auto-hide e interações
+  - Acessibilidade
+
+#### Testes de Integração
+- **`toast-integration.test.js`**: Testes de integração frontend
+  - Integração DOM completa
+  - Integração com API REST
+  - Eventos e formulários
+  - Responsividade e animações
 
 ## Estrutura de Diretórios
 

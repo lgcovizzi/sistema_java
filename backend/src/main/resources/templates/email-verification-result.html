@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${appName} + ' - Verificação de Email'">Sistema Java - Verificação de Email</title>
+    
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #764ba2;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+            --background-gradient: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            --card-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            --border-radius: 15px;
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background-gradient);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 600px;
+            width: 90%;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .header {
+            background: var(--background-gradient);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .status-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .status-icon.success {
+            background: var(--success-color);
+        }
+        
+        .status-icon.error {
+            background: var(--error-color);
+        }
+        
+        .status-icon.warning {
+            background: var(--warning-color);
+        }
+        
+        .status-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .status-title.success {
+            color: var(--success-color);
+        }
+        
+        .status-title.error {
+            color: var(--error-color);
+        }
+        
+        .status-title.warning {
+            color: var(--warning-color);
+        }
+        
+        .status-message {
+            font-size: 18px;
+            margin-bottom: 30px;
+            color: #666;
+            line-height: 1.8;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 16px;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            min-width: 150px;
+        }
+        
+        .btn-primary {
+            background: var(--background-gradient);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #f8fafc;
+            color: #64748b;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .btn-secondary:hover {
+            background: #e2e8f0;
+            color: #475569;
+        }
+        
+        .info-box {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        
+        .info-box h4 {
+            color: #0369a1;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .info-box p {
+            color: #0c4a6e;
+            margin: 0;
+            font-size: 14px;
+        }
+        
+        .footer {
+            background: #f8fafc;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .footer p {
+            color: #64748b;
+            font-size: 14px;
+            margin: 0;
+        }
+        
+        .footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                margin: 20px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .logo {
+                font-size: 28px;
+            }
+            
+            .status-title {
+                font-size: 24px;
+            }
+            
+            .status-message {
+                font-size: 16px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo" th:text="${appName ?: 'Sistema Java'}">Sistema Java</div>
+            <div class="subtitle">Verificação de Email</div>
+        </div>
+        
+        <div class="content">
+            <!-- Sucesso -->
+            <div th:if="${success}" class="status-content">
+                <div class="status-icon success">✓</div>
+                <h1 class="status-title success">Email Verificado com Sucesso!</h1>
+                <p class="status-message">
+                    Parabéns! Seu email foi verificado com sucesso. Sua conta está agora ativa e você pode fazer login no sistema.
+                </p>
+                
+                <div class="info-box">
+                    <h4>🎉 O que acontece agora?</h4>
+                    <p>• Sua conta está totalmente ativada</p>
+                    <p>• Você pode fazer login usando suas credenciais</p>
+                    <p>• Você receberá notificações importantes por email</p>
+                    <p>• Você tem acesso completo a todas as funcionalidades</p>
+                </div>
+                
+                <div class="action-buttons">
+                    <a href="/" class="btn btn-primary">Fazer Login</a>
+                    <a href="/" class="btn btn-secondary">Voltar ao Início</a>
+                </div>
+            </div>
+            
+            <!-- Erro -->
+            <div th:if="${error}" class="status-content">
+                <div class="status-icon error">✗</div>
+                <h1 class="status-title error">Erro na Verificação</h1>
+                <p class="status-message" th:text="${errorMessage ?: 'Token de verificação inválido ou expirado.'}">
+                    Token de verificação inválido ou expirado.
+                </p>
+                
+                <div class="info-box">
+                    <h4>🔧 Como resolver?</h4>
+                    <p>• Verifique se você clicou no link correto do email</p>
+                    <p>• O link pode ter expirado (válido por 24 horas)</p>
+                    <p>• Solicite um novo email de verificação</p>
+                    <p>• Entre em contato com o suporte se o problema persistir</p>
+                </div>
+                
+                <div class="action-buttons">
+                    <a href="/api/auth/resend-verification" class="btn btn-primary">Reenviar Email</a>
+                    <a href="/" class="btn btn-secondary">Voltar ao Início</a>
+                </div>
+            </div>
+            
+            <!-- Token Expirado -->
+            <div th:if="${expired}" class="status-content">
+                <div class="status-icon warning">⚠</div>
+                <h1 class="status-title warning">Link Expirado</h1>
+                <p class="status-message">
+                    O link de verificação expirou. Por motivos de segurança, os links de verificação são válidos apenas por 24 horas.
+                </p>
+                
+                <div class="info-box">
+                    <h4>⏰ O que fazer?</h4>
+                    <p>• Solicite um novo email de verificação</p>
+                    <p>• O novo link será válido por mais 24 horas</p>
+                    <p>• Verifique sua caixa de entrada e spam</p>
+                    <p>• Complete a verificação o mais rápido possível</p>
+                </div>
+                
+                <div class="action-buttons">
+                    <a href="/api/auth/resend-verification" class="btn btn-primary">Solicitar Novo Link</a>
+                    <a href="/" class="btn btn-secondary">Voltar ao Início</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>
+                © 2024 <span th:text="${appName ?: 'Sistema Java'}">Sistema Java</span>. 
+                Todos os direitos reservados. | 
+                <a href="/support">Suporte</a> | 
+                <a href="/privacy">Privacidade</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

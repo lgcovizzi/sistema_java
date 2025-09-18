@@ -2,7 +2,7 @@ package com.sistema.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sistema.entity.EmailConfiguration;
-import com.sistema.entity.EmailProvider;
+import com.sistema.enums.EmailProvider;
 import com.sistema.service.EmailConfigurationService;
 import com.sistema.service.SmtpService;
 import org.junit.jupiter.api.BeforeEach;
@@ -226,7 +226,7 @@ class EmailConfigurationControllerTest {
     @DisplayName("Deve habilitar/desabilitar configuração")
     void shouldToggleEnabled() throws Exception {
         // Given
-        when(emailConfigurationService.toggleEnabled(2L)).thenReturn(gmailConfig);
+        when(emailConfigurationService.toggleConfiguration(2L, true)).thenReturn(gmailConfig);
 
         // When & Then
         mockMvc.perform(put("/api/admin/email-config/2/toggle")
@@ -237,7 +237,7 @@ class EmailConfigurationControllerTest {
                 .andExpect(jsonPath("$.message").value("Status da configuração alterado"))
                 .andExpect(jsonPath("$.configuration.id").value(2));
 
-        verify(emailConfigurationService).toggleEnabled(2L);
+        verify(emailConfigurationService).toggleConfiguration(2L, true);
     }
 
     @Test

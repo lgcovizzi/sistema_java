@@ -245,7 +245,7 @@ class AdminEmailPanelControllerTest {
         EmailConfiguration updatedConfig = createMailtrapConfiguration();
         updatedConfig.setEnabled(false);
         
-        when(emailConfigurationService.toggleEnabled(configId)).thenReturn(updatedConfig);
+        when(emailConfigurationService.toggleConfiguration(configId, false)).thenReturn(updatedConfig);
 
         // When & Then
         mockMvc.perform(post("/api/admin/email-panel/toggle-enabled")
@@ -256,7 +256,7 @@ class AdminEmailPanelControllerTest {
                 .andExpect(jsonPath("$.message").value("Status da configuração alterado com sucesso"))
                 .andExpect(jsonPath("$.configuration.enabled").value(false));
 
-        verify(emailConfigurationService).toggleEnabled(configId);
+        verify(emailConfigurationService).toggleConfiguration(configId, false);
     }
 
     @Test

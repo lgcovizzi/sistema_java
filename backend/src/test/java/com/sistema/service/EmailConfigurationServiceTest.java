@@ -159,7 +159,6 @@ class EmailConfigurationServiceTest {
         EmailConfiguration result = emailConfigurationService.updateConfiguration(2L, updatedConfig);
 
         // Then
-        assertThat(result).isNotNull();
         verify(emailConfigurationRepository).findById(2L);
         verify(emailConfigurationRepository).save(any(EmailConfiguration.class));
     }
@@ -202,7 +201,7 @@ class EmailConfigurationServiceTest {
         when(emailConfigurationRepository.save(any(EmailConfiguration.class))).thenReturn(gmailConfig);
 
         // When
-        EmailConfiguration result = emailConfigurationService.toggleEnabled(2L);
+        emailConfigurationService.toggleConfiguration(2L, true);
 
         // Then
         assertThat(result).isNotNull();

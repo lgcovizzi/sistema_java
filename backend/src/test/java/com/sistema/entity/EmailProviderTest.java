@@ -1,5 +1,7 @@
 package com.sistema.entity;
 
+import com.sistema.enums.EmailProvider;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

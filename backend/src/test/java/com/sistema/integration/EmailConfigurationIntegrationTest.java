@@ -2,7 +2,7 @@ package com.sistema.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sistema.entity.EmailConfiguration;
-import com.sistema.entity.EmailProvider;
+import com.sistema.enums.EmailProvider;
 import com.sistema.repository.EmailConfigurationRepository;
 import com.sistema.service.EmailConfigurationService;
 import org.junit.jupiter.api.BeforeEach;
@@ -162,7 +162,7 @@ class EmailConfigurationIntegrationTest {
                 .andExpect(jsonPath("$.configuration.default").value(true));
 
         // Then - Verificar no banco de dados
-        Optional<EmailConfiguration> defaultConfig = emailConfigurationRepository.findByIsDefaultTrue();
+        Optional<EmailConfiguration> defaultConfig = emailConfigurationRepository.findDefaultConfiguration();
         assertTrue(defaultConfig.isPresent(), "Deve ter uma configuração padrão");
         assertEquals(EmailProvider.GMAIL, defaultConfig.get().getProvider(), "Gmail deve ser o padrão");
 
@@ -288,7 +288,7 @@ class EmailConfigurationIntegrationTest {
         mockMvc.perform(get("/api/admin/email-config"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpected(jsonPath("$.configurations").isArray())
+                .andExpect(jsonPath("$.configurations").isArray())
                 .andExpect(jsonPath("$.configurations.length()").value(2))
                 .andExpect(jsonPath("$.totalConfigurations").value(2))
                 .andExpect(jsonPath("$.defaultConfiguration.provider").value("MAILTRAP"));
@@ -433,7 +433,7 @@ class EmailConfigurationIntegrationTest {
                 .andExpect(jsonPath("$.configuration.default").value(true));
 
         // 5. Verificar que Gmail é o padrão
-        Optional<EmailConfiguration> defaultConfig = emailConfigurationRepository.findByIsDefaultTrue();
+        Optional<EmailConfiguration> defaultConfig = emailConfigurationRepository.findDefaultConfiguration();
         assertTrue(defaultConfig.isPresent());
         assertEquals(EmailProvider.GMAIL, defaultConfig.get().getProvider());
 

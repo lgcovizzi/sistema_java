@@ -38,7 +38,7 @@ public class EmailConfigurationService extends BaseService {
         Optional<EmailConfiguration> config = emailConfigurationRepository.findDefaultConfiguration();
         
         if (config.isPresent()) {
-            logInfo("Configuração padrão encontrada: {}", config.get().getProviderDisplayName());
+            logInfo(String.format("Configuração padrão encontrada: %s", config.get().getProviderDisplayName()));
         } else {
             logWarn("Nenhuma configuração padrão encontrada");
         }
@@ -55,12 +55,12 @@ public class EmailConfigurationService extends BaseService {
     public EmailConfiguration createConfiguration(EmailConfiguration configuration) {
         validateNotNull(configuration, "Configuração não pode ser nula");
         validateNotNull(configuration.getProvider(), "Provider é obrigatório");
-        validateNotBlank(configuration.getHost(), "Host é obrigatório");
+        validateNotEmpty(configuration.getHost(), "Host é obrigatório");
         validateNotNull(configuration.getPort(), "Port é obrigatório");
-        validateNotBlank(configuration.getUsername(), "Username é obrigatório");
-        validateNotBlank(configuration.getPassword(), "Password é obrigatório");
+        validateNotEmpty(configuration.getUsername(), "Username é obrigatório");
+        validateNotEmpty(configuration.getPassword(), "Password é obrigatório");
 
-        logInfo("Criando nova configuração de email para provider: {}", configuration.getProvider());
+        logInfo(String.format("Criando nova configuração de email para provider: %s", configuration.getProvider()));
 
         // Se for marcada como padrão, remove o padrão das outras
         if (configuration.isDefault()) {
@@ -68,7 +68,7 @@ public class EmailConfigurationService extends BaseService {
         }
 
         EmailConfiguration saved = emailConfigurationRepository.save(configuration);
-        logInfo("Configuração criada com sucesso. ID: {}", saved.getId());
+        logInfo(String.format("Configuração criada com sucesso. ID: %d", saved.getId()));
         
         return saved;
     }
@@ -84,7 +84,7 @@ public class EmailConfigurationService extends BaseService {
         validateNotNull(id, "ID não pode ser nulo");
         validateNotNull(configuration, "Configuração não pode ser nula");
 
-        logInfo("Atualizando configuração de email ID: {}", id);
+        logInfo(String.format("Atualizando configuração de email ID: %d", id));
 
         EmailConfiguration existing = emailConfigurationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Configuração não encontrada com ID: " + id));
@@ -121,7 +121,7 @@ public class EmailConfigurationService extends BaseService {
     public void setAsDefault(Long id) {
         validateNotNull(id, "ID não pode ser nulo");
 
-        logInfo("Definindo configuração ID {} como padrão", id);
+        logInfo(String.format("Definindo configuração ID %d como padrão", id));
 
         EmailConfiguration config = emailConfigurationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Configuração não encontrada com ID: " + id));
@@ -179,7 +179,7 @@ public class EmailConfigurationService extends BaseService {
     public List<EmailConfiguration> getConfigurationsByProvider(EmailProvider provider) {
         validateNotNull(provider, "Provider não pode ser nulo");
         
-        logDebug("Buscando configurações para provider: {}", provider);
+        logDebug(String.format("Buscando configurações para provider: %s", provider));
         return emailConfigurationRepository.findByProviderAndEnabledTrue(provider);
     }
 
@@ -193,7 +193,7 @@ public class EmailConfigurationService extends BaseService {
     public Optional<EmailConfiguration> getConfigurationById(Long id) {
         validateNotNull(id, "ID não pode ser nulo");
         
-        logDebug("Buscando configuração por ID: {}", id);
+        logDebug(String.format("Buscando configuração por ID: %d", id));
         return emailConfigurationRepository.findById(id);
     }
 
@@ -207,7 +207,7 @@ public class EmailConfigurationService extends BaseService {
     public EmailConfiguration getConfiguration(Long id) {
         validateNotNull(id, "ID não pode ser nulo");
         
-        logDebug("Buscando configuração por ID: {}", id);
+        logDebug(String.format("Buscando configuração por ID: %d", id));
         return emailConfigurationRepository.findById(id).orElse(null);
     }
 
@@ -220,7 +220,7 @@ public class EmailConfigurationService extends BaseService {
     public void toggleConfiguration(Long id, boolean enabled) {
         validateNotNull(id, "ID não pode ser nulo");
 
-        logInfo("Alterando status da configuração ID {} para: {}", id, enabled ? "habilitada" : "desabilitada");
+        logInfo(String.format("Alterando status da configuração ID %d para: %s", id, enabled ? "habilitada" : "desabilitada"));
 
         EmailConfiguration config = emailConfigurationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Configuração não encontrada com ID: " + id));
@@ -238,7 +238,7 @@ public class EmailConfigurationService extends BaseService {
             if (newDefault.isPresent()) {
                 newDefault.get().setDefault(true);
                 emailConfigurationRepository.save(newDefault.get());
-                logInfo("Nova configuração padrão definida: ID {}", newDefault.get().getId());
+                logInfo(String.format("Nova configuração padrão definida: ID %d", newDefault.get().getId()));
             } else {
                 logWarn("Nenhuma configuração ativa disponível para ser padrão");
             }
@@ -258,7 +258,7 @@ public class EmailConfigurationService extends BaseService {
     public void deleteConfiguration(Long id) {
         validateNotNull(id, "ID não pode ser nulo");
 
-        logInfo("Removendo configuração ID: {}", id);
+        logInfo(String.format("Removendo configuração ID: %d", id));
 
         EmailConfiguration config = emailConfigurationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Configuração não encontrada com ID: " + id));
@@ -273,7 +273,7 @@ public class EmailConfigurationService extends BaseService {
             if (newDefault.isPresent()) {
                 newDefault.get().setDefault(true);
                 emailConfigurationRepository.save(newDefault.get());
-                logInfo("Nova configuração padrão definida: ID {}", newDefault.get().getId());
+                logInfo(String.format("Nova configuração padrão definida: ID %d", newDefault.get().getId()));
             }
         }
 
@@ -355,7 +355,7 @@ public class EmailConfigurationService extends BaseService {
     public EmailConfiguration getProviderDefaults(EmailProvider provider) {
         validateNotNull(provider, "Provider não pode ser nulo");
         
-        logDebug("Obtendo configurações padrão para provider: {}", provider);
+        logDebug(String.format("Obtendo configurações padrão para provider: %s", provider));
         
         EmailConfiguration config = new EmailConfiguration();
         config.setProvider(provider);

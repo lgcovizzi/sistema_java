@@ -2,7 +2,7 @@ package com.sistema.service;
 
 import com.sistema.config.SmtpConfig;
 import com.sistema.entity.EmailConfiguration;
-import com.sistema.entity.EmailProvider;
+import com.sistema.enums.EmailProvider;
 import com.sistema.service.base.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -61,7 +61,7 @@ public class SmtpService extends BaseService {
         
         if (configOpt.isPresent()) {
             EmailConfiguration config = configOpt.get();
-            logDebug("Usando configuração dinâmica: {}", config.getProviderDisplayName());
+            logDebug(String.format("Usando configuração dinâmica: %s", config.getProviderDisplayName()));
             return createMailSender(config);
         } else {
             logDebug("Usando configuração estática (fallback)");
@@ -161,7 +161,7 @@ public class SmtpService extends BaseService {
 
             return sendWithRetry(() -> {
                 configuredSender.send(message);
-                logInfo("Email simples enviado com sucesso para: {} usando configuração dinâmica", to);
+                logInfo(String.format("Email simples enviado com sucesso para: %s usando configuração dinâmica", to));
                 return true;
             });
 
@@ -216,7 +216,7 @@ public class SmtpService extends BaseService {
 
             return sendWithRetry(() -> {
                 configuredSender.send(message);
-                logInfo("Email HTML enviado com sucesso para: {} usando configuração dinâmica", to);
+                logInfo(String.format("Email HTML enviado com sucesso para: %s usando configuração dinâmica", to));
                 return true;
             });
 

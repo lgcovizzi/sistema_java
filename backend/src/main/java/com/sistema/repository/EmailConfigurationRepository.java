@@ -1,7 +1,7 @@
 package com.sistema.repository;
 
 import com.sistema.entity.EmailConfiguration;
-import com.sistema.entity.EmailProvider;
+import com.sistema.enums.EmailProvider;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

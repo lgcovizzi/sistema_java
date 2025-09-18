@@ -417,6 +417,35 @@
             box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
 
+        /* Password field with eye icon */
+        .password-field {
+            position: relative;
+        }
+
+        .password-field .form-input {
+            padding-right: 45px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: var(--text-light);
+            font-size: 1.2rem;
+            transition: color 0.3s ease;
+            user-select: none;
+        }
+
+        .password-toggle:hover {
+            color: var(--primary-color);
+        }
+
+        .password-toggle.active {
+            color: var(--primary-color);
+        }
+
         .error-message {
             background-color: #fef2f2;
             color: var(--error-color);
@@ -601,8 +630,11 @@
 
                     <div class="form-group">
                         <label for="loginPassword" class="form-label">Senha</label>
-                        <input type="password" id="loginPassword" name="password" class="form-input" 
-                               placeholder="Digite sua senha" required>
+                        <div class="password-field">
+                            <input type="password" id="loginPassword" name="password" class="form-input" 
+                                   placeholder="Digite sua senha" required>
+                            <span class="password-toggle" onclick="togglePassword('loginPassword', this)">👁️</span>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-primary" style="width: 100%;">Entrar</button>
@@ -670,14 +702,20 @@
 
                     <div class="form-group">
                         <label for="registerPassword" class="form-label">Senha</label>
-                        <input type="password" id="registerPassword" name="password" class="form-input" 
-                               placeholder="Crie uma senha segura" required>
+                        <div class="password-field">
+                            <input type="password" id="registerPassword" name="password" class="form-input" 
+                                   placeholder="Crie uma senha segura" required>
+                            <span class="password-toggle" onclick="togglePassword('registerPassword', this)">👁️</span>
+                        </div>
                     </div>
 
                     <div class="form-group">
                         <label for="confirmPassword" class="form-label">Confirmar Senha</label>
-                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" 
-                               placeholder="Confirme sua senha" required>
+                        <div class="password-field">
+                            <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" 
+                                   placeholder="Confirme sua senha" required>
+                            <span class="password-toggle" onclick="togglePassword('confirmPassword', this)">👁️</span>
+                        </div>
                     </div>
 
                     <button type="submit" class="btn btn-primary" style="width: 100%;">Criar Conta</button>
@@ -742,7 +780,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary" style="width: 100%;">Enviar Instruções</button>
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Envia</button>
                 </form>
 
                 <div class="divider">
@@ -762,12 +800,31 @@
         // Wait for DOM to be fully loaded
         document.addEventListener('DOMContentLoaded', function() {
             
+            // Password toggle function
+            window.togglePassword = function(inputId, toggleElement) {
+                const passwordInput = document.getElementById(inputId);
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    toggleElement.textContent = '🙈';
+                    toggleElement.classList.add('active');
+                } else {
+                    passwordInput.type = 'password';
+                    toggleElement.textContent = '👁️';
+                    toggleElement.classList.remove('active');
+                }
+            }
+            
             // Modal Functions
             window.openModal = function(modalId) {
                 const modal = document.getElementById(modalId);
                 if (modal) {
                     modal.style.display = 'block';
                     document.body.style.overflow = 'hidden';
+                    
+                    // Show captcha automatically when opening forgot password modal
+                    if (modalId === 'forgotPasswordModal') {
+                        showForgotPasswordCaptcha();
+                    }
                 }
             }
 
@@ -832,6 +889,114 @@
                 if (remainder !== parseInt(cpf.charAt(10))) return false;
                 
                 return true;
+            }
+            
+            // Real-time validation functions
+            function validateCpfRealTime(cpf, inputElement) {
+                 if (validateCPF(cpf)) {
+                     // Check if CPF is already registered
+                     fetch('/api/auth/validate-cpf', {
+                         method: 'POST',
+                         headers: {
+                             'Content-Type': 'application/json',
+                         },
+                         body: JSON.stringify({ cpf: cpf })
+                     })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.exists) {
+                            showValidationError(inputElement, 'CPF já cadastrado no sistema');
+                        } else {
+                            showValidationSuccess(inputElement, 'CPF válido');
+                        }
+                    })
+                    .catch(() => {
+                        showValidationSuccess(inputElement, 'CPF válido');
+                    });
+                } else {
+                    showValidationError(inputElement, 'CPF inválido');
+                }
+            }
+            
+            function validateEmailRealTime(email, inputElement) {
+                 fetch('/api/auth/validate-email', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json',
+                     },
+                     body: JSON.stringify({ email: email })
+                 })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.exists) {
+                        showValidationError(inputElement, 'Email já cadastrado no sistema');
+                    } else {
+                        showValidationSuccess(inputElement, 'Email disponível');
+                    }
+                })
+                .catch(() => {
+                    clearValidationFeedback(inputElement);
+                });
+            }
+            
+            function showValidationError(inputElement, message) {
+                clearValidationFeedback(inputElement);
+                
+                inputElement.style.borderColor = 'var(--error-color)';
+                inputElement.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'validation-feedback validation-error';
+                errorDiv.textContent = message;
+                errorDiv.style.cssText = `
+                    color: var(--error-color);
+                    font-size: 0.875rem;
+                    margin-top: 0.25rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.25rem;
+                `;
+                
+                const icon = document.createElement('span');
+                icon.textContent = '❌';
+                errorDiv.insertBefore(icon, errorDiv.firstChild);
+                
+                inputElement.parentNode.appendChild(errorDiv);
+            }
+            
+            function showValidationSuccess(inputElement, message) {
+                clearValidationFeedback(inputElement);
+                
+                inputElement.style.borderColor = 'var(--success-color)';
+                inputElement.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)';
+                
+                const successDiv = document.createElement('div');
+                successDiv.className = 'validation-feedback validation-success';
+                successDiv.textContent = message;
+                successDiv.style.cssText = `
+                    color: var(--success-color);
+                    font-size: 0.875rem;
+                    margin-top: 0.25rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.25rem;
+                `;
+                
+                const icon = document.createElement('span');
+                icon.textContent = '✅';
+                successDiv.insertBefore(icon, successDiv.firstChild);
+                
+                inputElement.parentNode.appendChild(successDiv);
+            }
+            
+            function clearValidationFeedback(inputElement) {
+                inputElement.style.borderColor = '';
+                inputElement.style.boxShadow = '';
+                
+                const existingFeedback = inputElement.parentNode.querySelector('.validation-feedback');
+                if (existingFeedback) {
+                    existingFeedback.remove();
+                }
             }
 
             // Login Form Handler
@@ -991,11 +1156,46 @@
                 });
             }
             
-            // CPF input formatting
+            // CPF input formatting and validation for register
             const cpfField = document.getElementById('registerCpf');
             if (cpfField) {
                 cpfField.addEventListener('input', function(e) {
                     e.target.value = formatCPF(e.target.value);
+                    
+                    // Real-time CPF validation
+                    const cpf = e.target.value.replace(/\D/g, '');
+                    if (cpf.length === 11) {
+                        validateCpfRealTime(cpf, e.target);
+                    } else {
+                        clearValidationFeedback(e.target);
+                    }
+                });
+            }
+            
+            // Email validation for register
+            const emailField = document.getElementById('registerEmail');
+            if (emailField) {
+                let emailTimeout;
+                emailField.addEventListener('input', function(e) {
+                    const email = e.target.value.trim();
+                    
+                    // Clear previous timeout
+                    if (emailTimeout) {
+                        clearTimeout(emailTimeout);
+                    }
+                    
+                    // Validate email format first
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (email && emailRegex.test(email)) {
+                        // Debounce validation to avoid too many requests
+                        emailTimeout = setTimeout(() => {
+                            validateEmailRealTime(email, e.target);
+                        }, 500);
+                    } else if (email) {
+                        showValidationError(e.target, 'Formato de email inválido');
+                    } else {
+                        clearValidationFeedback(e.target);
+                    }
                 });
             }
             
@@ -1067,8 +1267,8 @@
                         requestData.captchaAnswer = captchaAnswerField.value;
                     }
                     
-                    // Make API call
-                    fetch('/api/auth/forgot-password', {
+                    // Make API call to verify CPF first
+                    fetch('/api/auth/verify-cpf', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1078,7 +1278,7 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            successMessage.textContent = data.message + (data.maskedEmail ? ' (' + data.maskedEmail + ')' : '');
+                            successMessage.textContent = 'CPF encontrado! Email mascarado: ' + data.maskedEmail;
                             successMessage.style.display = 'block';
                             
                             // Clear form
@@ -1093,17 +1293,24 @@
                                 closeModal('forgotPasswordModal');
                             }, 3000);
                         } else {
-                            errorMessage.textContent = data.message || 'Erro ao solicitar recuperação de senha.';
+                            let errorMsg = data.message || 'Erro ao verificar CPF.';
+                            
+                            // Show remaining attempts if available
+                            if (data.remainingAttempts !== undefined) {
+                                errorMsg += ` Tentativas restantes: ${data.remainingAttempts}`;
+                            }
+                            
+                            errorMessage.textContent = errorMsg;
                             errorMessage.style.display = 'block';
                             
-                            // Show captcha if required
+                            // Show captcha if required (after 3 failed attempts)
                             if (data.requiresCaptcha) {
                                 showForgotPasswordCaptcha();
                             }
                         }
                     })
                     .catch(error => {
-                        console.error('Erro na recuperação de senha:', error);
+                        console.error('Erro na verificação de CPF:', error);
                         errorMessage.textContent = 'Erro de conexão. Tente novamente.';
                         errorMessage.style.display = 'block';
                         
@@ -1140,8 +1347,8 @@
         };
         
         window.generateForgotPasswordCaptcha = function() {
-            fetch('/api/auth/captcha/generate', {
-                method: 'POST',
+            fetch('/api/captcha/generate', {
+                method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                 }
@@ -1153,7 +1360,7 @@
                     const captchaIdField = document.getElementById('forgotPasswordCaptchaId');
                     
                     if (captchaImage && captchaIdField) {
-                        captchaImage.src = 'data:image/png;base64,' + data.imageBase64;
+                        captchaImage.src = data.imageDataUrl;
                         captchaIdField.value = data.captchaId;
                     }
                 }

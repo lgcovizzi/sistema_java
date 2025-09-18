@@ -22,7 +22,7 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
     
     private static final Logger logger = LoggerFactory.getLogger(AttemptService.class);
     
-    private static final int MAX_ATTEMPTS_BEFORE_CAPTCHA = 5;
+    private static final int MAX_ATTEMPTS_BEFORE_CAPTCHA = 3;
     private static final int ATTEMPT_EXPIRY_MINUTES = 30;
     private static final int PASSWORD_RESET_RATE_LIMIT_MINUTES = 1;
     
@@ -473,6 +473,68 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
      */
     public int getRemainingAttempts(String identifier) {
         int currentAttempts = getLoginAttempts(identifier);
+        int remaining = MAX_ATTEMPTS_BEFORE_CAPTCHA - currentAttempts;
+        return Math.max(0, remaining);
+    }
+    
+    // ===== MÉTODOS ESPECÍFICOS PARA CONTROLE DE TENTATIVAS BASEADO EM CPF =====
+    
+    /**
+     * Registra uma tentativa de erro de CPF.
+     * 
+     * @param cpf CPF que foi informado incorretamente
+     * @return número atual de tentativas para este CPF
+     */
+    public int recordCpfErrorAttempt(String cpf) {
+        String key = "cpf_error_attempts:" + cpf;
+        return recordAttempt(key, cpf, "cpf_error");
+    }
+    
+    /**
+     * Verifica se captcha é necessário para este CPF (após 3 erros).
+     * 
+     * @param cpf CPF a ser verificado
+     * @return true se captcha é necessário
+     */
+    public boolean isCaptchaRequiredForCpf(String cpf) {
+        String attemptKey = "cpf_error_attempts:" + cpf;
+        return isCaptchaRequired(attemptKey);
+    }
+    
+    /**
+     * Limpa tentativas de erro de CPF após sucesso.
+     * 
+     * @param cpf CPF que foi verificado com sucesso
+     */
+    public void clearCpfErrorAttempts(String cpf) {
+        String key = "cpf_error_attempts:" + cpf;
+        String captchaKey = CAPTCHA_REQUIRED_PREFIX + "cpf_error:" + cpf;
+        
+        delete(key);
+        delete(captchaKey);
+        
+        logInfo("Tentativas de erro de CPF limpas para CPF: " + cpf);
+    }
+    
+    /**
+     * Obtém o número de tentativas de erro para um CPF.
+     * 
+     * @param cpf CPF a ser verificado
+     * @return número de tentativas de erro
+     */
+    public int getCpfErrorAttempts(String cpf) {
+        String key = "cpf_error_attempts:" + cpf;
+        return getAttempts(key);
+    }
+    
+    /**
+     * Obtém o número de tentativas restantes antes de exigir captcha para um CPF.
+     * 
+     * @param cpf CPF a ser verificado
+     * @return número de tentativas restantes
+     */
+    public int getRemainingCpfAttempts(String cpf) {
+        int currentAttempts = getCpfErrorAttempts(cpf);
         int remaining = MAX_ATTEMPTS_BEFORE_CAPTCHA - currentAttempts;
         return Math.max(0, remaining);
     }

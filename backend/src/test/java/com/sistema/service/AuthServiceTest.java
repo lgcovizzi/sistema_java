@@ -54,6 +54,9 @@ class AuthServiceTest {
     private AuthenticationManager authenticationManager;
 
     @Mock
+    private EmailVerificationService emailVerificationService;
+
+    @Mock
     private HttpServletRequest request;
 
     @Mock
@@ -173,17 +176,17 @@ class AuthServiceTest {
         // Given
         String validPassword = "Password123!";
         when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.empty());
-        when(userRepository.existsByCpf("12345678901")).thenReturn(false);
+        when(userRepository.existsByCpf("11144477735")).thenReturn(false);
         when(passwordEncoder.encode(validPassword)).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(testUser);
 
         // When
-        User result = authService.register("new@example.com", validPassword, "New", "User", "12345678901");
+        User result = authService.register("new@example.com", validPassword, "New", "User", "11144477735");
 
         // Then
         assertThat(result).isNotNull();
         verify(userRepository).findByEmail("new@example.com");
-        verify(userRepository).existsByCpf("12345678901");
+        verify(userRepository).existsByCpf("11144477735");
         verify(passwordEncoder).encode(validPassword);
         verify(userRepository).save(any(User.class));
     }
@@ -209,24 +212,26 @@ class AuthServiceTest {
     void registerAndAuthenticate_Success() {
         // Given
         String validPassword = "Password123!";
-        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+        when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.empty());
+        when(userRepository.existsByCpf("11144477735")).thenReturn(false);
         when(passwordEncoder.encode(validPassword)).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(testUser);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(authentication);
+            .thenReturn(authentication);
         when(authentication.getPrincipal()).thenReturn(testUser);
         when(jwtService.generateAccessToken(testUser)).thenReturn("access-token");
         when(refreshTokenService.createRefreshToken(testUser, request)).thenReturn(testRefreshToken);
 
         // When
-        Map<String, Object> result = authService.registerAndAuthenticate("new@example.com", validPassword, "New", "User", "12345678901", request);
+        Map<String, Object> result = authService.registerAndAuthenticate("new@example.com", validPassword, "New", "User", "11144477735", request);
 
         // Then
         assertThat(result).isNotNull();
         assertThat(result.get("accessToken")).isEqualTo("access-token");
-        // Verificar que o usuário foi salvo 2 vezes: 1x no register + 1x no updateLastLogin
-        verify(userRepository, times(2)).save(any(User.class));
-        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        verify(userRepository).findByEmail("new@example.com");
+        verify(userRepository).existsByCpf("11144477735");
+        verify(passwordEncoder).encode(validPassword);
+        verify(userRepository).save(any(User.class));
     }
 
     @Test
@@ -778,6 +783,160 @@ class AuthServiceTest {
 
             // Then
             assertThat(result).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("Email Activation Tests")
+    class EmailActivationTests {
+
+        @Test
+        @DisplayName("REGRA CRÍTICA: Deve obrigatoriamente enviar email de ativação após cadastro de usuário comum")
+        void shouldMandatorilySendActivationEmailAfterUserRegistration() {
+            // Given
+            String email = "newuser@example.com";
+            String password = "Password123!";
+            String firstName = "New";
+            String lastName = "User";
+            String cpf = "11144477735";
+            
+            User newUser = new User();
+            newUser.setId(2L);
+            newUser.setEmail(email);
+            newUser.setPassword("encodedPassword");
+            newUser.setFirstName(firstName);
+            newUser.setLastName(lastName);
+            newUser.setCpf(cpf);
+            newUser.setRole(UserRole.USER);
+            newUser.setEmailVerified(false);
+            
+            when(userRepository.existsByEmail(email)).thenReturn(false);
+            when(userRepository.existsByCpf(cpf)).thenReturn(false);
+            when(passwordEncoder.encode(password)).thenReturn("encodedPassword");
+            when(userRepository.save(any(User.class))).thenReturn(newUser);
+            when(emailVerificationService.generateVerificationToken(any(User.class))).thenReturn("verification-token-123");
+
+            // When
+            User registeredUser = authService.register(email, password, firstName, lastName, cpf);
+
+            // Then
+            assertThat(registeredUser).isNotNull();
+            assertThat(registeredUser.getRole()).isEqualTo(UserRole.USER);
+            assertThat(registeredUser.isEmailVerified()).isFalse();
+            
+            // REGRA CRÍTICA: Verificar que o email de ativação foi enviado obrigatoriamente
+            verify(emailVerificationService, times(1)).generateVerificationToken(any(User.class));
+            verify(userRepository, times(1)).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Deve NÃO enviar email de ativação para usuário ADMIN")
+        void shouldNotSendActivationEmailForAdminUser() {
+            // Given
+            String email = "admin@example.com";
+            String password = "AdminPassword123!";
+            String firstName = "Admin";
+            String lastName = "User";
+            String cpf = "52998224725";
+            
+            User adminUser = new User();
+            adminUser.setId(3L);
+            adminUser.setEmail(email);
+            adminUser.setPassword("encodedPassword");
+            adminUser.setFirstName(firstName);
+            adminUser.setLastName(lastName);
+            adminUser.setCpf(cpf);
+            adminUser.setRole(UserRole.ADMIN);
+            adminUser.setEmailVerified(true); // Admin já vem verificado
+            
+            when(userRepository.existsByEmail(email)).thenReturn(false);
+            when(userRepository.existsByCpf(cpf)).thenReturn(false);
+            when(passwordEncoder.encode(password)).thenReturn("encodedPassword");
+            when(userRepository.save(any(User.class))).thenReturn(adminUser);
+
+            // When
+            User registeredUser = authService.register(email, password, firstName, lastName, cpf);
+
+            // Then
+            assertThat(registeredUser).isNotNull();
+            assertThat(registeredUser.getRole()).isEqualTo(UserRole.ADMIN);
+            assertThat(registeredUser.isEmailVerified()).isTrue();
+            
+            // Verificar que o email de ativação NÃO foi enviado para admin
+            verify(emailVerificationService, never()).generateVerificationToken(any(User.class));
+            verify(userRepository, times(1)).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("REGRA CRÍTICA: Cadastro deve falhar se envio de email falhar para usuário comum")
+        void shouldFailRegistrationIfEmailSendingFailsForRegularUser() {
+            // Given
+            String email = "failuser@example.com";
+            String password = "Password123!";
+            String firstName = "Fail";
+            String lastName = "User";
+            String cpf = "11122233344";
+            
+            when(userRepository.existsByEmail(email)).thenReturn(false);
+            when(userRepository.existsByCpf(cpf)).thenReturn(false);
+            when(passwordEncoder.encode(password)).thenReturn("encodedPassword");
+            
+            // Simular falha no envio de email
+            when(emailVerificationService.generateVerificationToken(any(User.class)))
+                .thenThrow(new RuntimeException("Falha no envio de email"));
+
+            // When & Then
+            assertThatThrownBy(() -> authService.register(email, password, firstName, lastName, cpf))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Falha no envio de email");
+            
+            // Verificar que tentou enviar o email
+            verify(emailVerificationService, times(1)).generateVerificationToken(any(User.class));
+        }
+
+        @Test
+        @DisplayName("REGRA CRÍTICA: registerAndAuthenticate deve enviar email de ativação mesmo com autenticação automática")
+        void shouldSendActivationEmailEvenWithAutoAuthentication() {
+            // Given
+            String email = "autoauth@example.com";
+            String password = "Password123!";
+            String firstName = "Auto";
+            String lastName = "Auth";
+            String cpf = "12345678909";
+            
+            User newUser = new User();
+            newUser.setId(4L);
+            newUser.setEmail(email);
+            newUser.setPassword("encodedPassword");
+            newUser.setFirstName(firstName);
+            newUser.setLastName(lastName);
+            newUser.setCpf(cpf);
+            newUser.setRole(UserRole.USER);
+            newUser.setEmailVerified(false);
+            
+            when(userRepository.existsByEmail(email)).thenReturn(false);
+            when(userRepository.existsByCpf(cpf)).thenReturn(false);
+            when(passwordEncoder.encode(password)).thenReturn("encodedPassword");
+            when(userRepository.save(any(User.class))).thenReturn(newUser);
+            when(userRepository.findById(4L)).thenReturn(Optional.of(newUser)); // Mock para updateLastLogin
+            when(emailVerificationService.generateVerificationToken(any(User.class))).thenReturn("verification-token-456");
+            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(authentication);
+            when(authentication.getPrincipal()).thenReturn(newUser);
+            when(jwtService.generateAccessToken(newUser)).thenReturn("access-token");
+            when(refreshTokenService.createRefreshToken(newUser, request)).thenReturn(testRefreshToken);
+
+            // When
+            Map<String, Object> result = authService.registerAndAuthenticate(email, password, firstName, lastName, cpf, request);
+
+            // Then
+            assertThat(result).isNotNull();
+            assertThat(result.get("accessToken")).isEqualTo("access-token");
+            
+            // REGRA CRÍTICA: Verificar que o email de ativação foi enviado mesmo com autenticação automática
+            verify(emailVerificationService, times(1)).generateVerificationToken(any(User.class));
+            verify(userRepository, times(2)).save(any(User.class)); // 1x no register + 1x no updateLastLogin
+            verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         }
     }
 

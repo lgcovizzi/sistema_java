@@ -60,6 +60,7 @@ com/sistema/controller/AuthController$ConfirmEmailRequest.class
 com/sistema/enums/ToastType.class
 com/sistema/exception/RateLimitException.class
 com/sistema/controller/HealthController.class
+com/sistema/controller/AuthController$ValidateCpfRequest.class
 com/sistema/service/SmtpService$SmtpStats.class
 com/sistema/config/SecurityConfig.class
 com/sistema/service/AuthService.class
@@ -91,6 +92,7 @@ com/sistema/exception/ErrorResponse$FieldError.class
 com/sistema/util/CpfGenerator.class
 com/sistema/controller/ToastController$MessageRequest.class
 com/sistema/service/base/BaseRedisService.class
+com/sistema/controller/AuthController$ValidateEmailRequest.class
 com/sistema/controller/AuthController$VerifyCpfRequest.class
 com/sistema/service/SmtpService.class
 com/sistema/service/base/BaseSecurityService.class

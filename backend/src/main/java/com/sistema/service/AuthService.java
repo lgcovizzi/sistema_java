@@ -218,6 +218,7 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         
         ValidationUtils.validateEmail(email);
         ValidationUtils.validatePassword(password);
+        ValidationUtils.validateCpf(cpf);
         
         // Verificar se dados já existem usando métodos da classe base
         validateEmailNotInUse(email, null);
@@ -261,8 +262,9 @@ public class AuthService extends BaseUserService implements UserDetailsService {
                 String verificationToken = emailVerificationService.generateVerificationToken(savedUser);
                 logger.info("Token de verificação gerado para: {}", email);
             } catch (Exception e) {
-                logger.error("Erro ao gerar token de verificação para: {}", email, e);
-                // Não falha o registro se o token não puder ser gerado
+                logger.error("ERRO CRÍTICO: Falha ao gerar token de verificação para: {}", email, e);
+                // REGRA CRÍTICA: Falhar o registro se o email não puder ser enviado
+                throw new RuntimeException("Falha no envio de email de ativação: " + e.getMessage(), e);
             }
         }
         
@@ -586,7 +588,7 @@ public class AuthService extends BaseUserService implements UserDetailsService {
      */
     public Optional<User> findByCpf(String cpf) {
         try {
-            ValidationUtils.validateNotBlank(cpf, "CPF é obrigatório");
+            ValidationUtils.validateCpf(cpf);
             return userRepository.findByCpf(cpf);
         } catch (Exception e) {
             logError("Erro ao buscar usuário por CPF: " + cpf, e);

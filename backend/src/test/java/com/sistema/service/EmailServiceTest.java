@@ -213,13 +213,13 @@ class EmailServiceTest {
         String expectedHtmlContent = "<html>Password reset content</html>";
 
         when(templateEngine.process(eq("password-reset"), any(Context.class))).thenReturn(expectedHtmlContent);
-        doNothing().when(smtpService).sendHtmlEmail(eq(testUser.getEmail()), anyString(), eq(expectedHtmlContent));
+        when(smtpService.sendHtmlEmail(eq(testUser.getEmail()), anyString(), eq(expectedHtmlContent))).thenReturn(true);
 
         // When
-        assertThatCode(() -> emailService.sendPasswordResetEmail(testUser, resetToken))
-                .doesNotThrowAnyException();
+        boolean result = emailService.sendPasswordResetEmail(testUser, resetToken);
 
         // Then
+        assertThat(result).isTrue();
         verify(templateEngine).process(eq("password-reset"), any(Context.class));
         verify(smtpService).sendHtmlEmail(eq(testUser.getEmail()), contains("Recuperação de Senha"), eq(expectedHtmlContent));
     }
@@ -231,7 +231,7 @@ class EmailServiceTest {
         String verificationToken = "verification123";
         String htmlTemplate = "<html><body>Verificação: verification123</body></html>";
 
-        when(templateEngine.process(eq("email/verification"), any(Context.class)))
+        when(templateEngine.process(eq("email-verification"), any(Context.class)))
                 .thenReturn(htmlTemplate);
         when(smtpService.sendHtmlEmail(eq(testUser.getEmail()), anyString(), eq(htmlTemplate))).thenReturn(true);
 
@@ -240,7 +240,7 @@ class EmailServiceTest {
                 .doesNotThrowAnyException();
 
         // Then
-        verify(templateEngine).process(eq("email/verification"), any(Context.class));
+        verify(templateEngine).process(eq("email-verification"), any(Context.class));
         verify(smtpService).sendHtmlEmail(eq(testUser.getEmail()), contains("Verificação"), eq(htmlTemplate));
     }
 
@@ -251,7 +251,7 @@ class EmailServiceTest {
         String verificationToken = "verification123";
         String htmlTemplate = "<html><body>Verificação: verification123</body></html>";
 
-        when(templateEngine.process(eq("email/verification"), any(Context.class)))
+        when(templateEngine.process(eq("email-verification"), any(Context.class)))
                 .thenReturn(htmlTemplate);
         when(smtpService.sendHtmlEmail(eq(testUser.getEmail()), anyString(), eq(htmlTemplate))).thenReturn(true);
 
@@ -260,7 +260,7 @@ class EmailServiceTest {
 
         // Then
         assertThat(result).isTrue();
-        verify(templateEngine).process(eq("email/verification"), any(Context.class));
+        verify(templateEngine).process(eq("email-verification"), any(Context.class));
         verify(smtpService).sendHtmlEmail(eq(testUser.getEmail()), contains("Verificação"), eq(htmlTemplate));
     }
 

@@ -62,6 +62,14 @@ public class UserService {
         return userRepository.findByEmail(email);
     }
 
+    /**
+     * Busca usuário por ID
+     */
+    @Transactional(readOnly = true)
+    public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
+    }
+
 
 
     /**

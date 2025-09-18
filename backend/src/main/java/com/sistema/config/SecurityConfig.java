@@ -77,6 +77,8 @@ public class SecurityConfig {
                     "/api/auth/reset-password",
                     "/api/auth/verify-cpf",
                     "/api/auth/confirm-email",
+                    "/api/auth/validate-cpf",
+                    "/api/auth/validate-email",
                     "/api/auth/captcha/**",
                     "/api/captcha/**",
                     "/api/email/**",

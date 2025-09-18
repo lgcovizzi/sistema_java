@@ -323,16 +323,22 @@ public class EmailService extends BaseService {
     }
 
     /**
-     * Extrai primeiro nome do usuário.
+     * Extrai nome completo do usuário.
      * 
      * @param user usuário
-     * @return primeiro nome
+     * @return nome completo ou primeiro nome se sobrenome não disponível
      */
     private String getFirstName(User user) {
-        if (user.getUsername() != null && !user.getUsername().trim().isEmpty()) {
-            String[] parts = user.getUsername().trim().split("\\s+");
-            return parts[0];
+        // Usar o método getFullName() da entidade User que já combina firstName e lastName
+        if (user.getFullName() != null && !user.getFullName().trim().isEmpty()) {
+            return user.getFullName();
         }
+        
+        // Fallback para firstName se getFullName() não funcionar
+        if (user.getFirstName() != null && !user.getFirstName().trim().isEmpty()) {
+            return user.getFirstName();
+        }
+        
         return "Usuário";
     }
 

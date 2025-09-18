@@ -4,6 +4,7 @@ import com.sistema.dto.UpdateProfileRequest;
 import com.sistema.entity.User;
 import com.sistema.entity.UserRole;
 import com.sistema.service.AuthService;
+import com.sistema.service.UserService;
 import com.sistema.service.JwtService;
 import com.sistema.service.TokenBlacklistService;
 import com.sistema.service.AttemptService;
@@ -11,7 +12,7 @@ import com.sistema.service.CaptchaService;
 import com.sistema.service.EmailVerificationService;
 import com.sistema.service.PasswordResetService;
 import com.sistema.validation.ValidCpf;
-import com.sistema.util.EmailMaskUtil;
+import com.sistema.util.SecurityUtils;
 import com.sistema.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -47,6 +48,7 @@ public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
+    private final UserService userService;
     private final JwtService jwtService;
     private final TokenBlacklistService tokenBlacklistService;
     private final AttemptService attemptService;
@@ -55,10 +57,11 @@ public class AuthController {
     private final PasswordResetService passwordResetService;
 
     @Autowired
-    public AuthController(AuthService authService, JwtService jwtService, TokenBlacklistService tokenBlacklistService,
+    public AuthController(AuthService authService, UserService userService, JwtService jwtService, TokenBlacklistService tokenBlacklistService,
                          AttemptService attemptService, CaptchaService captchaService, 
                          EmailVerificationService emailVerificationService, PasswordResetService passwordResetService) {
         this.authService = authService;
+        this.userService = userService;
         this.jwtService = jwtService;
         this.tokenBlacklistService = tokenBlacklistService;
         this.attemptService = attemptService;
@@ -310,14 +313,86 @@ public class AuthController {
             return ResponseEntity.ok(userInfo);
             
         } catch (Exception e) {
-            logger.error("Erro ao obter informações do usuário", e);
+            logger.error("Erro na atualização do perfil", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
         }
     }
 
     /**
-     * Endpoint para atualização do perfil do usuário autenticado.
+     * Endpoint para validar se CPF já está cadastrado.
+     * 
+     * @param request dados de validação de CPF
+     * @param httpRequest requisição HTTP
+     * @return resultado da validação
+     */
+    @PostMapping("/validate-cpf")
+    public ResponseEntity<?> validateCpf(@Valid @RequestBody ValidateCpfRequest request, HttpServletRequest httpRequest) {
+        String clientIp = getClientIpAddress(httpRequest);
+        
+        try {
+            String cpf = request.getCpf();
+            Optional<User> userOpt = authService.findByCpf(cpf);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("cpf", cpf);
+            response.put("exists", userOpt.isPresent());
+            response.put("available", !userOpt.isPresent());
+            
+            if (userOpt.isPresent()) {
+                response.put("message", "CPF já está cadastrado no sistema");
+            } else {
+                response.put("message", "CPF disponível para cadastro");
+            }
+            
+            logger.debug("Validação de CPF: {} - Existe: {}", cpf, userOpt.isPresent());
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("Erro na validação de CPF: {} (IP: {})", request.getCpf(), clientIp, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
+        }
+    }
+
+    /**
+     * Endpoint para validar se email já está cadastrado.
+     * 
+     * @param request dados de validação de email
+     * @param httpRequest requisição HTTP
+     * @return resultado da validação
+     */
+    @PostMapping("/validate-email")
+    public ResponseEntity<?> validateEmail(@Valid @RequestBody ValidateEmailRequest request, HttpServletRequest httpRequest) {
+        String clientIp = getClientIpAddress(httpRequest);
+        
+        try {
+            String email = request.getEmail();
+            Optional<User> userOpt = userService.findByEmail(email);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("email", email);
+            response.put("exists", userOpt.isPresent());
+            response.put("available", !userOpt.isPresent());
+            
+            if (userOpt.isPresent()) {
+                response.put("message", "Email já está cadastrado no sistema");
+            } else {
+                response.put("message", "Email disponível para cadastro");
+            }
+            
+            logger.debug("Validação de email: {} - Existe: {}", email, userOpt.isPresent());
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("Erro na validação de email: {} (IP: {})", request.getEmail(), clientIp, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
+        }
+    }
+
+    /**
+     * Endpoint para alteração de senha do usuário autenticado.
      * 
      * @param updateProfileRequest dados de atualização do perfil
      * @return informações atualizadas do usuário
@@ -393,24 +468,26 @@ public class AuthController {
 
     /**
      * Endpoint para verificar CPF e retornar email mascarado
+     * Captcha é obrigatório após 3 tentativas de erro com o mesmo CPF
      */
     @PostMapping("/verify-cpf")
     public ResponseEntity<?> verifyCpf(@Valid @RequestBody VerifyCpfRequest verifyCpfRequest, 
                                       HttpServletRequest httpRequest) {
         try {
-            String clientIp = getClientIpAddress(httpRequest);
+            String cpf = verifyCpfRequest.getCpf();
             
-            // Verificar se precisa de captcha (após 5 tentativas)
-            boolean requiresCaptcha = attemptService.isCpfVerificationCaptchaRequired(clientIp);
+            // Verificar se precisa de captcha (após 3 tentativas de erro com este CPF)
+            boolean requiresCaptcha = attemptService.isCaptchaRequiredForCpf(cpf);
             
             if (requiresCaptcha) {
                 // Validar captcha se necessário
                 if (verifyCpfRequest.getCaptchaId() == null || verifyCpfRequest.getCaptchaAnswer() == null) {
                     Map<String, Object> errorResponse = createErrorResponse(
-                        "Captcha é obrigatório após 5 tentativas", 
+                        "Captcha é obrigatório após 3 tentativas de erro", 
                         "CAPTCHA_REQUIRED"
                     );
                     errorResponse.put("requiresCaptcha", true);
+                    errorResponse.put("remainingAttempts", attemptService.getRemainingCpfAttempts(cpf));
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
                 }
                 
@@ -421,18 +498,18 @@ public class AuthController {
                 );
                 
                 if (!captchaValid) {
-                    attemptService.recordCpfVerificationAttempt(clientIp);
+                    attemptService.recordCpfErrorAttempt(cpf);
                     Map<String, Object> errorResponse = createErrorResponse(
                         "Captcha inválido", 
                         "INVALID_CAPTCHA"
                     );
                     errorResponse.put("requiresCaptcha", true);
+                    errorResponse.put("remainingAttempts", attemptService.getRemainingCpfAttempts(cpf));
                     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
                 }
             }
             
             // Buscar usuário por CPF
-            String cpf = verifyCpfRequest.getCpf();
             Optional<User> userOpt = authService.findByCpf(cpf);
             
             if (userOpt.isPresent()) {
@@ -443,7 +520,7 @@ public class AuthController {
                 logger.info("CPF verificado com sucesso: {} (email: {})", cpf, maskedEmail);
                 
                 // Limpar tentativas após sucesso
-                attemptService.clearCpfVerificationAttempts(clientIp);
+                attemptService.clearCpfErrorAttempts(cpf);
                 
                 Map<String, Object> response = new HashMap<>();
                 response.put("success", true);
@@ -453,14 +530,15 @@ public class AuthController {
                 
                 return ResponseEntity.ok(response);
             } else {
-                // Registrar tentativa falhada
-                attemptService.recordCpfVerificationAttempt(clientIp);
+                // Registrar tentativa de erro (CPF não encontrado)
+                attemptService.recordCpfErrorAttempt(cpf);
                 
                 Map<String, Object> errorResponse = createErrorResponse(
                     "CPF não encontrado", 
                     "CPF_NOT_FOUND"
                 );
-                errorResponse.put("requiresCaptcha", attemptService.isCpfVerificationCaptchaRequired(clientIp));
+                errorResponse.put("requiresCaptcha", attemptService.isCaptchaRequiredForCpf(cpf));
+                errorResponse.put("remainingAttempts", attemptService.getRemainingCpfAttempts(cpf));
                 
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
             }
@@ -598,15 +676,21 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(errorResponse);
             }
             
-            // Captcha é sempre obrigatório para recuperação de senha
-            if (!captchaService.validateCaptcha(forgotPasswordRequest.getCaptchaId(), forgotPasswordRequest.getCaptchaAnswer())) {
-                attemptService.recordPasswordResetAttempt(clientIp);
-                Map<String, Object> errorResponse = createErrorResponse(
-                    "Captcha inválido", 
-                    "INVALID_CAPTCHA"
-                );
-                errorResponse.put("requiresCaptcha", true);
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            // Verificar se captcha é necessário
+            boolean captchaRequired = attemptService.isCaptchaRequiredForPasswordReset(clientIp);
+            
+            if (captchaRequired) {
+                // Captcha é obrigatório após tentativas falhadas
+                if (forgotPasswordRequest.getCaptchaId() == null || forgotPasswordRequest.getCaptchaAnswer() == null ||
+                    !captchaService.validateCaptcha(forgotPasswordRequest.getCaptchaId(), forgotPasswordRequest.getCaptchaAnswer())) {
+                    attemptService.recordPasswordResetAttempt(clientIp);
+                    Map<String, Object> errorResponse = createErrorResponse(
+                        "Captcha inválido", 
+                        "INVALID_CAPTCHA"
+                    );
+                    errorResponse.put("requiresCaptcha", true);
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+                }
             }
             
             // Buscar usuário por CPF
@@ -616,7 +700,7 @@ public class AuthController {
             if (userOpt.isPresent()) {
                 User user = userOpt.get();
                 String email = user.getEmail();
-                String maskedEmail = EmailMaskUtil.maskEmail(email);
+                String maskedEmail = SecurityUtils.maskEmail(email);
                 
                 // Iniciar processo de reset de senha
                 boolean resetInitiated = passwordResetService.initiatePasswordReset(email);
@@ -741,7 +825,7 @@ public class AuthController {
             // Verificar se o email confirmado corresponde ao email do usuário
             if (!userEmail.equalsIgnoreCase(confirmedEmail)) {
                 logger.warn("Email confirmado não corresponde ao email do usuário. CPF: {}, Email esperado: {}, Email confirmado: {}", 
-                           cpf, EmailMaskUtil.maskEmail(userEmail), EmailMaskUtil.maskEmail(confirmedEmail));
+                           cpf, SecurityUtils.maskEmail(userEmail), SecurityUtils.maskEmail(confirmedEmail));
                 attemptService.recordPasswordResetAttempt(clientIp);
                 
                 Map<String, Object> errorResponse = createErrorResponse(
@@ -756,7 +840,7 @@ public class AuthController {
             boolean resetInitiated = passwordResetService.initiatePasswordReset(userEmail);
             
             if (resetInitiated) {
-                String maskedEmail = EmailMaskUtil.maskEmail(userEmail);
+                String maskedEmail = SecurityUtils.maskEmail(userEmail);
                 logger.info("Token de recuperação de senha enviado para CPF: {} (email: {})", cpf, maskedEmail);
                 
                 // Limpar tentativas após sucesso
@@ -772,7 +856,7 @@ public class AuthController {
                 
                 return ResponseEntity.ok(response);
             } else {
-                String maskedEmail = EmailMaskUtil.maskEmail(userEmail);
+                String maskedEmail = SecurityUtils.maskEmail(userEmail);
                 logger.error("Falha ao enviar email de recuperação para CPF: {} (email: {})", cpf, maskedEmail);
                 
                 // Registrar tentativa falhada
@@ -1249,11 +1333,9 @@ public class AuthController {
         @ValidCpf(message = "CPF inválido")
         private String cpf;
         
-        // Campos de captcha (sempre obrigatórios para recuperação de senha)
-        @NotBlank(message = "ID do captcha é obrigatório")
+        // Campos de captcha (opcionais na primeira tentativa, obrigatórios após tentativas falhadas)
         private String captchaId;
         
-        @NotBlank(message = "Resposta do captcha é obrigatória")
         private String captchaAnswer;
         
         // Getters e Setters
@@ -1362,5 +1444,25 @@ public class AuthController {
         public void setCaptchaId(String captchaId) { this.captchaId = captchaId; }
         public String getCaptchaAnswer() { return captchaAnswer; }
         public void setCaptchaAnswer(String captchaAnswer) { this.captchaAnswer = captchaAnswer; }
+    }
+
+    public static class ValidateCpfRequest {
+        @NotBlank(message = "CPF é obrigatório")
+        @ValidCpf(message = "CPF inválido")
+        private String cpf;
+
+        // Getters e setters
+        public String getCpf() { return cpf; }
+        public void setCpf(String cpf) { this.cpf = cpf; }
+    }
+
+    public static class ValidateEmailRequest {
+        @NotBlank(message = "Email é obrigatório")
+        @Email(message = "Email deve ser válido")
+        private String email;
+
+        // Getters e setters
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
     }
 }

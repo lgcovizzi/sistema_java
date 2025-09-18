@@ -88,6 +88,16 @@ senha
 
 **REGRA OBRIGATÓRIA**: Todo usuário cadastrado deve ativar sua conta através de email antes de poder fazer login.
 
+#### REGRA CRÍTICA DE ENVIO DE EMAIL
+**OBRIGATÓRIO**: O sistema DEVE enviar automaticamente um email de ativação imediatamente após o cadastro de qualquer usuário (exceto ADMIN). Esta operação é MANDATÓRIA e não pode falhar silenciosamente.
+
+##### Requisitos de Implementação:
+1. **Envio Automático**: O email de ativação deve ser enviado automaticamente no momento do cadastro
+2. **Falha Crítica**: Se o envio do email falhar, o cadastro deve ser revertido (rollback da transação)
+3. **Logs Obrigatórios**: Toda tentativa de envio deve ser registrada em logs
+4. **Testes Unitários**: Devem existir testes que validem o envio obrigatório do email
+5. **Validação de Integração**: Testes de integração devem verificar o fluxo completo
+
 #### Fluxo de Ativação:
 
 1. **Cadastro de Usuário**:
@@ -95,6 +105,7 @@ senha
    - O campo `emailVerified` é definido como `false` por padrão
    - Um token de verificação é gerado e armazenado no campo `verificationToken`
    - O token tem expiração definida em `verificationTokenExpiresAt`
+   - **CRÍTICO**: O email DEVE ser enviado antes da confirmação do cadastro
 
 2. **Validação no Login**:
    - **OBRIGATÓRIO**: O sistema deve verificar se `user.isEmailVerified()` é `true` antes de permitir login
@@ -148,6 +159,31 @@ app:
 3. Tokens de verificação expiram em 24 horas
 4. É possível reenviar o email de verificação quantas vezes necessário
 5. Após verificação bem-sucedida, o token é limpo e `emailVerified` é definido como `true`
+
+#### Testes Unitários Obrigatórios para Email de Ativação:
+
+**REGRA CRÍTICA**: Os seguintes testes unitários são OBRIGATÓRIOS e devem sempre passar:
+
+##### Testes de Cadastro com Email:
+1. **Teste de Envio Obrigatório**: Verificar que o email de ativação é enviado automaticamente após cadastro
+2. **Teste de Falha de Email**: Verificar que o cadastro falha se o envio de email falhar
+3. **Teste de Rollback**: Verificar que a transação é revertida se o email não for enviado
+4. **Teste de Logs**: Verificar que tentativas de envio são registradas em logs
+5. **Teste de Token**: Verificar que o token de verificação é gerado corretamente
+6. **Teste de Expiração**: Verificar que o token tem data de expiração definida
+7. **Teste de Status**: Verificar que `emailVerified` é definido como `false` para usuários comuns
+8. **Teste de Admin**: Verificar que usuários ADMIN não recebem email de ativação
+
+##### Testes de Integração:
+1. **Teste de Fluxo Completo**: Cadastro → Envio de Email → Ativação → Login
+2. **Teste de Falha de SMTP**: Simular falha do servidor SMTP e verificar comportamento
+3. **Teste de Template**: Verificar que o template de email é renderizado corretamente
+4. **Teste de Configuração**: Verificar que as configurações de email estão corretas
+
+##### Localização dos Testes:
+- **Testes Unitários**: `src/test/java/com/sistema/service/AuthServiceTest.java`
+- **Testes de Integração**: `src/test/java/com/sistema/integration/EmailActivationIntegrationTest.java`
+- **Testes de Controller**: `src/test/java/com/sistema/controller/AuthControllerTest.java`
 
 ## Sistema de Recuperação de Senha com Confirmação de Email
 

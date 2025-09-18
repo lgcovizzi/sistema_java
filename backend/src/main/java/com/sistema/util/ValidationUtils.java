@@ -393,6 +393,20 @@ public final class ValidationUtils {
     }
     
     /**
+     * Valida se um CPF é válido.
+     * 
+     * @param cpf CPF a validar
+     * @throws IllegalArgumentException se o CPF for inválido
+     */
+    public static void validateCpf(String cpf) {
+        validateNotBlank(cpf, "CPF");
+        
+        if (!isValidCpf(cpf)) {
+            throw new IllegalArgumentException("CPF inválido");
+        }
+    }
+    
+    /**
      * Verifica se uma string não é nula nem vazia nem contém apenas espaços.
      * 
      * @param value string a verificar

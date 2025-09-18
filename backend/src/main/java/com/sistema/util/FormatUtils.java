@@ -411,6 +411,38 @@ public final class FormatUtils {
     }
     
     /**
+     * Mascara parcialmente um email mostrando mais caracteres para facilitar identificação.
+     * Exemplo: joao.silva@gmail.com -> jo***va@gmail.com
+     * 
+     * @param email email a ser mascarado
+     * @return email parcialmente mascarado ou null se entrada for null
+     */
+    public static String maskEmailPartial(String email) {
+        if (email == null || !email.contains("@")) {
+            return email;
+        }
+        
+        String[] parts = email.split("@");
+        String localPart = parts[0];
+        String domain = parts[1];
+        
+        if (localPart.length() <= 3) {
+            return email; // Muito curto para mascarar parcialmente
+        }
+        
+        // Mostra os 2 primeiros e 2 últimos caracteres
+        int visibleChars = Math.min(4, localPart.length());
+        int frontChars = visibleChars / 2;
+        int backChars = visibleChars - frontChars;
+        
+        String maskedLocal = localPart.substring(0, frontChars) + 
+                           "*".repeat(Math.max(3, localPart.length() - visibleChars)) + 
+                           localPart.substring(localPart.length() - backChars);
+        
+        return maskedLocal + "@" + domain;
+    }
+    
+    /**
      * Remove todos os caracteres não numéricos de uma string.
      * 
      * @param text texto a processar

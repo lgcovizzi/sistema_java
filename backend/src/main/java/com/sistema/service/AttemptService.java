@@ -29,6 +29,8 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
     private static final String LOGIN_ATTEMPT_PREFIX = "login_attempts:";
     private static final String PASSWORD_RESET_ATTEMPT_PREFIX = "password_reset_attempts:";
     private static final String PASSWORD_RESET_RATE_LIMIT_PREFIX = "password_reset_rate_limit:";
+    private static final String CPF_VERIFICATION_ATTEMPT_PREFIX = "cpf_verification_attempts:";
+    private static final String EMAIL_CONFIRMATION_ATTEMPT_PREFIX = "email_confirmation_attempts:";
     private static final String CAPTCHA_REQUIRED_PREFIX = "captcha_required:";
     
     /**
@@ -54,6 +56,28 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
     }
     
     /**
+     * Registra uma tentativa de verificação de CPF falhada.
+     * 
+     * @param identifier identificador único (IP, email, etc.)
+     * @return número atual de tentativas
+     */
+    public int recordCpfVerificationAttempt(String identifier) {
+        String key = CPF_VERIFICATION_ATTEMPT_PREFIX + identifier;
+        return recordAttempt(key, identifier, "cpf_verification");
+    }
+    
+    /**
+     * Registra uma tentativa de confirmação de email falhada.
+     * 
+     * @param identifier identificador único (IP, email, etc.)
+     * @return número atual de tentativas
+     */
+    public int recordEmailConfirmationAttempt(String identifier) {
+        String key = EMAIL_CONFIRMATION_ATTEMPT_PREFIX + identifier;
+        return recordAttempt(key, identifier, "email_confirmation");
+    }
+    
+    /**
      * Verifica se captcha é necessário para login.
      * 
      * @param identifier identificador único
@@ -73,6 +97,28 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
     public boolean isCaptchaRequiredForPasswordReset(String identifier) {
         String attemptKey = PASSWORD_RESET_ATTEMPT_PREFIX + identifier;
         return isCaptchaRequired(attemptKey);
+    }
+    
+    /**
+     * Verifica se captcha é necessário para verificação de CPF.
+     * 
+     * @param identifier identificador único (IP, email, etc.)
+     * @return true se captcha é necessário
+     */
+    public boolean isCpfVerificationCaptchaRequired(String identifier) {
+        String key = CPF_VERIFICATION_ATTEMPT_PREFIX + identifier;
+        return isCaptchaRequired(key);
+    }
+    
+    /**
+     * Verifica se captcha é necessário para confirmação de email.
+     * 
+     * @param identifier identificador único (IP, email, etc.)
+     * @return true se captcha é necessário
+     */
+    public boolean isEmailConfirmationCaptchaRequired(String identifier) {
+        String key = EMAIL_CONFIRMATION_ATTEMPT_PREFIX + identifier;
+        return isCaptchaRequired(key);
     }
     
     /**
@@ -106,6 +152,36 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
     }
     
     /**
+     * Limpa tentativas de verificação de CPF após sucesso.
+     * 
+     * @param identifier identificador único (IP, email, etc.)
+     */
+    public void clearCpfVerificationAttempts(String identifier) {
+        String key = CPF_VERIFICATION_ATTEMPT_PREFIX + identifier;
+        String captchaKey = CAPTCHA_REQUIRED_PREFIX + "cpf_verification:" + identifier;
+        
+        delete(key);
+        delete(captchaKey);
+        
+        logInfo("Tentativas de verificação de CPF limpas para identificador: " + identifier);
+    }
+    
+    /**
+     * Limpa tentativas de confirmação de email após sucesso.
+     * 
+     * @param identifier identificador único (IP, email, etc.)
+     */
+    public void clearEmailConfirmationAttempts(String identifier) {
+        String key = EMAIL_CONFIRMATION_ATTEMPT_PREFIX + identifier;
+        String captchaKey = CAPTCHA_REQUIRED_PREFIX + "email_confirmation:" + identifier;
+        
+        delete(key);
+        delete(captchaKey);
+        
+        logInfo("Tentativas de confirmação de email limpas para identificador: " + identifier);
+    }
+    
+    /**
      * Obtém número atual de tentativas de login.
      * 
      * @param identifier identificador único
@@ -124,6 +200,28 @@ public class AttemptService extends BaseRedisService implements AttemptControlOp
      */
     public int getPasswordResetAttempts(String identifier) {
         String key = PASSWORD_RESET_ATTEMPT_PREFIX + identifier;
+        return getAttempts(key);
+    }
+    
+    /**
+     * Obtém número atual de tentativas de verificação de CPF.
+     * 
+     * @param identifier identificador único (IP, email, etc.)
+     * @return número de tentativas
+     */
+    public int getCpfVerificationAttempts(String identifier) {
+        String key = CPF_VERIFICATION_ATTEMPT_PREFIX + identifier;
+        return getAttempts(key);
+    }
+    
+    /**
+     * Obtém número atual de tentativas de confirmação de email.
+     * 
+     * @param identifier identificador único (IP, email, etc.)
+     * @return número de tentativas
+     */
+    public int getEmailConfirmationAttempts(String identifier) {
+        String key = EMAIL_CONFIRMATION_ATTEMPT_PREFIX + identifier;
         return getAttempts(key);
     }
 

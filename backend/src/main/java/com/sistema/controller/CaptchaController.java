@@ -206,6 +206,37 @@ public class CaptchaController {
     }
     
     /**
+     * Gera um captcha de teste com resposta conhecida (apenas para desenvolvimento).
+     * 
+     * @return dados do captcha de teste
+     */
+    @GetMapping("/generate-test")
+    public ResponseEntity<Map<String, Object>> generateTestCaptcha() {
+        try {
+            Map<String, String> captchaData = captchaService.generateTestCaptcha();
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("captchaId", captchaData.get("id"));
+            response.put("imageDataUrl", "data:image/png;base64," + captchaData.get("imageBase64"));
+            response.put("testAnswer", captchaData.get("answer")); // Apenas para teste
+            
+            logger.debug("Captcha de teste gerado via API: {}", captchaData.get("id"));
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            logger.error("Erro ao gerar captcha de teste via API", e);
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "Erro interno do servidor");
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        }
+    }
+    
+    /**
      * Limpa captchas expirados.
      * 
      * @return confirmação de limpeza

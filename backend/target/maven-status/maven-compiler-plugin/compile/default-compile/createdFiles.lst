@@ -2,6 +2,7 @@ com/sistema/service/ToastService.class
 com/sistema/dto/UpdateProfileRequest.class
 com/sistema/config/SecurityConfig$DevSecurityConfig.class
 com/sistema/controller/ToastController.class
+com/sistema/controller/AuthController$ForgotPasswordWithConfirmationRequest.class
 com/sistema/service/EmailService.class
 com/sistema/exception/GlobalExceptionHandler.class
 com/sistema/service/interfaces/AttemptControlOperations$AttemptStatistics.class
@@ -55,6 +56,7 @@ com/sistema/controller/AuthController$LogoutRequest.class
 com/sistema/dto/response/LoginResponse.class
 com/sistema/service/AttemptService.class
 com/sistema/controller/WebController.class
+com/sistema/controller/AuthController$ConfirmEmailRequest.class
 com/sistema/enums/ToastType.class
 com/sistema/exception/RateLimitException.class
 com/sistema/controller/HealthController.class
@@ -89,6 +91,7 @@ com/sistema/exception/ErrorResponse$FieldError.class
 com/sistema/util/CpfGenerator.class
 com/sistema/controller/ToastController$MessageRequest.class
 com/sistema/service/base/BaseRedisService.class
+com/sistema/controller/AuthController$VerifyCpfRequest.class
 com/sistema/service/SmtpService.class
 com/sistema/service/base/BaseSecurityService.class
 com/sistema/service/base/BaseUserService$UserStatistics.class

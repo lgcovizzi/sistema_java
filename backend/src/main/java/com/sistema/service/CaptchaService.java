@@ -262,6 +262,58 @@ public class CaptchaService extends BaseRedisService implements CaptchaOperation
         return result;
     }
     
+    /**
+     * Gera um captcha de teste com resposta conhecida (apenas para desenvolvimento).
+     * 
+     * @return dados do captcha de teste incluindo a resposta
+     */
+    public Map<String, String> generateTestCaptcha() {
+        try {
+            // Resposta conhecida para teste
+            String testAnswer = "TEST1";
+            String captchaId = UUID.randomUUID().toString().replace("-", "");
+            
+            // Criar imagem simples para teste
+            BufferedImage image = new BufferedImage(200, 50, BufferedImage.TYPE_INT_RGB);
+            java.awt.Graphics2D g2d = image.createGraphics();
+            
+            // Fundo branco
+            g2d.setColor(java.awt.Color.WHITE);
+            g2d.fillRect(0, 0, 200, 50);
+            
+            // Texto preto
+            g2d.setColor(java.awt.Color.BLACK);
+            g2d.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 20));
+            g2d.drawString(testAnswer, 70, 30);
+            
+            // Borda
+            g2d.setColor(java.awt.Color.BLACK);
+            g2d.drawRect(0, 0, 199, 49);
+            
+            g2d.dispose();
+            
+            // Converter para base64
+            String base64Image = convertImageToBase64(image);
+            
+            // Armazenar hash da resposta no Redis
+            String key = CAPTCHA_PREFIX + captchaId;
+            String hashedAnswer = SecurityUtils.hashSHA256(testAnswer.toLowerCase());
+            storeWithTTL(key, hashedAnswer, Duration.ofMinutes(CAPTCHA_EXPIRY_MINUTES));
+            
+            logger.info("Captcha de teste gerado com ID: {} e resposta: {}", captchaId, testAnswer);
+            
+            Map<String, String> result = new HashMap<>();
+            result.put("id", captchaId);
+            result.put("imageBase64", base64Image);
+            result.put("answer", testAnswer);
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("Erro ao gerar captcha de teste", e);
+            throw new RuntimeException("Erro ao gerar captcha de teste", e);
+        }
+    }
+    
     @Override
     public boolean validateCaptcha(String captchaId, String userResponse) {
         return validateCaptchaInternal(captchaId, userResponse);

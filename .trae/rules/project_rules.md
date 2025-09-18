@@ -149,6 +149,118 @@ app:
 4. É possível reenviar o email de verificação quantas vezes necessário
 5. Após verificação bem-sucedida, o token é limpo e `emailVerified` é definido como `true`
 
+## Sistema de Recuperação de Senha com Confirmação de Email
+
+**REGRA OBRIGATÓRIA**: O fluxo de recuperação de senha deve incluir confirmação do email cadastrado antes de prosseguir com a recuperação.
+
+### Fluxo de Recuperação de Senha
+
+#### 1. Verificação de CPF
+- **Endpoint**: `POST /api/auth/verify-cpf`
+- **Entrada**: CPF do usuário
+- **Comportamento**:
+  - Verificar se existe usuário com o CPF informado
+  - Se encontrado, retornar email mascarado para confirmação
+  - Se não encontrado, retornar erro genérico por segurança
+- **Resposta de Sucesso**:
+  ```json
+  {
+    "success": true,
+    "maskedEmail": "j***@*****.com",
+    "message": "CPF encontrado. Confirme o email para prosseguir."
+  }
+  ```
+
+#### 2. Confirmação de Email
+- **Endpoint**: `POST /api/auth/confirm-email`
+- **Entrada**: CPF e email completo informado pelo usuário
+- **Comportamento**:
+  - Verificar se o email informado corresponde ao email cadastrado para o CPF
+  - Validar captcha obrigatório
+  - Se confirmado, gerar token de recuperação e enviar por email
+  - Aplicar rate limiting para evitar spam
+- **Resposta de Sucesso**:
+  ```json
+  {
+    "success": true,
+    "message": "Email confirmado. Token de recuperação enviado.",
+    "email": "usuario@exemplo.com"
+  }
+  ```
+
+#### 3. Recuperação de Senha (Modificado)
+- **Endpoint**: `POST /api/auth/forgot-password`
+- **Entrada**: Token de recuperação recebido por email
+- **Comportamento**:
+  - Validar token de recuperação
+  - Gerar nova senha temporária
+  - Enviar nova senha por email
+  - Invalidar token após uso
+- **Pré-requisito**: Email deve ter sido confirmado previamente
+
+### Regras de Segurança
+
+#### Mascaramento de Email
+- **Formato**: Mostrar apenas primeiro caractere, *** no meio, e domínio mascarado
+- **Exemplo**: `j***@*****.com` para `joao@exemplo.com`
+- **Implementação**: Usar `SecurityUtils.maskEmail()` para consistência
+
+#### Rate Limiting
+- **Verificação de CPF**: Máximo 5 tentativas por IP por hora
+- **Confirmação de Email**: Máximo 3 tentativas por CPF por hora
+- **Recuperação de Senha**: Máximo 2 tentativas por email por hora
+
+#### Captcha Obrigatório
+- **Confirmação de Email**: Sempre exigir captcha
+- **Recuperação de Senha**: Captcha obrigatório se token fornecido
+
+#### Logs de Segurança
+- Registrar todas as tentativas de verificação de CPF
+- Registrar tentativas de confirmação de email (sucesso e falha)
+- Registrar uso de tokens de recuperação
+- Incluir IP, timestamp e resultado da operação
+
+### Componentes a Implementar
+
+#### Novos Endpoints
+1. `POST /api/auth/verify-cpf`: Verificação inicial de CPF
+2. `POST /api/auth/confirm-email`: Confirmação de email mascarado
+3. Modificar `POST /api/auth/forgot-password`: Usar token de recuperação
+
+#### Novos DTOs
+- `VerifyCpfRequest`: CPF para verificação
+- `VerifyCpfResponse`: Email mascarado e status
+- `ConfirmEmailRequest`: CPF, email e captcha
+- `ConfirmEmailResponse`: Status de confirmação
+
+#### Serviços
+- `PasswordRecoveryService`: Gerenciar fluxo completo de recuperação
+- Modificar `AuthService`: Integrar novo fluxo
+- Usar `SecurityUtils`: Para mascaramento de email
+
+#### Validações
+- CPF deve ser válido (usar `CpfValidator`)
+- Email deve ter formato válido
+- Captcha obrigatório em confirmação de email
+- Rate limiting em todas as operações
+
+### Templates de Email
+- `password-recovery-token.html`: Email com token de recuperação
+- `password-recovery-success.html`: Confirmação de nova senha
+
+### Configurações
+```yaml
+app:
+  password-recovery:
+    token:
+      expiration:
+        minutes: 30
+    rate-limit:
+      cpf-verification: 5  # tentativas por hora
+      email-confirmation: 3  # tentativas por hora
+      password-reset: 2  # tentativas por hora
+```
+
 
 ##### Utilitários Compartilhados
 

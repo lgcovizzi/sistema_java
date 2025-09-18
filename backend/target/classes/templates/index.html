@@ -612,10 +612,15 @@
                     <span>ou</span>
                 </div>
 
-                <p style="text-align: center; color: var(--text-light);">
+                <p style="text-align: center; color: var(--text-light); margin-bottom: var(--spacing-sm);">
                     Não tem uma conta? 
                     <a href="#" onclick="closeModal('loginModal'); openModal('registerModal');" 
                        style="color: var(--primary-color); text-decoration: none;">Registre-se aqui</a>
+                </p>
+
+                <p style="text-align: center; color: var(--text-light);">
+                    <a href="#" onclick="closeModal('loginModal'); openModal('forgotPasswordModal');" 
+                       style="color: var(--primary-color); text-decoration: none;">Esqueceu sua senha?</a>
                 </p>
             </div>
         </div>
@@ -686,6 +691,68 @@
                     Já tem uma conta? 
                     <a href="#" onclick="closeModal('registerModal'); openModal('loginModal');" 
                        style="color: var(--primary-color); text-decoration: none;">Faça login aqui</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Recuperar Senha</h3>
+                <span class="close" onclick="closeModal('forgotPasswordModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="error-message" id="forgotPasswordErrorMessage">
+                    Erro ao solicitar recuperação. Tente novamente.
+                </div>
+
+                <div class="success-message" id="forgotPasswordSuccessMessage">
+                    Instruções enviadas para seu email!
+                </div>
+
+                <p style="color: var(--text-secondary); margin-bottom: var(--spacing-lg); text-align: center;">
+                    Digite seu CPF para confirmar o email vinculado à sua conta
+                </p>
+
+                <form id="forgotPasswordForm">
+                    <div class="form-group">
+                        <label for="forgotPasswordCpf" class="form-label">CPF</label>
+                        <input type="text" id="forgotPasswordCpf" name="cpf" class="form-input" 
+                               placeholder="000.000.000-00" maxlength="14" required>
+                    </div>
+
+                    <!-- Captcha section (initially hidden) -->
+                    <div id="forgotPasswordCaptchaSection" style="display: none;">
+                        <div class="form-group">
+                            <label for="forgotPasswordCaptcha" class="form-label">Digite o código da imagem</label>
+                            <div style="display: flex; gap: var(--spacing-sm); align-items: center; margin-bottom: var(--spacing-xs);">
+                                <img id="forgotPasswordCaptchaImage" src="" alt="Captcha" 
+                                     style="border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                                <button type="button" onclick="refreshForgotPasswordCaptcha()" 
+                                        style="background: none; border: 1px solid var(--border-color); border-radius: var(--radius-sm); 
+                                               padding: var(--spacing-xs); cursor: pointer; color: var(--text-secondary);">
+                                    🔄
+                                </button>
+                            </div>
+                            <input type="text" id="forgotPasswordCaptcha" name="captchaAnswer" class="form-input" 
+                                   placeholder="Digite o código" autocomplete="off">
+                            <input type="hidden" id="forgotPasswordCaptchaId" name="captchaId">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Enviar Instruções</button>
+                </form>
+
+                <div class="divider">
+                    <span>ou</span>
+                </div>
+
+                <p style="text-align: center; color: var(--text-light);">
+                    Lembrou da senha? 
+                    <a href="#" onclick="closeModal('forgotPasswordModal'); openModal('loginModal');" 
+                       style="color: var(--primary-color); text-decoration: none;">Fazer login</a>
                 </p>
             </div>
         </div>
@@ -932,6 +999,120 @@
                 });
             }
             
+            // CPF input formatting for forgot password
+            const forgotPasswordCpfField = document.getElementById('forgotPasswordCpf');
+            if (forgotPasswordCpfField) {
+                forgotPasswordCpfField.addEventListener('input', function(e) {
+                    e.target.value = formatCPF(e.target.value);
+                });
+            }
+            
+            // Forgot Password Form Handler
+            const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+            if (forgotPasswordForm) {
+                forgotPasswordForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const cpfField = document.getElementById('forgotPasswordCpf');
+                    const captchaIdField = document.getElementById('forgotPasswordCaptchaId');
+                    const captchaAnswerField = document.getElementById('forgotPasswordCaptcha');
+                    const errorMessage = document.getElementById('forgotPasswordErrorMessage');
+                    const successMessage = document.getElementById('forgotPasswordSuccessMessage');
+                    
+                    if (!cpfField || !errorMessage || !successMessage) {
+                        console.error('Elementos do formulário de recuperação não encontrados');
+                        return;
+                    }
+                    
+                    const cpf = cpfField.value;
+                    
+                    // Hide previous messages
+                    errorMessage.style.display = 'none';
+                    successMessage.style.display = 'none';
+                    
+                    // Validation
+                    if (!cpf) {
+                        errorMessage.textContent = 'Por favor, digite seu CPF.';
+                        errorMessage.style.display = 'block';
+                        return;
+                    }
+                    
+                    // CPF validation
+                    if (!validateCPF(cpf)) {
+                        errorMessage.textContent = 'CPF inválido. Verifique o formato e os dígitos.';
+                        errorMessage.style.display = 'block';
+                        return;
+                    }
+                    
+                    // Check if captcha is required and validate
+                    const captchaSection = document.getElementById('forgotPasswordCaptchaSection');
+                    const isCaptchaVisible = captchaSection && captchaSection.style.display !== 'none';
+                    
+                    if (isCaptchaVisible) {
+                        if (!captchaIdField || !captchaAnswerField || !captchaIdField.value || !captchaAnswerField.value) {
+                            errorMessage.textContent = 'Por favor, digite o código do captcha.';
+                            errorMessage.style.display = 'block';
+                            return;
+                        }
+                    }
+                    
+                    // Prepare request data
+                    const requestData = {
+                        cpf: cpf
+                    };
+                    
+                    // Add captcha data if visible
+                    if (isCaptchaVisible && captchaIdField && captchaAnswerField) {
+                        requestData.captchaId = captchaIdField.value;
+                        requestData.captchaAnswer = captchaAnswerField.value;
+                    }
+                    
+                    // Make API call
+                    fetch('/api/auth/forgot-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(requestData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            successMessage.textContent = data.message + (data.maskedEmail ? ' (' + data.maskedEmail + ')' : '');
+                            successMessage.style.display = 'block';
+                            
+                            // Clear form
+                            cpfField.value = '';
+                            if (captchaAnswerField) captchaAnswerField.value = '';
+                            
+                            // Hide captcha section
+                            if (captchaSection) captchaSection.style.display = 'none';
+                            
+                            // Close modal after 3 seconds
+                            setTimeout(() => {
+                                closeModal('forgotPasswordModal');
+                            }, 3000);
+                        } else {
+                            errorMessage.textContent = data.message || 'Erro ao solicitar recuperação de senha.';
+                            errorMessage.style.display = 'block';
+                            
+                            // Show captcha if required
+                            if (data.requiresCaptcha) {
+                                showForgotPasswordCaptcha();
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro na recuperação de senha:', error);
+                        errorMessage.textContent = 'Erro de conexão. Tente novamente.';
+                        errorMessage.style.display = 'block';
+                        
+                        // Show captcha on error
+                        showForgotPasswordCaptcha();
+                    });
+                });
+            }
+            
             // Auto-fill demo credentials on demo info click
             const demoInfo = document.querySelector('.demo-info');
             if (demoInfo) {
@@ -948,6 +1129,47 @@
                 });
             }
         });
+        
+        // Forgot Password Captcha Functions
+        window.showForgotPasswordCaptcha = function() {
+            const captchaSection = document.getElementById('forgotPasswordCaptchaSection');
+            if (captchaSection) {
+                captchaSection.style.display = 'block';
+                generateForgotPasswordCaptcha();
+            }
+        };
+        
+        window.generateForgotPasswordCaptcha = function() {
+            fetch('/api/auth/captcha/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const captchaImage = document.getElementById('forgotPasswordCaptchaImage');
+                    const captchaIdField = document.getElementById('forgotPasswordCaptchaId');
+                    
+                    if (captchaImage && captchaIdField) {
+                        captchaImage.src = 'data:image/png;base64,' + data.imageBase64;
+                        captchaIdField.value = data.captchaId;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao gerar captcha:', error);
+            });
+        };
+        
+        window.refreshForgotPasswordCaptcha = function() {
+            generateForgotPasswordCaptcha();
+            const captchaAnswerField = document.getElementById('forgotPasswordCaptcha');
+            if (captchaAnswerField) {
+                captchaAnswerField.value = '';
+            }
+        };
     </script>
 </body>
 </html>

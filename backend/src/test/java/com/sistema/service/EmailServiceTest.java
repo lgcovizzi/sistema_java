@@ -62,7 +62,7 @@ class EmailServiceTest {
         String subject = "Teste";
         String text = "Conteúdo do teste";
 
-        doNothing().when(smtpService).sendSimpleEmail(to, subject, text);
+        when(smtpService.sendSimpleEmail(to, subject, text)).thenReturn(true);
 
         // When
         assertThatCode(() -> emailService.sendSimpleEmail(to, subject, text))
@@ -128,7 +128,7 @@ class EmailServiceTest {
         String subject = "Teste";
         String text = "Conteúdo do teste";
 
-        doThrow(new RuntimeException("Erro SMTP")).when(smtpService).sendSimpleEmail(to, subject, text);
+        when(smtpService.sendSimpleEmail(to, subject, text)).thenThrow(new RuntimeException("Erro SMTP"));
 
         // When & Then
         assertThatThrownBy(() -> emailService.sendSimpleEmail(to, subject, text))
@@ -146,7 +146,7 @@ class EmailServiceTest {
         String subject = "Teste HTML";
         String htmlContent = "<h1>Teste</h1>";
 
-        doNothing().when(smtpService).sendHtmlEmail(to, subject, htmlContent);
+        when(smtpService.sendHtmlEmail(to, subject, htmlContent)).thenReturn(true);
 
         // When
         assertThatCode(() -> emailService.sendHtmlEmail(to, subject, htmlContent))
@@ -178,7 +178,7 @@ class EmailServiceTest {
         // Given
         String to = "test@email.com";
 
-        doNothing().when(smtpService).sendSimpleEmail(eq(to), eq("Teste de Configuração - Sistema Java"), anyString());
+        when(smtpService.sendSimpleEmail(eq(to), eq("Teste de Configuração - Sistema Java"), anyString())).thenReturn(true);
 
         // When
         assertThatCode(() -> emailService.sendTestEmail(to))
@@ -195,7 +195,7 @@ class EmailServiceTest {
         String to = "test@email.com";
         String name = "João Silva";
 
-        doNothing().when(smtpService).sendSimpleEmail(eq(to), eq("Bem-vindo ao Sistema Java!"), anyString());
+        when(smtpService.sendSimpleEmail(eq(to), eq("Bem-vindo ao Sistema Java!"), anyString())).thenReturn(true);
 
         // When
         assertThatCode(() -> emailService.sendWelcomeEmail(to, name))
@@ -233,7 +233,7 @@ class EmailServiceTest {
 
         when(templateEngine.process(eq("email/verification"), any(Context.class)))
                 .thenReturn(htmlTemplate);
-        doNothing().when(smtpService).sendHtmlEmail(eq(testUser.getEmail()), anyString(), eq(htmlTemplate));
+        when(smtpService.sendHtmlEmail(eq(testUser.getEmail()), anyString(), eq(htmlTemplate))).thenReturn(true);
 
         // When
         assertThatCode(() -> emailService.sendVerificationEmail(testUser, verificationToken))
@@ -253,7 +253,7 @@ class EmailServiceTest {
 
         when(templateEngine.process(eq("email/verification"), any(Context.class)))
                 .thenReturn(htmlTemplate);
-        doNothing().when(smtpService).sendHtmlEmail(eq(testUser.getEmail()), anyString(), eq(htmlTemplate));
+        when(smtpService.sendHtmlEmail(eq(testUser.getEmail()), anyString(), eq(htmlTemplate))).thenReturn(true);
 
         // When
         boolean result = emailService.sendVerificationEmail(testUser, verificationToken);

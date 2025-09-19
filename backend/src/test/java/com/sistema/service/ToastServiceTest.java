@@ -41,10 +41,10 @@ class ToastServiceTest {
     void setUp() {
         mockMessages = new ArrayList<>();
         
-        // Mock da sessão HTTP
-        when(servletRequestAttributes.getRequest()).thenReturn(httpServletRequest);
-        when(httpServletRequest.getSession(true)).thenReturn(httpSession);
-        when(httpSession.getAttribute("toastMessages")).thenReturn(mockMessages);
+        // Mock da sessão HTTP - @Lenient permite uso opcional para testes que não acessam sessão
+        lenient().when(servletRequestAttributes.getRequest()).thenReturn(httpServletRequest);
+        lenient().when(httpServletRequest.getSession(true)).thenReturn(httpSession);
+        lenient().when(httpSession.getAttribute("toastMessages")).thenReturn(mockMessages);
     }
 
     @Test

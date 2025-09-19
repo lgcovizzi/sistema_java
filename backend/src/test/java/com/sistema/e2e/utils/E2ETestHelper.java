@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Component
 public class E2ETestHelper {
     
-    @Autowired
+    @Autowired(required = false)
     private TestRestTemplate restTemplate;
     
     @Autowired

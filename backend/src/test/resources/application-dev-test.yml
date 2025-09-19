@@ -1,0 +1,174 @@
+# Configurações para ambiente de desenvolvimento com testes
+spring:
+  profiles:
+    active: dev-test
+    
+  # Configuração do banco H2 para desenvolvimento com testes
+  datasource:
+    url: jdbc:h2:mem:devtestdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+    
+  # JPA/Hibernate para desenvolvimento com testes
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+        use_sql_comments: true
+        
+  # Redis para testes (será sobrescrito pelos Testcontainers quando necessário)
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 5000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+    
+  # Cache para desenvolvimento com testes
+  cache:
+    type: redis
+    redis:
+      time-to-live: 300000 # 5 minutos para desenvolvimento
+      
+  # Mail configurado para Mailtrap em desenvolvimento
+  mail:
+    host: smtp.mailtrap.io
+    port: 587
+    username: ${MAILTRAP_USERNAME:test_user}
+    password: ${MAILTRAP_PASSWORD:test_pass}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 3000
+      mail.smtp.writetimeout: 5000
+      
+  # Batch para desenvolvimento
+  batch:
+    job:
+      enabled: true
+    jdbc:
+      initialize-schema: always
+      
+# Configurações da aplicação para desenvolvimento com testes
+app:
+  rsa:
+    keys:
+      directory: ./dev-test-keys
+      
+  email:
+    enabled: true
+    provider: MAILTRAP
+    from-email: noreply@sistema-dev.com
+    
+  telemetry:
+    enabled: true
+    service-name: sistema-java-dev-test
+    environment: dev-test
+    
+    # Configurações de tracing para desenvolvimento
+    tracing:
+      enabled: true
+      sample-rate: 1.0
+      auto-instrument:
+        controllers: true
+        services: true
+        repositories: true
+        
+    # Configurações de métricas para desenvolvimento
+    metrics:
+      enabled: true
+      custom-metrics: true
+      
+    # Configurações de logging estruturado
+    logging:
+      enabled: true
+      structured: true
+      include-trace-id: true
+      include-span-id: true
+      
+    # Configurações de exportadores para desenvolvimento
+    exporters:
+      console:
+        enabled: true
+        interval: 30s
+      
+      prometheus:
+        enabled: true
+        port: 9090
+        path: /metrics
+        
+      jaeger:
+        enabled: false # Desabilitado por padrão em desenvolvimento
+        endpoint: http://localhost:14268/api/traces
+        
+# Configurações do servidor para desenvolvimento
+server:
+  port: 8080
+  servlet:
+    context-path: /
+    
+# Configurações do Actuator para desenvolvimento
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+  metrics:
+    tags:
+      application: sistema-java-dev-test
+      environment: dev-test
+    web:
+      server:
+        request:
+          autotime:
+            enabled: true
+            percentiles: 0.5, 0.75, 0.95, 0.99
+            percentiles-histogram: true
+            
+# Logging para desenvolvimento com testes
+logging:
+  level:
+    com.sistema: DEBUG
+    com.sistema.batch: DEBUG
+    com.sistema.telemetry: DEBUG
+    org.springframework.web: INFO
+    org.springframework.batch: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    io.micrometer: DEBUG
+    io.opentelemetry: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
+    
+# Configurações específicas para testes de desenvolvimento
+test:
+  containers:
+    redis:
+      enabled: true
+      image: redis:7-alpine
+      port: 6379
+    
+  data:
+    cleanup: true
+    seed: true
+    
+  performance:
+    enabled: true
+    thresholds:
+      response-time: 1000ms
+      memory-usage: 512MB

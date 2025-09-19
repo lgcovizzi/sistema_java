@@ -110,8 +110,7 @@ public class AuthController {
             
             Map<String, Object> authResponse = authService.authenticate(
                     loginRequest.getEmail(),
-                    loginRequest.getPassword(),
-                    httpRequest
+                    loginRequest.getPassword()
             );
             
             // Login bem-sucedido - limpar tentativas
@@ -133,7 +132,7 @@ public class AuthController {
             if (e.getMessage().contains("Email não verificado")) {
                 errorResponse = createErrorResponse(e.getMessage(), "EMAIL_NOT_VERIFIED");
                 errorResponse.put("success", false);
-                status = HttpStatus.BAD_REQUEST;
+                status = HttpStatus.UNAUTHORIZED;
             } else {
                 errorResponse = createErrorResponse("Credenciais inválidas", "INVALID_CREDENTIALS");
                 status = HttpStatus.UNAUTHORIZED;
@@ -1137,6 +1136,43 @@ public class AuthController {
     }
 
     /**
+     * Endpoint para verificação de email através de token.
+     * 
+     * @param verifyRequest dados para verificação
+     * @return resposta de sucesso ou erro
+     */
+    @PostMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@Valid @RequestBody VerifyEmailRequest verifyRequest) {
+        try {
+            logger.info("Solicitação de verificação de email com token: {}", verifyRequest.getToken());
+            
+            boolean verified = emailVerificationService.verifyEmailToken(verifyRequest.getToken());
+            logger.info("Resultado da verificação: {}", verified);
+            
+            if (verified) {
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Email verificado com sucesso!");
+                response.put("verified", true);
+                
+                logger.info("Email verificado com sucesso para token: {}", verifyRequest.getToken());
+                return ResponseEntity.ok(response);
+            } else {
+                logger.warn("Falha na verificação do token: {}", verifyRequest.getToken());
+                Map<String, Object> errorResponse = createErrorResponse(
+                    "Token de verificação inválido ou expirado", 
+                    "INVALID_VERIFICATION_TOKEN"
+                );
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Erro ao verificar email", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("Erro interno do servidor", "INTERNAL_ERROR"));
+        }
+    }
+
+    /**
      * Obtém o endereço IP real do cliente.
      * 
      * @param request requisição HTTP
@@ -1464,5 +1500,14 @@ public class AuthController {
         // Getters e setters
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
+    }
+
+    public static class VerifyEmailRequest {
+        @NotBlank(message = "Token é obrigatório")
+        private String token;
+
+        // Getters e setters
+        public String getToken() { return token; }
+        public void setToken(String token) { this.token = token; }
     }
 }

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Configuração adicional do JaCoCo para relatórios de cobertura detalhados.
+Este arquivo define regras específicas de cobertura e exclusões.
+-->
+<jacoco>
+    <!-- Configurações de cobertura -->
+    <coverage>
+        <!-- Cobertura mínima de instruções: 80% -->
+        <instruction minimum="0.80"/>
+        
+        <!-- Cobertura mínima de branches: 70% -->
+        <branch minimum="0.70"/>
+        
+        <!-- Cobertura mínima de linhas: 75% -->
+        <line minimum="0.75"/>
+        
+        <!-- Cobertura mínima de complexidade: 65% -->
+        <complexity minimum="0.65"/>
+        
+        <!-- Cobertura mínima de métodos: 75% -->
+        <method minimum="0.75"/>
+        
+        <!-- Cobertura mínima de classes: 80% -->
+        <class minimum="0.80"/>
+    </coverage>
+    
+    <!-- Exclusões detalhadas -->
+    <exclusions>
+        <!-- Classe principal da aplicação -->
+        <exclude>**/SistemaJavaApplication.class</exclude>
+        
+        <!-- Configurações -->
+        <exclude>**/config/**</exclude>
+        <exclude>**/configuration/**</exclude>
+        
+        <!-- Entidades JPA -->
+        <exclude>**/entity/**</exclude>
+        <exclude>**/model/**</exclude>
+        
+        <!-- DTOs -->
+        <exclude>**/dto/**</exclude>
+        <exclude>**/request/**</exclude>
+        <exclude>**/response/**</exclude>
+        
+        <!-- Exceções customizadas -->
+        <exclude>**/exception/**Exception.class</exclude>
+        
+        <!-- Constantes -->
+        <exclude>**/constants/**</exclude>
+        <exclude>**/*Constants.class</exclude>
+        
+        <!-- Enums simples -->
+        <exclude>**/*Enum.class</exclude>
+        
+        <!-- Classes de teste -->
+        <exclude>**/*Test.class</exclude>
+        <exclude>**/*Tests.class</exclude>
+        <exclude>**/test/**</exclude>
+        
+        <!-- Builders e factories simples -->
+        <exclude>**/*Builder.class</exclude>
+        <exclude>**/*Factory.class</exclude>
+        
+        <!-- Interfaces sem implementação -->
+        <exclude>**/interfaces/**</exclude>
+        
+        <!-- Utilitários de teste -->
+        <exclude>**/util/test/**</exclude>
+        
+        <!-- Configurações específicas do Spring -->
+        <exclude>**/WebConfig.class</exclude>
+        <exclude>**/SecurityConfig.class</exclude>
+        <exclude>**/RedisConfig.class</exclude>
+        <exclude>**/TelemetryConfig.class</exclude>
+    </exclusions>
+    
+    <!-- Configurações de relatório -->
+    <reports>
+        <!-- Relatório HTML -->
+        <html>
+            <enabled>true</enabled>
+            <directory>target/site/jacoco</directory>
+        </html>
+        
+        <!-- Relatório XML -->
+        <xml>
+            <enabled>true</enabled>
+            <file>target/site/jacoco/jacoco.xml</file>
+        </xml>
+        
+        <!-- Relatório CSV -->
+        <csv>
+            <enabled>true</enabled>
+            <file>target/site/jacoco/jacoco.csv</file>
+        </csv>
+    </reports>
+    
+    <!-- Configurações de execução -->
+    <execution>
+        <!-- Incluir testes unitários -->
+        <includes>
+            <include>**/*Test.java</include>
+            <include>**/*Tests.java</include>
+        </includes>
+        
+        <!-- Incluir testes de integração -->
+        <includes>
+            <include>**/*IntegrationTest.java</include>
+        </includes>
+        
+        <!-- Incluir testes E2E -->
+        <includes>
+            <include>**/*E2ETest.java</include>
+        </includes>
+    </execution>
+    
+    <!-- Configurações de instrumentação -->
+    <instrumentation>
+        <!-- Incluir todas as classes do pacote principal -->
+        <includes>
+            <include>com/sistema/**</include>
+        </includes>
+        
+        <!-- Excluir pacotes específicos -->
+        <excludes>
+            <exclude>com/sistema/config/**</exclude>
+            <exclude>com/sistema/entity/**</exclude>
+            <exclude>com/sistema/dto/**</exclude>
+        </excludes>
+    </instrumentation>
+</jacoco>

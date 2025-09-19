@@ -11,6 +11,9 @@ Sistema backend completo desenvolvido em Java com Spring Boot, oferecendo autent
 - **Validação de CPF** brasileira
 - **Rate Limiting** e proteção contra ataques
 - **Sistema de Captcha** integrado
+- **Spring Batch** para processamento em lote
+- **Filas de Processamento** (Email, Imagens, Arquivos)
+- **Jobs Assíncronos** com monitoramento
 - **Tratamento de Erros** padronizado
 - **Logs estruturados** e monitoramento
 - **Testes automatizados** abrangentes
@@ -22,6 +25,7 @@ Sistema backend completo desenvolvido em Java com Spring Boot, oferecendo autent
 - **Spring Boot 3.x**
 - **Spring Security 6.x**
 - **Spring Data JPA**
+- **Spring Batch 5.x**
 - **Maven**
 
 ### Banco de Dados
@@ -52,15 +56,16 @@ backend/
 ├── src/
 │   ├── main/
 │   │   ├── java/com/sistema/
-│   │   │   ├── config/          # Configurações
-│   │   │   ├── controller/      # Controllers REST
-│   │   │   ├── dto/            # Data Transfer Objects
-│   │   │   ├── entity/         # Entidades JPA
-│   │   │   ├── exception/      # Exceções customizadas
-│   │   │   ├── repository/     # Repositórios
-│   │   │   ├── security/       # Filtros de segurança
-│   │   │   ├── service/        # Serviços de negócio
-│   │   │   └── util/           # Utilitários
+│   │   │   ├── batch/          # Configurações Spring Batch
+│   │   │   ├── config/         # Configurações
+│   │   │   ├── controller/     # Controllers REST
+│   │   │   ├── dto/           # Data Transfer Objects
+│   │   │   ├── entity/        # Entidades JPA
+│   │   │   ├── exception/     # Exceções customizadas
+│   │   │   ├── repository/    # Repositórios
+│   │   │   ├── security/      # Filtros de segurança
+│   │   │   ├── service/       # Serviços de negócio
+│   │   │   └── util/          # Utilitários
 │   │   └── resources/
 │   │       ├── application.yml # Configurações
 │   │       ├── static/         # Arquivos estáticos
@@ -211,6 +216,218 @@ curl -X POST http://localhost:8080/api/auth/login \
     "senha": "MinhaSenh@123"
   }'
 ```
+
+## 🔄 Sistema de Processamento em Lote (Spring Batch)
+
+O sistema implementa um robusto sistema de processamento em lote usando Spring Batch para gerenciar operações assíncronas e de alto volume.
+
+### 📋 Filas de Processamento
+
+#### 1. EmailQueue - Fila de Emails
+Gerencia o envio de emails em lote com alta performance e confiabilidade.
+
+**Características:**
+- Envio assíncrono de emails
+- Retry automático em caso de falha
+- Priorização de emails
+- Templates dinâmicos
+- Controle de tentativas
+
+**Endpoints:**
+```http
+POST /api/email-queue/add           # Adicionar email à fila
+GET  /api/email-queue               # Listar emails (paginado)
+GET  /api/email-queue/{id}          # Buscar email por ID
+GET  /api/email-queue/statistics    # Estatísticas da fila
+POST /api/email-queue/reprocess/{id} # Reprocessar email
+DELETE /api/email-queue/cleanup     # Limpar emails antigos
+```
+
+#### 2. ImageResizeQueue - Fila de Redimensionamento de Imagens
+Processa redimensionamento e otimização de imagens em lote.
+
+**Características:**
+- Redimensionamento inteligente
+- Múltiplos formatos (JPEG, PNG, WebP)
+- Compressão otimizada
+- Marca d'água automática
+- Preservação de metadados
+
+**Endpoints:**
+```http
+POST /api/image-queue/add           # Adicionar imagem à fila
+GET  /api/image-queue               # Listar imagens (paginado)
+GET  /api/image-queue/{id}          # Buscar imagem por ID
+GET  /api/image-queue/statistics    # Estatísticas da fila
+POST /api/image-queue/reprocess/{id} # Reprocessar imagem
+DELETE /api/image-queue/cleanup     # Limpar imagens antigas
+```
+
+#### 3. FileProcessingQueue - Fila de Processamento de Arquivos
+Gerencia operações em lote com arquivos e diretórios.
+
+**Características:**
+- Listagem de diretórios
+- Análise de arquivos
+- Compressão/descompressão
+- Detecção de duplicatas
+- Operações em lote
+
+**Endpoints:**
+```http
+POST /api/file-queue/add            # Adicionar arquivo à fila
+GET  /api/file-queue                # Listar arquivos (paginado)
+GET  /api/file-queue/{id}           # Buscar arquivo por ID
+GET  /api/file-queue/statistics     # Estatísticas da fila
+GET  /api/file-queue/operation-types # Tipos de operação disponíveis
+POST /api/file-queue/reprocess/{id} # Reprocessar arquivo
+DELETE /api/file-queue/cleanup      # Limpar arquivos antigos
+```
+
+### 🎯 Jobs Spring Batch
+
+#### 1. Email Job
+```java
+@Component
+public class EmailJobConfig {
+    // Configuração do job de envio de emails
+    // Reader: Lê emails da fila
+    // Processor: Prepara email para envio
+    // Writer: Envia email via SMTP
+}
+```
+
+#### 2. Image Resize Job
+```java
+@Component
+public class ImageResizeJobConfig {
+    // Configuração do job de redimensionamento
+    // Reader: Lê imagens da fila
+    // Processor: Redimensiona e otimiza
+    // Writer: Salva imagem processada
+}
+```
+
+#### 3. File Processing Job
+```java
+@Component
+public class FileProcessingJobConfig {
+    // Configuração do job de processamento
+    // Reader: Lê arquivos da fila
+    // Processor: Executa operação específica
+    // Writer: Salva resultado
+}
+```
+
+### 🎮 Controlador de Jobs
+
+#### BatchJobController
+Gerencia execução e monitoramento de todos os jobs.
+
+```http
+POST /api/batch/execute/{jobType}   # Executar job específico
+GET  /api/batch/{id}                # Buscar job por ID
+GET  /api/batch                     # Listar jobs (paginado)
+GET  /api/batch/statistics          # Estatísticas gerais
+GET  /api/batch/running             # Jobs em execução
+POST /api/batch/cancel/{id}         # Cancelar job
+DELETE /api/batch/cleanup           # Limpar jobs antigos
+```
+
+### 📊 Monitoramento e Estatísticas
+
+#### Métricas Disponíveis
+- **Jobs executados**: Total e por tipo
+- **Taxa de sucesso**: Percentual de jobs bem-sucedidos
+- **Tempo médio**: Duração média de processamento
+- **Filas**: Tamanho atual das filas
+- **Erros**: Logs de falhas e retry
+
+#### Exemplo de Estatísticas
+```json
+{
+  "totalJobs": 1250,
+  "successfulJobs": 1180,
+  "failedJobs": 70,
+  "successRate": 94.4,
+  "averageProcessingTime": "00:02:15",
+  "queueSizes": {
+    "emailQueue": 45,
+    "imageQueue": 12,
+    "fileQueue": 8
+  }
+}
+```
+
+### 🔧 Configuração do Spring Batch
+
+#### application.yml
+```yaml
+spring:
+  batch:
+    job:
+      enabled: false  # Não executar jobs automaticamente
+    jdbc:
+      initialize-schema: always
+      
+app:
+  batch:
+    chunk-size: 100
+    thread-pool-size: 5
+    retry-limit: 3
+    cleanup-days: 30
+```
+
+### 🚀 Exemplos de Uso
+
+#### Adicionar Email à Fila
+```bash
+curl -X POST http://localhost:8080/api/email-queue/add \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -d '{
+    "to": "usuario@example.com",
+    "subject": "Bem-vindo!",
+    "template": "welcome",
+    "priority": "HIGH"
+  }'
+```
+
+#### Executar Job de Emails
+```bash
+curl -X POST http://localhost:8080/api/batch/execute/EMAIL \
+  -H "Authorization: Bearer ${TOKEN}"
+```
+
+#### Adicionar Imagem para Redimensionamento
+```bash
+curl -X POST http://localhost:8080/api/image-queue/add \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -d '{
+    "originalPath": "/uploads/image.jpg",
+    "targetWidth": 800,
+    "targetHeight": 600,
+    "format": "JPEG",
+    "quality": 85
+  }'
+```
+
+### 🛡️ Segurança e Confiabilidade
+
+#### Características de Segurança
+- **Autenticação obrigatória** para todos os endpoints
+- **Autorização baseada em roles** (USER/ADMIN)
+- **Validação de entrada** em todos os parâmetros
+- **Rate limiting** para prevenir abuso
+- **Logs de auditoria** para todas as operações
+
+#### Confiabilidade
+- **Retry automático** em caso de falha
+- **Dead letter queue** para falhas permanentes
+- **Transações** para consistência de dados
+- **Monitoramento** em tempo real
+- **Cleanup automático** de dados antigos
 
 ## 🧪 Testes
 
@@ -377,18 +594,24 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICE
 - [ ] Sistema de notificações push
 - [ ] API de upload de arquivos
 - [ ] Integração com redes sociais
-- [ ] Dashboard administrativo
-- [ ] Relatórios e analytics
+- [ ] Dashboard administrativo para Spring Batch
+- [ ] Relatórios e analytics de jobs
 - [ ] API de pagamentos
+- [ ] Scheduler automático de jobs
+- [ ] Webhooks para notificação de jobs
 
 ### Melhorias Técnicas
 
 - [ ] Cache distribuído com Redis
-- [ ] Mensageria com RabbitMQ
+- [ ] Mensageria com RabbitMQ para jobs
+- [ ] Particionamento de jobs Spring Batch
+- [ ] Cluster de processamento distribuído
 - [ ] Observabilidade com OpenTelemetry
 - [ ] CI/CD com GitHub Actions
 - [ ] Kubernetes deployment
 - [ ] Backup automatizado
+- [ ] Métricas avançadas de performance
+- [ ] Auto-scaling baseado em carga de jobs
 
 ---
 

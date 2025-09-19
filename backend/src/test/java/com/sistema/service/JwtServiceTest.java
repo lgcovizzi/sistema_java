@@ -25,6 +25,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -375,7 +376,8 @@ class JwtServiceTest {
         void shouldProvideAllInterfaceMethods() {
             // Given
             TokenOperations operations = jwtService;
-            Map<String, Object> claims = Map.of("username", "testuser");
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("username", "testuser");
 
             // When & Then - Não deve lançar exceções para métodos da interface
             assertThat(operations).isNotNull();
@@ -449,7 +451,7 @@ class JwtServiceTest {
         void shouldHandleSpecialCharactersInSubject() {
             // Given
             String specialSubject = "user@domain.com!@#$%^&*()";
-            Map<String, Object> claims = Map.of("username", "testuser");
+            Map<String, Object> claims = new HashMap<String, Object>() {{ put("username", "testuser"); }};
 
             // When
             String token = jwtService.generateToken(specialSubject, claims, 15);
@@ -464,7 +466,7 @@ class JwtServiceTest {
         @DisplayName("Deve lidar com claims vazios")
         void shouldHandleEmptyClaims() {
             // Given
-            Map<String, Object> emptyClaims = Map.of();
+            Map<String, Object> emptyClaims = new HashMap<>();
 
             // When
             String token = jwtService.generateToken("test@example.com", emptyClaims, 15);
@@ -478,7 +480,8 @@ class JwtServiceTest {
         @DisplayName("Deve lidar com TTL zero")
         void shouldHandleZeroTTL() {
             // Given
-            Map<String, Object> claims = Map.of("username", "testuser");
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("username", "testuser");
 
             // When & Then
             assertThatThrownBy(() -> jwtService.generateToken("test@example.com", claims, 0))
@@ -489,7 +492,8 @@ class JwtServiceTest {
         @DisplayName("Deve lidar com TTL negativo")
         void shouldHandleNegativeTTL() {
             // Given
-            Map<String, Object> claims = Map.of("username", "testuser");
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("username", "testuser");
 
             // When & Then
             assertThatThrownBy(() -> jwtService.generateToken("test@example.com", claims, -1))
@@ -505,7 +509,7 @@ class JwtServiceTest {
         @DisplayName("Deve gerar múltiplos tokens eficientemente")
         void shouldGenerateMultipleTokensEfficiently() {
             // Given
-            Map<String, Object> claims = Map.of("username", "testuser");
+            Map<String, Object> claims = new HashMap<String, Object>() {{ put("username", "testuser"); }};
 
             // When & Then
             for (int i = 0; i < 100; i++) {
@@ -536,7 +540,7 @@ class JwtServiceTest {
         @DisplayName("Deve gerar tokens únicos para cada chamada")
         void shouldGenerateUniqueTokensForEachCall() {
             // Given
-            Map<String, Object> claims = Map.of("username", "testuser");
+            Map<String, Object> claims = new HashMap<String, Object>() {{ put("username", "testuser"); }};
 
             // When
             String token1 = jwtService.generateToken("test@example.com", claims, 15);

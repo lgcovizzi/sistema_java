@@ -706,7 +706,7 @@ class TokenBlacklistServiceTest {
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
             when(jwtService.extractJti(anyString())).thenReturn("test-jti");
             when(jwtService.extractExpiration(anyString())).thenReturn(futureExpiration);
-            when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+            // Removido stubbing desnecessário de setIfAbsent - o método revokeToken usa set(), não setIfAbsent()
 
             // When & Then
             assertThatCode(() -> {

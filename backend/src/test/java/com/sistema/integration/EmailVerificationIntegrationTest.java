@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.*;
  * Teste de integração para verificação de envio de emails com SMTP Mailtrap.
  * Estes testes são executados apenas quando as variáveis de ambiente do Mailtrap estão configuradas.
  */
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("test")
 @DisplayName("Email Verification Integration Tests")
 class EmailVerificationIntegrationTest {

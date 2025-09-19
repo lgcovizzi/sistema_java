@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -75,11 +76,14 @@ public class ToastController {
                 }
                 break;
             default:
-                return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Tipo de toast inválido"));
+                Map<String, String> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Tipo de toast inválido");
+                return ResponseEntity.badRequest().body(errorResponse);
         }
         
-        return ResponseEntity.ok(Map.of("status", "success"));
+        Map<String, String> successResponse = new HashMap<>();
+        successResponse.put("status", "success");
+        return ResponseEntity.ok(successResponse);
     }
     
     /**
@@ -92,7 +96,9 @@ public class ToastController {
         } else {
             toastService.success(request.getMessage());
         }
-        return ResponseEntity.ok(Map.of("status", "success"));
+        Map<String, String> successResponse1 = new HashMap<>();
+        successResponse1.put("status", "success");
+        return ResponseEntity.ok(successResponse1);
     }
     
     /**
@@ -105,7 +111,9 @@ public class ToastController {
         } else {
             toastService.error(request.getMessage());
         }
-        return ResponseEntity.ok(Map.of("status", "success"));
+        Map<String, String> successResponse2 = new HashMap<>();
+        successResponse2.put("status", "success");
+        return ResponseEntity.ok(successResponse2);
     }
     
     /**
@@ -118,7 +126,9 @@ public class ToastController {
         } else {
             toastService.warning(request.getMessage());
         }
-        return ResponseEntity.ok(Map.of("status", "success"));
+        Map<String, String> successResponse3 = new HashMap<>();
+        successResponse3.put("status", "success");
+        return ResponseEntity.ok(successResponse3);
     }
     
     /**
@@ -131,7 +141,9 @@ public class ToastController {
         } else {
             toastService.info(request.getMessage());
         }
-        return ResponseEntity.ok(Map.of("status", "success"));
+        Map<String, String> successResponse4 = new HashMap<>();
+        successResponse4.put("status", "success");
+        return ResponseEntity.ok(successResponse4);
     }
     
     /**
@@ -140,7 +152,9 @@ public class ToastController {
     @DeleteMapping("/messages")
     public ResponseEntity<Map<String, String>> clearMessages() {
         toastService.clearMessages();
-        return ResponseEntity.ok(Map.of("status", "cleared"));
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "cleared");
+        return ResponseEntity.ok(response);
     }
     
     /**
@@ -151,10 +165,10 @@ public class ToastController {
         boolean hasMessages = toastService.hasMessages();
         int count = toastService.getMessageCount();
         
-        return ResponseEntity.ok(Map.of(
-            "hasMessages", hasMessages,
-            "count", count
-        ));
+        Map<String, Object> response = new HashMap<>();
+        response.put("hasMessages", hasMessages);
+        response.put("count", count);
+        return ResponseEntity.ok(response);
     }
     
     /**

@@ -334,12 +334,12 @@ public class TokenBlacklistService extends BaseRedisService implements SecurityO
             return stats;
         } catch (Exception e) {
             logError("Erro ao obter estatísticas da blacklist", e);
-            return java.util.Map.of(
-                "totalBlacklisted", 0,
-                "activeBlacklisted", 0,
-                "expiredBlacklisted", 0,
-                "error", "Erro ao obter estatísticas"
-            );
+            java.util.Map<String, Object> errorStats = new java.util.HashMap<>();
+            errorStats.put("totalBlacklisted", 0);
+            errorStats.put("activeBlacklisted", 0);
+            errorStats.put("expiredBlacklisted", 0);
+            errorStats.put("error", "Erro ao obter estatísticas");
+            return errorStats;
         }
     }
 }

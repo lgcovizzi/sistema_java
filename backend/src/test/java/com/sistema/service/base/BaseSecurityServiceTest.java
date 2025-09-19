@@ -86,10 +86,6 @@ class BaseSecurityServiceTest {
         @DisplayName("Should throw exception when user not found")
         void shouldThrowExceptionWhenUserNotFound() {
             // Given
-            when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.isAuthenticated()).thenReturn(true);
-            when(authentication.getPrincipal()).thenReturn("test@example.com");
-            SecurityContextHolder.setContext(securityContext);
             baseSecurityService.setMockUser(null);
 
             // When & Then
@@ -133,10 +129,6 @@ class BaseSecurityServiceTest {
             User user = createTestUser();
             user.setRole(UserRole.ADMIN);
             
-            when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.isAuthenticated()).thenReturn(true);
-            when(authentication.getName()).thenReturn("test@example.com");
-            
             baseSecurityService.setMockUser(user);
 
             // When
@@ -153,10 +145,6 @@ class BaseSecurityServiceTest {
             User user = createTestUser();
             user.setRole(UserRole.USER);
             
-            when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.isAuthenticated()).thenReturn(true);
-            when(authentication.getName()).thenReturn("test@example.com");
-            
             baseSecurityService.setMockUser(user);
 
             // When
@@ -170,10 +158,6 @@ class BaseSecurityServiceTest {
         @DisplayName("Should return false when user not found for role check")
         void shouldReturnFalseWhenUserNotFoundForRoleCheck() {
             // Given
-            when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.isAuthenticated()).thenReturn(true);
-            when(authentication.getName()).thenReturn("notfound@example.com");
-            
             baseSecurityService.setMockUser(null);
 
             // When
@@ -190,10 +174,6 @@ class BaseSecurityServiceTest {
             User user = createTestUser();
             user.setRole(UserRole.ADMIN);
             
-            when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.isAuthenticated()).thenReturn(true);
-            when(authentication.getName()).thenReturn("test@example.com");
-            
             baseSecurityService.setMockUser(user);
 
             // When
@@ -209,10 +189,6 @@ class BaseSecurityServiceTest {
             // Given
             User user = createTestUser();
             user.setRole(UserRole.USER);
-            
-            when(securityContext.getAuthentication()).thenReturn(authentication);
-            when(authentication.isAuthenticated()).thenReturn(true);
-            when(authentication.getName()).thenReturn("test@example.com");
             
             baseSecurityService.setMockUser(user);
 

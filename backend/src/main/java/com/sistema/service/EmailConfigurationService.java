@@ -4,6 +4,7 @@ import com.sistema.entity.EmailConfiguration;
 import com.sistema.enums.EmailProvider;
 import com.sistema.repository.EmailConfigurationRepository;
 import com.sistema.service.base.BaseService;
+import com.sistema.util.ValidationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,7 +96,7 @@ public class EmailConfigurationService extends BaseService {
         existing.setPort(configuration.getPort());
         existing.setUsername(configuration.getUsername());
         existing.setPassword(configuration.getPassword());
-        existing.setEnabled(configuration.isEnabled());
+        existing.setIsActive(configuration.getIsActive());
         existing.setDescription(configuration.getDescription());
         existing.setUpdatedBy(configuration.getUpdatedBy());
 
@@ -117,8 +118,9 @@ public class EmailConfigurationService extends BaseService {
      * Define uma configuração como padrão.
      * 
      * @param id o ID da configuração
+     * @return a configuração atualizada
      */
-    public void setAsDefault(Long id) {
+    public EmailConfiguration setAsDefault(Long id) {
         validateNotNull(id, "ID não pode ser nulo");
 
         logInfo(String.format("Definindo configuração ID %d como padrão", id));
@@ -126,7 +128,7 @@ public class EmailConfigurationService extends BaseService {
         EmailConfiguration config = emailConfigurationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Configuração não encontrada com ID: " + id));
 
-        if (!config.isEnabled()) {
+        if (!config.getIsActive()) {
             throw new RuntimeException("Não é possível definir uma configuração desabilitada como padrão");
         }
 
@@ -134,9 +136,11 @@ public class EmailConfigurationService extends BaseService {
         clearAllDefaultFlags();
         
         // Define esta como padrão
-        emailConfigurationRepository.setAsDefault(id);
+        config.setDefault(true);
+        EmailConfiguration updated = emailConfigurationRepository.save(config);
         
         logInfo("Configuração definida como padrão com sucesso");
+        return updated;
     }
 
     /**
@@ -155,7 +159,7 @@ public class EmailConfigurationService extends BaseService {
     @Transactional(readOnly = true)
     public List<EmailConfiguration> getActiveConfigurations() {
         logDebug("Buscando todas as configurações ativas");
-        return emailConfigurationRepository.findEnabledOrderByDefaultFirst();
+        return emailConfigurationRepository.findByIsActiveTrue();
     }
 
     /**
@@ -170,6 +174,136 @@ public class EmailConfigurationService extends BaseService {
     }
 
     /**
+     * Busca todas as configurações (alias para getAllConfigurations).
+     * 
+     * @return lista de todas as configurações
+     */
+    @Transactional(readOnly = true)
+    public List<EmailConfiguration> findAll() {
+        logDebug("Buscando todas as configurações");
+        return emailConfigurationRepository.findAll();
+    }
+
+    /**
+     * Busca a configuração padrão (alias para getDefaultConfiguration).
+     * 
+     * @return Optional com a configuração padrão
+     */
+    @Transactional(readOnly = true)
+    public Optional<EmailConfiguration> findDefaultConfiguration() {
+        return getDefaultConfiguration();
+    }
+
+    /**
+     * Busca configuração por provedor (retorna a primeira encontrada).
+     * 
+     * @param provider o provedor
+     * @return Optional com a configuração do provedor
+     */
+    @Transactional(readOnly = true)
+    public Optional<EmailConfiguration> findByProvider(EmailProvider provider) {
+        validateNotNull(provider, "Provider não pode ser nulo");
+        
+        logDebug(String.format("Buscando configuração para provider: %s", provider));
+        List<EmailConfiguration> configs = emailConfigurationRepository.findByProvider(provider);
+        return configs.isEmpty() ? Optional.empty() : Optional.of(configs.get(0));
+    }
+
+    /**
+     * Conta configurações por provedor.
+     * 
+     * @param provider o provedor
+     * @return número de configurações do provedor
+     */
+    @Transactional(readOnly = true)
+    public long countByProvider(EmailProvider provider) {
+        validateNotNull(provider, "Provider não pode ser nulo");
+        
+        logDebug(String.format("Contando configurações para provider: %s", provider));
+        return emailConfigurationRepository.countByProvider(provider);
+    }
+
+    /**
+     * Cria uma configuração rápida para um provedor.
+     * 
+     * @param provider o provedor
+     * @param fromEmail o email remetente
+     * @return a configuração criada
+     */
+    @Transactional
+    public EmailConfiguration createQuickConfiguration(EmailProvider provider, String fromEmail) {
+        validateNotNull(provider, "Provider não pode ser nulo");
+        ValidationUtils.validateNotBlank(fromEmail, "Email remetente não pode ser vazio");
+        
+        logInfo(String.format("Criando configuração rápida para provider: %s", provider));
+        
+        EmailConfiguration config = new EmailConfiguration();
+        config.setProvider(provider);
+        config.setFromEmail(fromEmail);
+        config.setIsActive(true);
+        config.setDefault(false);
+        
+        // Configurações padrão baseadas no provedor
+        switch (provider) {
+            case GMAIL:
+                config.setHost("smtp.gmail.com");
+                config.setPort(587);
+                config.setUsername(fromEmail);
+                config.setPassword(""); // Deve ser configurado posteriormente
+                break;
+            case MAILTRAP:
+                config.setHost("smtp.mailtrap.io");
+                config.setPort(587);
+                config.setUsername(""); // Deve ser configurado posteriormente
+                config.setPassword(""); // Deve ser configurado posteriormente
+                break;
+            default:
+                config.setHost("");
+                config.setPort(587);
+                config.setUsername("");
+                config.setPassword("");
+                break;
+        }
+        
+        EmailConfiguration saved = emailConfigurationRepository.save(config);
+        logInfo("Configuração rápida criada com sucesso");
+        return saved;
+    }
+
+    /**
+     * Obtém histórico de configurações.
+     * 
+     * @return lista de configurações ordenadas por data de criação
+     */
+    @Transactional(readOnly = true)
+    public List<EmailConfiguration> getConfigurationHistory() {
+        logDebug("Obtendo histórico de configurações");
+        return emailConfigurationRepository.findAllOrderByCreatedAtDesc();
+    }
+
+    /**
+     * Conta total de configurações.
+     * 
+     * @return número total de configurações
+     */
+    @Transactional(readOnly = true)
+    public long countTotalConfigurations() {
+        logDebug("Contando total de configurações");
+        return emailConfigurationRepository.count();
+    }
+
+    /**
+     * Conta configurações ativas.
+     * 
+     * @return número de configurações ativas
+     */
+    @Transactional(readOnly = true)
+    public long countActiveConfigurations() {
+        logDebug("Contando configurações ativas");
+        return emailConfigurationRepository.countByIsActiveTrue();
+    }
+
+    /**
      * Busca configurações por provedor.
      * 
      * @param provider o provedor
@@ -180,7 +314,7 @@ public class EmailConfigurationService extends BaseService {
         validateNotNull(provider, "Provider não pode ser nulo");
         
         logDebug(String.format("Buscando configurações para provider: %s", provider));
-        return emailConfigurationRepository.findByProviderAndEnabledTrue(provider);
+        return emailConfigurationRepository.findByProviderAndIsActiveTrue(provider);
     }
 
     /**
@@ -216,8 +350,9 @@ public class EmailConfigurationService extends BaseService {
      * 
      * @param id o ID da configuração
      * @param enabled true para habilitar, false para desabilitar
+     * @return a configuração atualizada
      */
-    public void toggleConfiguration(Long id, boolean enabled) {
+    public EmailConfiguration toggleConfiguration(Long id, boolean enabled) {
         validateNotNull(id, "ID não pode ser nulo");
 
         logInfo(String.format("Alterando status da configuração ID %d para: %s", id, enabled ? "habilitada" : "desabilitada"));
@@ -230,7 +365,7 @@ public class EmailConfigurationService extends BaseService {
             config.setDefault(false);
             
             // Busca outra configuração ativa para ser padrão
-            List<EmailConfiguration> activeConfigs = emailConfigurationRepository.findByEnabledTrue();
+            List<EmailConfiguration> activeConfigs = emailConfigurationRepository.findByIsActiveTrue();
             Optional<EmailConfiguration> newDefault = activeConfigs.stream()
                     .filter(c -> !c.getId().equals(id))
                     .findFirst();
@@ -244,10 +379,11 @@ public class EmailConfigurationService extends BaseService {
             }
         }
 
-        config.setEnabled(enabled);
-        emailConfigurationRepository.save(config);
+        config.setIsActive(enabled);
+        EmailConfiguration savedConfig = emailConfigurationRepository.save(config);
         
         logInfo("Status da configuração alterado com sucesso");
+        return savedConfig;
     }
 
     /**
@@ -265,7 +401,7 @@ public class EmailConfigurationService extends BaseService {
 
         // Se está removendo a configuração padrão, define outra como padrão
         if (config.isDefault()) {
-            List<EmailConfiguration> activeConfigs = emailConfigurationRepository.findByEnabledTrue();
+            List<EmailConfiguration> activeConfigs = emailConfigurationRepository.findByIsActiveTrue();
             Optional<EmailConfiguration> newDefault = activeConfigs.stream()
                     .filter(c -> !c.getId().equals(id))
                     .findFirst();
@@ -306,7 +442,7 @@ public class EmailConfigurationService extends BaseService {
             mailtrapConfig.setPassword("your_mailtrap_password");
             mailtrapConfig.setDescription("Configuração padrão do Mailtrap para desenvolvimento");
             mailtrapConfig.setDefault(true);
-            mailtrapConfig.setEnabled(true);
+            mailtrapConfig.setIsActive(true);
             mailtrapConfig.setCreatedBy("SYSTEM");
             
             emailConfigurationRepository.save(mailtrapConfig);
@@ -326,9 +462,9 @@ public class EmailConfigurationService extends BaseService {
         java.util.Map<String, Object> stats = new java.util.HashMap<>();
         
         long totalConfigs = emailConfigurationRepository.count();
-        long activeConfigs = emailConfigurationRepository.findByEnabledTrue().size();
-        long mailtrapConfigs = emailConfigurationRepository.countByProviderAndEnabledTrue(EmailProvider.MAILTRAP);
-        long gmailConfigs = emailConfigurationRepository.countByProviderAndEnabledTrue(EmailProvider.GMAIL);
+        long activeConfigs = emailConfigurationRepository.findByIsActiveTrue().size();
+        long mailtrapConfigs = emailConfigurationRepository.countByProviderAndIsActiveTrue(EmailProvider.MAILTRAP);
+        long gmailConfigs = emailConfigurationRepository.countByProviderAndIsActiveTrue(EmailProvider.GMAIL);
         boolean hasDefault = hasDefaultConfiguration();
         
         stats.put("total", totalConfigs);
@@ -363,7 +499,7 @@ public class EmailConfigurationService extends BaseService {
         config.setPort(provider.getDefaultPort());
         config.setTlsEnabled(provider.isDefaultTlsEnabled());
         config.setAuthRequired(provider.isDefaultAuthRequired());
-        config.setEnabled(true);
+        config.setIsActive(true);
         config.setDefault(false);
         
         return config;

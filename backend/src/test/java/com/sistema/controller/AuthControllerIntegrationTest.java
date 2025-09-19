@@ -30,7 +30,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.hamcrest.Matchers.*;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+    "management.health.redis.enabled=false",
+    "spring.data.redis.repositories.enabled=false"
+})
 @AutoConfigureWebMvc
 @ActiveProfiles("test")
 @Transactional

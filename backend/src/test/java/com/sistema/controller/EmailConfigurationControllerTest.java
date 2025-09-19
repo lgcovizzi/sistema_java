@@ -60,7 +60,7 @@ class EmailConfigurationControllerTest {
         mailtrapConfig.setPort(2525);
         mailtrapConfig.setUsername("test_user");
         mailtrapConfig.setPassword("test_password");
-        mailtrapConfig.setEnabled(true);
+        mailtrapConfig.setIsActive(true);
         mailtrapConfig.setDefault(true);
         mailtrapConfig.setDescription("Configuração de desenvolvimento");
         mailtrapConfig.setCreatedAt(LocalDateTime.now());
@@ -74,7 +74,7 @@ class EmailConfigurationControllerTest {
         gmailConfig.setPort(587);
         gmailConfig.setUsername("test@gmail.com");
         gmailConfig.setPassword("app_password");
-        gmailConfig.setEnabled(false);
+        gmailConfig.setIsActive(false);
         gmailConfig.setDefault(false);
         gmailConfig.setDescription("Configuração de produção");
         gmailConfig.setCreatedAt(LocalDateTime.now());
@@ -134,7 +134,7 @@ class EmailConfigurationControllerTest {
         mockMvc.perform(get("/api/admin/email-config/999"))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpected(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Configuração não encontrada"));
 
         verify(emailConfigurationService).getConfigurationById(999L);
@@ -151,7 +151,7 @@ class EmailConfigurationControllerTest {
         newConfig.setPort(587);
         newConfig.setUsername("new@gmail.com");
         newConfig.setPassword("new_password");
-        newConfig.setEnabled(true);
+        newConfig.setIsActive(true);
         newConfig.setDescription("Nova configuração");
 
         when(emailConfigurationService.createConfiguration(any(EmailConfiguration.class)))
@@ -182,7 +182,7 @@ class EmailConfigurationControllerTest {
         updatedConfig.setPort(587);
         updatedConfig.setUsername("updated@gmail.com");
         updatedConfig.setPassword("updated_password");
-        updatedConfig.setEnabled(true);
+        updatedConfig.setIsActive(true);
         updatedConfig.setDescription("Configuração atualizada");
 
         when(emailConfigurationService.updateConfiguration(eq(2L), any(EmailConfiguration.class)))

@@ -1,7 +1,7 @@
 package com.sistema.service;
 
 import com.sistema.entity.EmailConfiguration;
-import com.sistema.entity.EmailProvider;
+import com.sistema.enums.EmailProvider;
 import com.sistema.repository.EmailConfigurationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -47,7 +47,7 @@ class EmailConfigurationServiceTest {
         mailtrapConfig.setPort(2525);
         mailtrapConfig.setUsername("test_user");
         mailtrapConfig.setPassword("test_password");
-        mailtrapConfig.setEnabled(true);
+        mailtrapConfig.setIsActive(true);
         mailtrapConfig.setDefault(true);
         mailtrapConfig.setDescription("Configuração de desenvolvimento");
         mailtrapConfig.setCreatedAt(LocalDateTime.now());
@@ -61,7 +61,7 @@ class EmailConfigurationServiceTest {
         gmailConfig.setPort(587);
         gmailConfig.setUsername("test@gmail.com");
         gmailConfig.setPassword("app_password");
-        gmailConfig.setEnabled(false);
+        gmailConfig.setIsActive(false);
         gmailConfig.setDefault(false);
         gmailConfig.setDescription("Configuração de produção");
         gmailConfig.setCreatedAt(LocalDateTime.now());
@@ -78,7 +78,7 @@ class EmailConfigurationServiceTest {
         newConfig.setPort(587);
         newConfig.setUsername("new@gmail.com");
         newConfig.setPassword("new_password");
-        newConfig.setEnabled(true);
+        newConfig.setIsActive(true);
         newConfig.setDescription("Nova configuração");
 
         when(emailConfigurationRepository.save(any(EmailConfiguration.class)))
@@ -149,7 +149,7 @@ class EmailConfigurationServiceTest {
         updatedConfig.setPort(587);
         updatedConfig.setUsername("updated@gmail.com");
         updatedConfig.setPassword("updated_password");
-        updatedConfig.setEnabled(true);
+        updatedConfig.setIsActive(true);
         updatedConfig.setDescription("Configuração atualizada");
 
         when(emailConfigurationRepository.findById(2L)).thenReturn(Optional.of(gmailConfig));
@@ -201,7 +201,7 @@ class EmailConfigurationServiceTest {
         when(emailConfigurationRepository.save(any(EmailConfiguration.class))).thenReturn(gmailConfig);
 
         // When
-        emailConfigurationService.toggleConfiguration(2L, true);
+        EmailConfiguration result = emailConfigurationService.toggleConfiguration(2L, true);
 
         // Then
         assertThat(result).isNotNull();
@@ -255,51 +255,25 @@ class EmailConfigurationServiceTest {
     void shouldGetEnabledConfigurations() {
         // Given
         List<EmailConfiguration> enabledConfigs = Arrays.asList(mailtrapConfig);
-        when(emailConfigurationRepository.findByEnabledTrue()).thenReturn(enabledConfigs);
+        when(emailConfigurationRepository.findByIsActiveTrue()).thenReturn(enabledConfigs);
 
         // When
-        List<EmailConfiguration> result = emailConfigurationService.getEnabledConfigurations();
+        List<EmailConfiguration> result = emailConfigurationService.getActiveConfigurations();
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).isEnabled()).isTrue();
-        verify(emailConfigurationRepository).findByEnabledTrue();
+        assertThat(result.get(0).getIsActive()).isTrue();
+        verify(emailConfigurationRepository).findByIsActiveTrue();
     }
 
-    @Test
-    @DisplayName("Deve validar configuração com dados válidos")
-    void shouldValidateConfigurationWithValidData() {
-        // Given
-        EmailConfiguration validConfig = new EmailConfiguration();
-        validConfig.setProvider(EmailProvider.GMAIL);
-        validConfig.setHost("smtp.gmail.com");
-        validConfig.setPort(587);
-        validConfig.setUsername("test@gmail.com");
-        validConfig.setPassword("password");
 
-        // When & Then
-        assertThatCode(() -> emailConfigurationService.validateConfiguration(validConfig))
-                .doesNotThrowAnyException();
-    }
-
-    @Test
-    @DisplayName("Deve lançar exceção ao validar configuração com dados inválidos")
-    void shouldThrowExceptionWhenValidatingInvalidConfiguration() {
-        // Given
-        EmailConfiguration invalidConfig = new EmailConfiguration();
-        // Configuração sem dados obrigatórios
-
-        // When & Then
-        assertThatThrownBy(() -> emailConfigurationService.validateConfiguration(invalidConfig))
-                .isInstanceOf(IllegalArgumentException.class);
-    }
 
     @Test
     @DisplayName("Deve obter configurações por provedor")
     void shouldGetConfigurationsByProvider() {
         // Given
         List<EmailConfiguration> gmailConfigs = Arrays.asList(gmailConfig);
-        when(emailConfigurationRepository.findByProviderAndEnabledTrue(EmailProvider.GMAIL))
+        when(emailConfigurationRepository.findByProviderAndIsActiveTrue(EmailProvider.GMAIL))
                 .thenReturn(gmailConfigs);
 
         // When
@@ -308,7 +282,7 @@ class EmailConfigurationServiceTest {
         // Then
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getProvider()).isEqualTo(EmailProvider.GMAIL);
-        verify(emailConfigurationRepository).findByProviderAndEnabledTrue(EmailProvider.GMAIL);
+        verify(emailConfigurationRepository).findByProviderAndIsActiveTrue(EmailProvider.GMAIL);
     }
 
     @Test

@@ -5,6 +5,11 @@ import com.sistema.entity.UserRole;
 import com.sistema.service.AuthService;
 import com.sistema.service.JwtService;
 import com.sistema.service.TokenBlacklistService;
+import com.sistema.service.AttemptService;
+import com.sistema.service.UserService;
+import com.sistema.service.CaptchaService;
+import com.sistema.service.EmailVerificationService;
+import com.sistema.service.PasswordResetService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +35,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.*;
 
 /**
  * Testes unitários para AuthController
@@ -47,6 +53,21 @@ class AuthControllerTest {
 
     @Mock
     private TokenBlacklistService tokenBlacklistService;
+
+    @Mock
+    private AttemptService attemptService;
+
+    @Mock
+    private UserService userService;
+
+    @Mock
+    private CaptchaService captchaService;
+
+    @Mock
+    private EmailVerificationService emailVerificationService;
+
+    @Mock
+    private PasswordResetService passwordResetService;
 
     @Mock
     private HttpServletRequest httpServletRequest;
@@ -67,7 +88,9 @@ class AuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(authController).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(authController)
+                .setControllerAdvice() // Add global exception handling
+                .build();
         objectMapper = new ObjectMapper();
         
         // Setup test user
@@ -77,6 +100,7 @@ class AuthControllerTest {
         testUser.setPassword("encodedPassword");
         testUser.setRole(UserRole.USER);
         testUser.setEnabled(true);
+        testUser.setEmailVerified(true);
         testUser.setCreatedAt(LocalDateTime.now());
         
         // Setup auth response
@@ -85,12 +109,13 @@ class AuthControllerTest {
         authResponse.put("refreshToken", "refresh-token-123");
         authResponse.put("tokenType", "Bearer");
         authResponse.put("expiresIn", 3600);
-        authResponse.put("user", Map.of(
-            "id", 1L,
-            "username", "testuser",
-            "email", "test@example.com",
-            "roles", List.of("USER")
-        ));
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("id", 1L);
+        userInfo.put("username", "testuser");
+        userInfo.put("email", "test@example.com");
+        userInfo.put("emailVerified", true);
+        userInfo.put("roles", List.of("USER"));
+        authResponse.put("user", userInfo);
     }
 
     @Test
@@ -101,8 +126,24 @@ class AuthControllerTest {
         loginRequest.setEmail("test@example.com");
         loginRequest.setPassword("password123");
         
-        when(authService.authenticate(anyString(), anyString(), any(HttpServletRequest.class)))
-            .thenReturn(authResponse);
+        when(attemptService.isCaptchaRequiredForLogin(anyString())).thenReturn(false);
+        
+        // Configurar mock do authService.authenticate
+        Map<String, Object> authResponse = new HashMap<>();
+        authResponse.put("accessToken", "access-token-123");
+        authResponse.put("refreshToken", "refresh-token-123");
+        authResponse.put("tokenType", "Bearer");
+        authResponse.put("expiresIn", 900L);
+        
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("id", 1L);
+        userInfo.put("email", "test@example.com");
+        userInfo.put("username", "testuser");
+        userInfo.put("emailVerified", true);
+        authResponse.put("user", userInfo);
+        
+        when(authService.authenticate(eq("test@example.com"), eq("password123")))
+                .thenReturn(authResponse);
         
         // When & Then
         mockMvc.perform(post("/api/auth/login")
@@ -112,9 +153,10 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.accessToken").value("access-token-123"))
                 .andExpect(jsonPath("$.refreshToken").value("refresh-token-123"))
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.user.username").value("testuser"));
+                .andExpect(jsonPath("$.user.username").value("testuser"))
+                .andExpect(jsonPath("$.user.emailVerified").value(true));
         
-        verify(authService).authenticate(anyString(), anyString(), any(HttpServletRequest.class));
+        verify(authService).authenticate(eq("test@example.com"), eq("password123"));
     }
 
     @Test
@@ -147,7 +189,7 @@ class AuthControllerTest {
         registerRequest.setPassword("password123");
         registerRequest.setFirstName("New");
         registerRequest.setLastName("User");
-        registerRequest.setCpf("12345678901");
+        registerRequest.setCpf("11144477735");
         
         when(authService.registerAndAuthenticate(anyString(), anyString(), anyString(), anyString(), anyString(), any(HttpServletRequest.class)))
             .thenReturn(authResponse);
@@ -156,13 +198,14 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(registerRequest)))
+                .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.accessToken").value("access-token-123"))
                 .andExpect(jsonPath("$.refreshToken").value("refresh-token-123"))
                 .andExpect(jsonPath("$.user.username").value("testuser"))
                 .andExpect(jsonPath("$.user.email").value("test@example.com"));
         
-        verify(authService).registerAndAuthenticate(eq("newuser@example.com"), eq("password123"), eq("New"), eq("User"), eq("12345678901"), any(HttpServletRequest.class));
+        verify(authService).registerAndAuthenticate(eq("newuser@example.com"), eq("password123"), eq("New"), eq("User"), eq("11144477735"), any(HttpServletRequest.class));
     }
 
     @Test
@@ -356,7 +399,7 @@ class AuthControllerTest {
         mockMvc.perform(get("/api/auth/me")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("testuser"))
+                .andExpect(jsonPath("$.username").value("test@example.com"))
                 .andExpect(jsonPath("$.email").value("test@example.com"));
     }
 

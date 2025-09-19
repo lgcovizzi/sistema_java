@@ -344,7 +344,9 @@ public class JwtService extends BaseService implements TokenOperations {
             return info;
         } catch (Exception e) {
             logger.error("Erro ao obter informações do token: {}", e.getMessage());
-            return Map.of("error", e.getMessage());
+            Map<String, Object> errorMap = new HashMap<>();
+            errorMap.put("error", e.getMessage());
+            return errorMap;
         }
     }
 

@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Testes de integração para o sistema de configuração de email.
  * Testa o fluxo completo desde o controller até o banco de dados.
  */
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureWebMvc
 @ActiveProfiles("test")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -78,7 +78,7 @@ class EmailConfigurationIntegrationTest {
         config.setPort(2525);
         config.setUsername("test_user");
         config.setPassword("test_password");
-        config.setEnabled(true);
+        config.setIsActive(true);
         config.setDescription("Configuração de teste");
 
         // When & Then
@@ -101,7 +101,7 @@ class EmailConfigurationIntegrationTest {
         assertEquals(EmailProvider.MAILTRAP, saved.getProvider());
         assertEquals("sandbox.smtp.mailtrap.io", saved.getHost());
         assertEquals(2525, saved.getPort());
-        assertTrue(saved.isEnabled());
+        assertTrue(saved.getIsActive());
         assertNotNull(saved.getCreatedAt());
         assertNotNull(saved.getUpdatedAt());
     }
@@ -118,7 +118,7 @@ class EmailConfigurationIntegrationTest {
         config.setPort(587);
         config.setUsername("test@gmail.com");
         config.setPassword("app_password");
-        config.setEnabled(true);
+        config.setIsActive(true);
         config.setDescription("Configuração Gmail");
 
         // When & Then
@@ -133,9 +133,9 @@ class EmailConfigurationIntegrationTest {
                 .andExpect(jsonPath("$.configuration.port").value(587));
 
         // Verificar no banco de dados
-        Optional<EmailConfiguration> saved = emailConfigurationRepository.findByProvider(EmailProvider.GMAIL);
-        assertTrue(saved.isPresent(), "Configuração Gmail deve estar salva");
-        assertEquals("test@gmail.com", saved.get().getUsername());
+        List<EmailConfiguration> savedList = emailConfigurationRepository.findByProvider(EmailProvider.GMAIL);
+        assertFalse(savedList.isEmpty(), "Configuração Gmail deve estar salva");
+        assertEquals("test@gmail.com", savedList.get(0).getUsername());
     }
 
     @Test
@@ -179,7 +179,7 @@ class EmailConfigurationIntegrationTest {
     void shouldToggleEnabledStatusViaApi() throws Exception {
         // Given
         EmailConfiguration config = createMailtrapConfiguration();
-        config.setEnabled(false);
+        config.setIsActive(false);
         EmailConfiguration saved = emailConfigurationRepository.save(config);
 
         // When - Alternar para enabled
@@ -192,7 +192,7 @@ class EmailConfigurationIntegrationTest {
         // Then - Verificar no banco
         Optional<EmailConfiguration> updated = emailConfigurationRepository.findById(saved.getId());
         assertTrue(updated.isPresent());
-        assertTrue(updated.get().isEnabled(), "Configuração deve estar habilitada");
+        assertTrue(updated.get().getIsActive(), "Configuração deve estar habilitada");
 
         // When - Alternar para disabled
         mockMvc.perform(put("/api/admin/email-config/" + saved.getId() + "/toggle")
@@ -203,7 +203,7 @@ class EmailConfigurationIntegrationTest {
         // Then - Verificar no banco novamente
         Optional<EmailConfiguration> toggledAgain = emailConfigurationRepository.findById(saved.getId());
         assertTrue(toggledAgain.isPresent());
-        assertFalse(toggledAgain.get().isEnabled(), "Configuração deve estar desabilitada");
+        assertFalse(toggledAgain.get().getIsActive(), "Configuração deve estar desabilitada");
     }
 
     @Test
@@ -222,7 +222,7 @@ class EmailConfigurationIntegrationTest {
         updated.setPort(2526);
         updated.setUsername("new_user");
         updated.setPassword("new_password");
-        updated.setEnabled(false);
+        updated.setIsActive(false);
         updated.setDescription("Configuração atualizada");
 
         // When
@@ -243,7 +243,7 @@ class EmailConfigurationIntegrationTest {
         assertEquals("new.smtp.mailtrap.io", updatedConfig.get().getHost());
         assertEquals(2526, updatedConfig.get().getPort());
         assertEquals("new_user", updatedConfig.get().getUsername());
-        assertFalse(updatedConfig.get().isEnabled());
+        assertFalse(updatedConfig.get().getIsActive());
         assertNotNull(updatedConfig.get().getUpdatedAt());
     }
 
@@ -447,7 +447,7 @@ class EmailConfigurationIntegrationTest {
         Optional<EmailConfiguration> finalConfig = emailConfigurationRepository.findById(gmailConfig.getId());
         assertTrue(finalConfig.isPresent());
         assertTrue(finalConfig.get().isDefault());
-        assertFalse(finalConfig.get().isEnabled());
+        assertFalse(finalConfig.get().getIsActive());
     }
 
     /**
@@ -460,7 +460,7 @@ class EmailConfigurationIntegrationTest {
         config.setPort(2525);
         config.setUsername("test_user");
         config.setPassword("test_password");
-        config.setEnabled(true);
+        config.setIsActive(true);
         config.setDefault(false);
         config.setDescription("Configuração Mailtrap de teste");
         return config;
@@ -473,7 +473,7 @@ class EmailConfigurationIntegrationTest {
         config.setPort(587);
         config.setUsername("test@gmail.com");
         config.setPassword("app_password");
-        config.setEnabled(true);
+        config.setIsActive(true);
         config.setDefault(false);
         config.setDescription("Configuração Gmail de teste");
         return config;

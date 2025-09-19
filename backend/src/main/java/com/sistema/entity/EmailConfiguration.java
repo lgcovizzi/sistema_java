@@ -253,13 +253,7 @@ public class EmailConfiguration {
         this.isActive = isActive;
     }
     
-    public boolean isEnabled() {
-        return isActive != null && isActive;
-    }
-    
-    public void setEnabled(boolean enabled) {
-        this.isActive = enabled;
-    }
+
     
     public String getFromEmail() {
         return fromEmail;

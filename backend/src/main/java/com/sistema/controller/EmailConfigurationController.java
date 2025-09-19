@@ -238,7 +238,7 @@ public class EmailConfigurationController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
             }
             
-            boolean newStatus = !configuration.isEnabled();
+            boolean newStatus = !configuration.getIsActive();
             emailConfigurationService.toggleConfiguration(id, newStatus);
             
             Map<String, Object> response = new HashMap<>();

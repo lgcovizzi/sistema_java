@@ -38,7 +38,7 @@ class BaseRedisServiceTest {
         baseRedisService = new TestableBaseRedisService();
         baseRedisService.redisTemplate = redisTemplate;
         
-        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     }
 
     @Nested
@@ -92,6 +92,7 @@ class BaseRedisServiceTest {
             );
 
             assertTrue(exception.getMessage().contains("armazenar valor no Redis"));
+            assertTrue(exception.getMessage().contains("Redis error"));
         }
     }
 
@@ -275,10 +276,9 @@ class BaseRedisServiceTest {
             // Given
             String key = "test:counter";
             Duration duration = Duration.ofMinutes(5);
-            long expectedValue = 3L;
+            long expectedValue = 3L; // Valor > 1 indica que a chave já existe
             
             when(valueOperations.increment(key)).thenReturn(expectedValue);
-            when(redisTemplate.hasKey(key)).thenReturn(true);
 
             // When
             long result = baseRedisService.incrementWithTTL(key, duration);

@@ -30,7 +30,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Testes unitários específicos para o endpoint /api/auth/forgot-password
  * Foco em prevenir erros 400 Bad Request através de validação abrangente
  */
-@WebMvcTest(AuthController.class)
+@WebMvcTest(value = AuthController.class, properties = {
+    "management.health.redis.enabled=false",
+    "spring.data.redis.repositories.enabled=false"
+})
 @DisplayName("AuthController - Forgot Password Unit Tests")
 class AuthControllerForgotPasswordUnitTest {
 

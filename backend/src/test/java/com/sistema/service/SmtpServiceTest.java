@@ -17,6 +17,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -35,6 +36,9 @@ class SmtpServiceTest {
     private SmtpConfig.SmtpConfiguration smtpConfiguration;
 
     @Mock
+    private EmailConfigurationService emailConfigurationService;
+
+    @Mock
     private MimeMessage mimeMessage;
 
     @InjectMocks
@@ -48,14 +52,17 @@ class SmtpServiceTest {
         ReflectionTestUtils.setField(smtpService, "retryAttempts", 3);
         ReflectionTestUtils.setField(smtpService, "retryDelay", 1000L);
 
-        // Configurar mock do SmtpConfiguration
-        when(smtpConfiguration.getUsername()).thenReturn("noreply@sistema.com");
-        when(smtpConfiguration.getHost()).thenReturn("localhost");
-        when(smtpConfiguration.getPort()).thenReturn(587);
-        when(smtpConfiguration.getProtocol()).thenReturn("smtp");
-        when(smtpConfiguration.isAuth()).thenReturn(true);
-        when(smtpConfiguration.isStarttlsEnable()).thenReturn(true);
-        when(smtpConfiguration.isSslEnable()).thenReturn(false);
+        // Configurar mock do SmtpConfiguration - usando @Lenient pois nem todos os testes usam esses mocks
+        lenient().when(smtpConfiguration.getUsername()).thenReturn("noreply@sistema.com");
+        lenient().when(smtpConfiguration.getHost()).thenReturn("localhost");
+        lenient().when(smtpConfiguration.getPort()).thenReturn(587);
+        lenient().when(smtpConfiguration.getProtocol()).thenReturn("smtp");
+        lenient().when(smtpConfiguration.isAuth()).thenReturn(true);
+        lenient().when(smtpConfiguration.isStarttlsEnable()).thenReturn(true);
+        lenient().when(smtpConfiguration.isSslEnable()).thenReturn(false);
+
+        // Configurar comportamento do EmailConfigurationService
+        lenient().when(emailConfigurationService.getDefaultConfiguration()).thenReturn(Optional.empty());
     }
 
     @Test
@@ -238,15 +245,15 @@ class SmtpServiceTest {
     }
 
     @Test
-    @DisplayName("Deve retornar false quando ocorre MessagingException")
-    void shouldReturnFalseWhenMessagingExceptionOccurs() throws MessagingException {
+    @DisplayName("Deve retornar false quando ocorre MailException no HTML")
+    void shouldReturnFalseWhenMailExceptionOccursInHtml() throws MessagingException {
         // Given
         String to = "test@email.com";
         String subject = "Teste HTML";
         String htmlContent = "<h1>Teste</h1>";
 
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        doThrow(new MessagingException("Erro de mensagem")).when(mailSender).send(any(MimeMessage.class));
+        doThrow(new MailException("Erro de envio") {}).when(mailSender).send(any(MimeMessage.class));
 
         // When
         boolean result = smtpService.sendHtmlEmail(to, subject, htmlContent);
@@ -342,28 +349,29 @@ class SmtpServiceTest {
     @DisplayName("Deve testar conexão com sucesso")
     void shouldTestConnectionSuccessfully() {
         // Given
-        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        // O método testConnection usa sendSimpleEmail que usa mailSender.send()
 
         // When
         boolean result = smtpService.testConnection();
 
         // Then
         assertThat(result).isTrue();
-        verify(mailSender).createMimeMessage();
+        verify(mailSender).send(any(SimpleMailMessage.class));
     }
 
     @Test
     @DisplayName("Deve retornar false quando teste de conexão falha")
     void shouldReturnFalseWhenConnectionTestFails() {
         // Given
-        when(mailSender.createMimeMessage()).thenThrow(new RuntimeException("Connection failed"));
+        doThrow(new RuntimeException("Connection failed")).when(mailSender).send(any(SimpleMailMessage.class));
 
         // When
         boolean result = smtpService.testConnection();
 
         // Then
         assertThat(result).isFalse();
-        verify(mailSender).createMimeMessage();
+        // O sistema de retry tenta 3 vezes por padrão
+        verify(mailSender, times(3)).send(any(SimpleMailMessage.class));
     }
 
     @Test

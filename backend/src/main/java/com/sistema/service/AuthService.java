@@ -4,7 +4,11 @@ import com.sistema.entity.RefreshToken;
 import com.sistema.entity.User;
 import com.sistema.entity.UserRole;
 import com.sistema.service.base.BaseUserService;
+// import com.sistema.telemetry.metrics.CustomMetricsService;
+// import com.sistema.telemetry.metrics.SecurityMetricsService;
+// import com.sistema.telemetry.service.DistributedTracingService;
 import com.sistema.util.ValidationUtils;
+// import io.micrometer.core.instrument.Timer;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -37,6 +41,9 @@ public class AuthService extends BaseUserService implements UserDetailsService {
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
     private final EmailVerificationService emailVerificationService;
+    // private final CustomMetricsService customMetricsService;
+    // private final SecurityMetricsService securityMetricsService;
+    // private final DistributedTracingService tracingService;
     private AuthenticationManager authenticationManager;
 
     @Autowired
@@ -45,6 +52,9 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
         this.emailVerificationService = emailVerificationService;
+        // this.customMetricsService = customMetricsService;
+        // this.securityMetricsService = securityMetricsService;
+        // this.tracingService = tracingService;
     }
 
     @Autowired
@@ -96,6 +106,8 @@ public class AuthService extends BaseUserService implements UserDetailsService {
      * @throws AuthenticationException se credenciais inválidas
      */
     public Map<String, Object> authenticate(String email, String password) throws AuthenticationException {
+        // Timer.Sample loginTimer = customMetricsService.startLoginTimer();
+        
         try {
             logger.info("Tentativa de autenticação para email: {}", email);
             
@@ -111,12 +123,14 @@ public class AuthService extends BaseUserService implements UserDetailsService {
             // Verificar se usuário está habilitado
             if (!user.isEnabled()) {
                 logger.warn("Tentativa de login com usuário desabilitado: {}", email);
+                // securityMetricsService.recordDisabledAccountAccess();
                 throw new BadCredentialsException("Usuário desabilitado");
             }
             
             // Verificar se email foi verificado
             if (!user.isEmailVerified()) {
                 logger.warn("Tentativa de login com email não verificado: {}", email);
+                // securityMetricsService.recordUnverifiedEmailAccess();
                 throw new BadCredentialsException("Email não verificado. Verifique sua caixa de entrada e clique no link de verificação.");
             }
             
@@ -137,16 +151,27 @@ public class AuthService extends BaseUserService implements UserDetailsService {
             response.put("refreshToken", refreshToken.getToken());
             response.put("tokenType", "Bearer");
             response.put("expiresIn", jwtService.getAccessTokenExpiration());
-            response.put("user", Map.of(
-                    "id", user.getId(),
-                    "email", user.getEmail(),
-                    "role", user.getRole().name()
-            ));
+            Map<String, Object> userInfo = new HashMap<>();
+            userInfo.put("id", user.getId());
+            userInfo.put("email", user.getEmail());
+            userInfo.put("role", user.getRole().name());
+            userInfo.put("emailVerified", user.isEmailVerified());
+            response.put("user", userInfo);
+            
+            // Registrar métricas de sucesso
+            // customMetricsService.recordSuccessfulLogin();
+            // securityMetricsService.recordSuccessfulAuthentication();
+            // loginTimer.stop();
             
             logger.info("Autenticação bem-sucedida para usuário: {}", email);
             return response;
             
         } catch (AuthenticationException e) {
+            // Registrar métricas de falha
+            // customMetricsService.recordFailedLogin();
+            // securityMetricsService.recordFailedAuthentication();
+            // loginTimer.stop();
+            
             logger.warn("Falha na autenticação para email: {} - {}", email, e.getMessage());
             throw e;
         } catch (Exception e) {
@@ -165,10 +190,20 @@ public class AuthService extends BaseUserService implements UserDetailsService {
      * @throws AuthenticationException se credenciais inválidas
      */
     public Map<String, Object> authenticate(String email, String password, HttpServletRequest request) {
+        // String traceId = tracingService.startTrace("auth.login", null, "POST /api/auth/login");
+        
         try {
+            // Adicionar informações do trace
+            // tracingService.addTraceInfo(traceId, "auth.email", email);
+            // tracingService.addTraceInfo(traceId, "auth.method", "password");
+            // tracingService.addTraceEvent(traceId, "validation.started", "Iniciando validação de entrada");
+            
             // Validar entrada
             ValidationUtils.validateNotBlank(email, "Email é obrigatório");
             ValidationUtils.validateNotBlank(password, "Senha é obrigatória");
+            
+            // tracingService.addTraceEvent(traceId, "validation.completed", "Validação de entrada concluída");
+            // tracingService.addTraceEvent(traceId, "authentication.started", "Iniciando autenticação Spring Security");
             
             // Autentica usando Spring Security
             Authentication authentication = authenticationManager.authenticate(
@@ -176,24 +211,43 @@ public class AuthService extends BaseUserService implements UserDetailsService {
             );
 
             User user = (User) authentication.getPrincipal();
+            // tracingService.addTraceInfo(traceId, "user.id", user.getId().toString());
+            // tracingService.addTraceInfo(traceId, "user.role", user.getRole().name());
+            // tracingService.addTraceEvent(traceId, "authentication.success", "Autenticação bem-sucedida");
             
             // Atualiza último login
+            // tracingService.addTraceEvent(traceId, "login.update.started", "Atualizando último login");
             updateLastLogin(user.getId());
+            // tracingService.addTraceEvent(traceId, "login.update.completed", "Último login atualizado");
             
             // Gera tokens
+            // tracingService.addTraceEvent(traceId, "token.generation.started", "Gerando tokens de acesso");
             String accessToken = jwtService.generateAccessToken(user);
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, request);
+            // tracingService.addTraceEvent(traceId, "token.generation.completed", "Tokens gerados com sucesso");
             
             logger.info("Usuário autenticado com sucesso: {}", user.getEmail());
             
+            // tracingService.finishTrace(traceId, true);
             return createAuthResponse(user, accessToken, refreshToken.getToken());
             
         } catch (DisabledException e) {
+            // tracingService.addTraceError(traceId, "Usuário desabilitado: " + email, e);
+            // tracingService.addTraceEvent(traceId, "authentication.failed", "Usuário desabilitado");
             logger.warn("Tentativa de login com usuário desabilitado: {}", email);
+            // tracingService.finishTrace(traceId, false);
             throw e; // Propagar DisabledException para o teste
         } catch (AuthenticationException e) {
+            // tracingService.addTraceError(traceId, "Credenciais inválidas para: " + email, e);
+            // tracingService.addTraceEvent(traceId, "authentication.failed", "Credenciais inválidas");
             logger.warn("Falha na autenticação para usuário: {}", email);
+            // tracingService.finishTrace(traceId, false);
             throw new BadCredentialsException("Credenciais inválidas");
+        } catch (Exception e) {
+            // tracingService.addTraceError(traceId, "Erro inesperado durante autenticação", e);
+            // tracingService.addTraceEvent(traceId, "authentication.error", "Erro inesperado");
+            // tracingService.finishTrace(traceId, false);
+            throw e;
         }
     }
 
@@ -209,68 +263,124 @@ public class AuthService extends BaseUserService implements UserDetailsService {
      * @throws RuntimeException se email ou CPF já existirem
      */
     public User register(String email, String password, String firstName, String lastName, String cpf) {
-        // Validar entrada usando utilitários
-        ValidationUtils.validateNotBlank(email, "Email é obrigatório");
-        ValidationUtils.validateNotBlank(password, "Senha é obrigatória");
-        ValidationUtils.validateNotBlank(firstName, "Primeiro nome é obrigatório");
-        ValidationUtils.validateNotBlank(lastName, "Último nome é obrigatório");
-        ValidationUtils.validateNotBlank(cpf, "CPF é obrigatório");
+        // String traceId = tracingService.startTrace("auth.register", null, "POST /api/auth/register");
+        // Timer.Sample registrationTimer = customMetricsService.startRegistrationTimer();
         
-        ValidationUtils.validateEmail(email);
-        ValidationUtils.validatePassword(password);
-        ValidationUtils.validateCpf(cpf);
-        
-        // Verificar se dados já existem usando métodos da classe base
-        validateEmailNotInUse(email, null);
-        
-        // Verificar se CPF já existe
-        if (userRepository.existsByCpf(cpf)) {
-            throw new RuntimeException("CPF já está em uso");
-        }
-        
-        // Criar novo usuário
-        User user = new User();
-        user.setEmail(email);
-        user.setPassword(encodePassword(password));
-        user.setFirstName(firstName);
-        user.setLastName(lastName);
-        user.setCpf(cpf);
-        
-        // Verificar se é o primeiro usuário ou email especial para auto-promoção a admin
-        if (userRepository.isFirstUser() || "lgcovizzi@gmail.com".equalsIgnoreCase(email)) {
-            user.setRole(UserRole.ADMIN);
-            user.setEmailVerified(true); // Admin é verificado automaticamente
-            if (userRepository.isFirstUser()) {
-                logger.info("Primeiro usuário {} promovido automaticamente para ADMIN", email);
+        try {
+            // Adicionar informações do trace
+            // tracingService.addTraceInfo(traceId, "user.email", email);
+            // tracingService.addTraceInfo(traceId, "user.firstName", firstName);
+            // tracingService.addTraceInfo(traceId, "user.lastName", lastName);
+            // tracingService.addTraceEvent(traceId, "validation.started", "Iniciando validação de entrada");
+            
+            // Validar entrada usando utilitários
+            ValidationUtils.validateNotBlank(email, "Email é obrigatório");
+            ValidationUtils.validateNotBlank(password, "Senha é obrigatória");
+            ValidationUtils.validateNotBlank(firstName, "Primeiro nome é obrigatório");
+            ValidationUtils.validateNotBlank(lastName, "Último nome é obrigatório");
+            ValidationUtils.validateNotBlank(cpf, "CPF é obrigatório");
+            
+            ValidationUtils.validateEmail(email);
+            ValidationUtils.validatePassword(password);
+            ValidationUtils.validateCpf(cpf);
+            
+            // tracingService.addTraceEvent(traceId, "validation.completed", "Validação de entrada concluída");
+            // tracingService.addTraceEvent(traceId, "uniqueness.check.started", "Verificando unicidade de dados");
+            
+            // Verificar se dados já existem usando métodos da classe base
+            validateEmailNotInUse(email, null);
+            
+            // Verificar se CPF já existe
+            if (userRepository.existsByCpf(cpf)) {
+                // tracingService.addTraceError(traceId, "CPF já está em uso: " + cpf, null);
+                // tracingService.addTraceEvent(traceId, "registration.failed", "CPF duplicado");
+                throw new RuntimeException("CPF já está em uso");
+            }
+            
+            // tracingService.addTraceEvent(traceId, "uniqueness.check.completed", "Verificação de unicidade concluída");
+            // tracingService.addTraceEvent(traceId, "user.creation.started", "Criando novo usuário");
+            
+            // Criar novo usuário
+            User user = new User();
+            user.setEmail(email);
+            user.setPassword(encodePassword(password));
+            user.setFirstName(firstName);
+            user.setLastName(lastName);
+            user.setCpf(cpf);
+            
+            // tracingService.addTraceEvent(traceId, "role.assignment.started", "Determinando role do usuário");
+            
+            // Verificar se é o primeiro usuário ou email especial para auto-promoção a admin
+            if (userRepository.isFirstUser() || "lgcovizzi@gmail.com".equalsIgnoreCase(email)) {
+                user.setRole(UserRole.ADMIN);
+                user.setEmailVerified(true); // Admin é verificado automaticamente
+                // tracingService.addTraceInfo(traceId, "user.role", "ADMIN");
+                // tracingService.addTraceInfo(traceId, "email.verified", "true");
+                if (userRepository.isFirstUser()) {
+                    // tracingService.addTraceEvent(traceId, "admin.promotion", "Primeiro usuário promovido a ADMIN");
+                    logger.info("Primeiro usuário {} promovido automaticamente para ADMIN", email);
+                } else {
+                    // tracingService.addTraceEvent(traceId, "admin.promotion", "Email especial promovido a ADMIN");
+                    logger.info("Usuário {} promovido automaticamente para ADMIN devido ao email especial", email);
+                }
             } else {
-                logger.info("Usuário {} promovido automaticamente para ADMIN devido ao email especial", email);
+                user.setRole(UserRole.USER);
+                user.setEmailVerified(false); // Usuários normais precisam verificar email
+                // tracingService.addTraceInfo(traceId, "user.role", "USER");
+                // tracingService.addTraceInfo(traceId, "email.verified", "false");
             }
-        } else {
-            user.setRole(UserRole.USER);
-            user.setEmailVerified(false); // Usuários normais precisam verificar email
-        }
-        
-        user.setActive(true);
-        user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
-        
-        User savedUser = userRepository.save(user);
-        
-        // Gerar token de verificação apenas para usuários não verificados
-        if (!savedUser.isEmailVerified()) {
-            try {
-                String verificationToken = emailVerificationService.generateVerificationToken(savedUser);
-                logger.info("Token de verificação gerado para: {}", email);
-            } catch (Exception e) {
-                logger.error("ERRO CRÍTICO: Falha ao gerar token de verificação para: {}", email, e);
-                // REGRA CRÍTICA: Falhar o registro se o email não puder ser enviado
-                throw new RuntimeException("Falha no envio de email de ativação: " + e.getMessage(), e);
+            
+            user.setActive(true);
+            user.setCreatedAt(LocalDateTime.now());
+            user.setUpdatedAt(LocalDateTime.now());
+            
+            // tracingService.addTraceEvent(traceId, "database.save.started", "Salvando usuário no banco");
+            User savedUser = userRepository.save(user);
+            // tracingService.addTraceInfo(traceId, "user.id", savedUser.getId().toString());
+            // tracingService.addTraceEvent(traceId, "database.save.completed", "Usuário salvo com sucesso");
+            
+            // Gerar token de verificação apenas para usuários não verificados
+            if (!savedUser.isEmailVerified()) {
+                try {
+                    // tracingService.addTraceEvent(traceId, "email.verification.started", "Gerando token de verificação");
+                    String verificationToken = emailVerificationService.generateVerificationToken(savedUser);
+                    // tracingService.addTraceEvent(traceId, "email.verification.completed", "Token de verificação enviado");
+                    logger.info("Token de verificação gerado para: {}", email);
+                } catch (Exception e) {
+                    // tracingService.addTraceError(traceId, "Falha ao gerar token de verificação", e);
+                    // tracingService.addTraceEvent(traceId, "email.verification.failed", "Falha no envio de email");
+                    logger.error("ERRO CRÍTICO: Falha ao gerar token de verificação para: {}", email, e);
+                    // REGRA CRÍTICA: Falhar o registro se o email não puder ser enviado
+                    // tracingService.finishTrace(traceId, false);
+                    throw new RuntimeException("Falha no envio de email de ativação: " + e.getMessage(), e);
+                }
             }
+            
+            // Registrar métricas de sucesso
+            // customMetricsService.recordUserRegistration();
+            // registrationTimer.stop();
+            
+            // tracingService.addTraceEvent(traceId, "registration.completed", "Registro concluído com sucesso");
+            logger.info("Usuário registrado com sucesso: {}", email);
+            
+            // tracingService.finishTrace(traceId, true);
+            return savedUser;
+            
+        } catch (Exception e) {
+            // Registrar métricas de falha
+            // customMetricsService.recordRegistrationError();
+            // registrationTimer.stop();
+            
+            // Adicionar erro ao trace se não foi adicionado anteriormente
+            // if (!e.getMessage().contains("Falha no envio de email de ativação")) {
+            //     tracingService.addTraceError(traceId, "Erro durante registro: " + e.getMessage(), e);
+            //     tracingService.addTraceEvent(traceId, "registration.failed", "Falha no registro");
+            //     tracingService.finishTrace(traceId, false);
+            // }
+            
+            logger.error("Falha no registro do usuário: {}", email, e);
+            throw e;
         }
-        
-        logger.info("Usuário registrado com sucesso: {}", email);
-        
-        return savedUser;
     }
     
     /**
@@ -297,25 +407,28 @@ public class AuthService extends BaseUserService implements UserDetailsService {
             ValidationUtils.validateNotBlank(email, "Email é obrigatório");
             ValidationUtils.validateNotBlank(password, "Senha é obrigatória");
             
-            // Autentica usando Spring Security
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(email, password)
-            );
-
-            User authenticatedUser = (User) authentication.getPrincipal();
+            // Buscar o usuário recém-registrado
+            User registeredUser = findUserByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Usuário não encontrado após registro"));
+            
+            // Verificar se usuário está habilitado (mas não verificar emailVerified para registro)
+            if (!registeredUser.isEnabled()) {
+                logger.warn("Usuário desabilitado durante registro: {}", email);
+                throw new RuntimeException("Usuário desabilitado");
+            }
             
             // Atualiza último login
-            updateLastLogin(authenticatedUser.getId());
+            updateLastLogin(registeredUser.getId());
             
-            // Gera tokens
-            String accessToken = jwtService.generateAccessToken(authenticatedUser);
-            RefreshToken refreshToken = refreshTokenService.createRefreshToken(authenticatedUser, request);
+            // Gera tokens diretamente sem usar AuthenticationManager
+            String accessToken = jwtService.generateAccessToken(registeredUser);
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(registeredUser, request);
             
-            logger.info("Usuário registrado e autenticado com sucesso: {}", authenticatedUser.getEmail());
+            logger.info("Usuário registrado e autenticado com sucesso: {}", registeredUser.getEmail());
             
-            return createAuthResponse(authenticatedUser, accessToken, refreshToken.getToken());
+            return createAuthResponse(registeredUser, accessToken, refreshToken.getToken());
             
-        } catch (AuthenticationException e) {
+        } catch (Exception e) {
             logger.error("Erro na autenticação após registro para usuário: {}", email, e);
             throw new RuntimeException("Erro interno do servidor durante autenticação");
         }
@@ -425,6 +538,7 @@ public class AuthService extends BaseUserService implements UserDetailsService {
         userInfo.put("fullName", user.getFullName());
         userInfo.put("role", user.getRole());
         userInfo.put("lastLogin", user.getLastLogin());
+        userInfo.put("emailVerified", user.isEmailVerified());
         
         response.put("user", userInfo);
         

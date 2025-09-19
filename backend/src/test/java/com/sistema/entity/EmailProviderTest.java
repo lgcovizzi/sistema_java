@@ -143,7 +143,7 @@ class EmailProviderTest {
         EmailProvider provider = EmailProvider.MAILTRAP;
 
         // When
-        boolean usesTls = provider.isUseTls();
+        boolean usesTls = provider.isDefaultTlsEnabled();
 
         // Then
         assertTrue(usesTls, "MAILTRAP deve usar TLS");
@@ -156,7 +156,7 @@ class EmailProviderTest {
         EmailProvider provider = EmailProvider.GMAIL;
 
         // When
-        boolean usesTls = provider.isUseTls();
+        boolean usesTls = provider.isDefaultTlsEnabled();
 
         // Then
         assertTrue(usesTls, "GMAIL deve usar TLS");
@@ -169,7 +169,7 @@ class EmailProviderTest {
         EmailProvider provider = EmailProvider.MAILTRAP;
 
         // When
-        boolean requiresAuth = provider.isRequiresAuth();
+        boolean requiresAuth = provider.isDefaultAuthRequired();
 
         // Then
         assertTrue(requiresAuth, "MAILTRAP deve requerer autenticação");
@@ -182,7 +182,7 @@ class EmailProviderTest {
         EmailProvider provider = EmailProvider.GMAIL;
 
         // When
-        boolean requiresAuth = provider.isRequiresAuth();
+        boolean requiresAuth = provider.isDefaultAuthRequired();
 
         // Then
         assertTrue(requiresAuth, "GMAIL deve requerer autenticação");

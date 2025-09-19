@@ -35,7 +35,7 @@ class EmailConfigurationTest {
         emailConfiguration.setPort(2525);
         emailConfiguration.setUsername("test_user");
         emailConfiguration.setPassword("test_password");
-        emailConfiguration.setEnabled(true);
+        emailConfiguration.setIsActive(true);
         emailConfiguration.setDefault(false);
         emailConfiguration.setDescription("Configuração de teste");
     }
@@ -231,7 +231,7 @@ class EmailConfigurationTest {
         config.setPort(587);
         config.setUsername("test@example.com");
         config.setPassword("password");
-        config.setEnabled(true);
+        config.setIsActive(true);
 
         // When - Os timestamps são definidos automaticamente pelo Hibernate
         // @CreationTimestamp e @UpdateTimestamp fazem isso automaticamente
@@ -336,7 +336,7 @@ class EmailConfigurationTest {
         assertNull(config.getPort(), "Port deve ser nulo por padrão");
         assertNull(config.getUsername(), "Username deve ser nulo por padrão");
         assertNull(config.getPassword(), "Password deve ser nulo por padrão");
-        assertFalse(config.isEnabled(), "Enabled deve ser false por padrão");
+        assertFalse(config.getIsActive(), "IsActive deve ser false por padrão");
         assertFalse(config.isDefault(), "Default deve ser false por padrão");
         assertNull(config.getDescription(), "Description deve ser nulo por padrão");
         assertNull(config.getCreatedAt(), "CreatedAt deve ser nulo por padrão");
@@ -389,11 +389,11 @@ class EmailConfigurationTest {
     @DisplayName("Deve manter estado de enabled corretamente")
     void shouldMaintainEnabledStateCorrectly() {
         // Given & When & Then
-        emailConfiguration.setEnabled(true);
-        assertTrue(emailConfiguration.isEnabled(), "Enabled deve ser true quando definido como true");
+        emailConfiguration.setIsActive(true);
+        assertTrue(emailConfiguration.getIsActive(), "IsActive deve ser true quando definido como true");
 
-        emailConfiguration.setEnabled(false);
-        assertFalse(emailConfiguration.isEnabled(), "Enabled deve ser false quando definido como false");
+        emailConfiguration.setIsActive(false);
+        assertFalse(emailConfiguration.getIsActive(), "IsActive deve ser false quando definido como false");
     }
 
     @Test

@@ -14,6 +14,7 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.*;
@@ -334,7 +335,9 @@ class EmailServiceTest {
     @DisplayName("Deve obter estatísticas do email")
     void shouldGetEmailStats() {
         // Given
-        Map<String, Object> smtpStats = Map.of("host", "localhost", "port", 587);
+        Map<String, Object> smtpStats = new HashMap<>();
+        smtpStats.put("host", "localhost");
+        smtpStats.put("port", 587);
         when(smtpService.getStatistics()).thenReturn(smtpStats);
         when(smtpService.testConnection()).thenReturn(true);
 

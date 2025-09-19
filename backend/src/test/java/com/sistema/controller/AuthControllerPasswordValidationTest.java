@@ -29,7 +29,10 @@ import static org.hamcrest.Matchers.*;
 /**
  * Testes de integração para validação de senhas no AuthController.
  */
-@SpringBootTest
+@SpringBootTest(properties = {
+    "management.health.redis.enabled=false",
+    "spring.data.redis.repositories.enabled=false"
+})
 @AutoConfigureWebMvc
 @ActiveProfiles("test")
 @Transactional

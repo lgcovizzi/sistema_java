@@ -2,6 +2,8 @@ package com.sistema.service;
 
 import com.sistema.entity.User;
 import com.sistema.service.base.BaseService;
+// import com.sistema.telemetry.metrics.CustomMetricsService;
+// import io.micrometer.core.instrument.Timer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,9 @@ public class EmailService extends BaseService {
 
     @Autowired
     private TemplateEngine templateEngine;
+    
+    // @Autowired
+    // private CustomMetricsService customMetricsService;
 
     @Value("${spring.mail.username:noreply@sistema.com}")
     private String fromEmail;
@@ -46,12 +51,15 @@ public class EmailService extends BaseService {
      * @return true se email foi enviado com sucesso
      */
     public boolean sendVerificationEmail(User user, String verificationToken) {
+        // Timer.Sample emailTimer = customMetricsService.startEmailTimer();
+        
         validateNotNull(user, "user");
         validateNotEmpty(verificationToken, "verificationToken");
         validateNotEmpty(user.getEmail(), "user.email");
 
         if (!emailEnabled) {
             logInfo("Envio de email está desabilitado. Email de verificação não enviado para: " + user.getEmail());
+            // emailTimer.stop();
             return false;
         }
 
@@ -62,10 +70,18 @@ public class EmailService extends BaseService {
 
             sendHtmlEmail(user.getEmail(), subject, htmlContent);
             
+            // Registrar métricas de sucesso
+            // customMetricsService.recordEmailSent();
+            // emailTimer.stop();
+            
             logInfo("Email de verificação enviado para: " + user.getEmail());
             return true;
 
         } catch (Exception e) {
+            // Registrar métricas de falha
+            // customMetricsService.recordEmailError();
+            // emailTimer.stop();
+            
             logError("Erro ao enviar email de verificação para " + user.getEmail() + ": " + e.getMessage(), e);
             return false;
         }

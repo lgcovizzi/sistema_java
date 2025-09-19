@@ -22,7 +22,7 @@ public interface EmailConfigurationRepository extends JpaRepository<EmailConfigu
      * 
      * @return Optional com a configuração padrão
      */
-    @Query("SELECT ec FROM EmailConfiguration ec WHERE ec.isDefault = true AND ec.enabled = true")
+    @Query("SELECT ec FROM EmailConfiguration ec WHERE ec.isDefault = true AND ec.isActive = true")
     Optional<EmailConfiguration> findDefaultConfiguration();
 
     /**
@@ -39,21 +39,21 @@ public interface EmailConfigurationRepository extends JpaRepository<EmailConfigu
      * @param provider o provedor de email
      * @return lista de configurações ativas do provedor
      */
-    List<EmailConfiguration> findByProviderAndEnabledTrue(EmailProvider provider);
+    List<EmailConfiguration> findByProviderAndIsActiveTrue(EmailProvider provider);
 
     /**
      * Busca todas as configurações ativas.
      * 
      * @return lista de configurações ativas
      */
-    List<EmailConfiguration> findByEnabledTrue();
+    List<EmailConfiguration> findByIsActiveTrue();
 
     /**
      * Verifica se existe uma configuração padrão ativa.
      * 
      * @return true se existe configuração padrão ativa
      */
-    @Query("SELECT COUNT(ec) > 0 FROM EmailConfiguration ec WHERE ec.isDefault = true AND ec.enabled = true")
+    @Query("SELECT COUNT(ec) > 0 FROM EmailConfiguration ec WHERE ec.isDefault = true AND ec.isActive = true")
     boolean existsDefaultConfiguration();
 
     /**
@@ -92,10 +92,25 @@ public interface EmailConfigurationRepository extends JpaRepository<EmailConfigu
     /**
      * Conta configurações ativas por provedor.
      * 
-     * @param provider o provedor
+     * @param provider o provedor de email
+     * @return número de configurações ativas do provedor
+     */
+    long countByProviderAndIsActiveTrue(EmailProvider provider);
+
+    /**
+     * Conta configurações por provedor.
+     * 
+     * @param provider o provedor de email
+     * @return número de configurações do provedor
+     */
+    long countByProvider(EmailProvider provider);
+
+    /**
+     * Conta configurações ativas.
+     * 
      * @return número de configurações ativas
      */
-    long countByProviderAndEnabledTrue(EmailProvider provider);
+    long countByIsActiveTrue();
 
     /**
      * Busca configurações ordenadas por data de criação.
@@ -110,6 +125,6 @@ public interface EmailConfigurationRepository extends JpaRepository<EmailConfigu
      * 
      * @return lista ordenada de configurações ativas
      */
-    @Query("SELECT ec FROM EmailConfiguration ec WHERE ec.enabled = true ORDER BY ec.isDefault DESC, ec.createdAt DESC")
+    @Query("SELECT ec FROM EmailConfiguration ec WHERE ec.isActive = true ORDER BY ec.isDefault DESC, ec.createdAt DESC")
     List<EmailConfiguration> findEnabledOrderByDefaultFirst();
 }

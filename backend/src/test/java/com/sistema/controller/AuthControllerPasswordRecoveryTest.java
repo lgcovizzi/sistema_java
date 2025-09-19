@@ -26,7 +26,10 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(AuthController.class)
+@WebMvcTest(value = AuthController.class, properties = {
+    "management.health.redis.enabled=false",
+    "spring.data.redis.repositories.enabled=false"
+})
 @DisplayName("AuthController Password Recovery Tests")
 class AuthControllerPasswordRecoveryTest {
 

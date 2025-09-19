@@ -179,6 +179,130 @@ app:
         ssl: false
         description: "Outlook/Hotmail SMTP"
         from-email: ${OUTLOOK_FROM_EMAIL:sistema@outlook.com}
+  
+  # Configurações de telemetria
+  telemetry:
+    enabled: true
+    service-name: ${spring.application.name}
+    environment: ${spring.profiles.active}
+    version: ${app.version:1.0.0}
+    
+    # Configurações de métricas customizadas
+    metrics:
+      enabled: true
+      custom-counters: true
+      custom-timers: true
+      custom-gauges: true
+      business-metrics: true
+      
+      # Configurações específicas por domínio
+      auth:
+        enabled: true
+        track-login-attempts: true
+        track-registration: true
+        track-password-reset: true
+        track-token-generation: true
+      
+      email:
+        enabled: true
+        track-send-attempts: true
+        track-send-success: true
+        track-send-failures: true
+        track-queue-size: true
+      
+      batch:
+        enabled: true
+        track-job-execution: true
+        track-step-execution: true
+        track-item-processing: true
+        track-queue-processing: true
+      
+      database:
+        enabled: true
+        track-query-performance: true
+        track-connection-pool: true
+        track-transaction-duration: true
+      
+      cache:
+        enabled: true
+        track-hit-ratio: true
+        track-evictions: true
+        track-size: true
+    
+    # Configurações de tracing
+    tracing:
+      enabled: true
+      sample-rate: 1.0
+      max-spans-per-trace: 1000
+      
+      # Instrumentação automática
+      auto-instrument:
+        controllers: true
+        services: true
+        repositories: true
+        external-calls: true
+        database-queries: true
+        cache-operations: true
+        email-operations: true
+        batch-operations: true
+      
+      # Configurações de baggage
+      baggage:
+        enabled: true
+        fields:
+          - user-id
+          - session-id
+          - request-id
+          - correlation-id
+    
+    # Configurações de logging estruturado
+    logging:
+      enabled: true
+      structured: true
+      include-trace-id: true
+      include-span-id: true
+      include-baggage: true
+      
+      # Níveis de log por componente
+      levels:
+        telemetry: INFO
+        metrics: DEBUG
+        tracing: DEBUG
+        instrumentation: INFO
+    
+    # Configurações de alertas
+    alerts:
+      enabled: true
+      thresholds:
+        error-rate: 0.05
+        response-time-p95: 2000ms
+        memory-usage: 0.85
+        cpu-usage: 0.80
+        disk-usage: 0.90
+        
+    # Configurações de exportadores
+    exporters:
+      console:
+        enabled: false
+        interval: 30s
+      
+      prometheus:
+        enabled: true
+        port: 9090
+        path: /metrics
+        
+      jaeger:
+        enabled: true
+        endpoint: http://localhost:14268/api/traces
+        
+      otlp:
+        enabled: true
+        endpoint: http://localhost:4317
+        protocol: grpc
+        
+      zipkin:
+        enabled: false
+        endpoint: http://localhost:9411/api/v2/spans
 
 server:
   port: 8080
@@ -189,10 +313,145 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics,prometheus,httptrace,threaddump,heapdump,env,configprops,beans,mappings,scheduledtasks,caches,conditions,flyway,liquibase,loggers,auditevents,telemetry,system-health,security-metrics,performance-metrics,tracing,telemetry-test
+      base-path: /actuator
+      cors:
+        allowed-origins: "*"
+        allowed-methods: GET,POST
+        allowed-headers: "*"
   endpoint:
     health:
       show-details: always
+      show-components: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+    httptrace:
+      enabled: true
+    threaddump:
+      enabled: true
+    heapdump:
+      enabled: true
+    env:
+      enabled: true
+      show-values: when-authorized
+    configprops:
+      enabled: true
+      show-values: when-authorized
+    beans:
+      enabled: true
+    mappings:
+      enabled: true
+    scheduledtasks:
+      enabled: true
+    caches:
+      enabled: true
+    conditions:
+      enabled: true
+    loggers:
+      enabled: true
+    auditevents:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 10s
+        descriptions: true
+        histogram-flavor: prometheus
+      simple:
+        enabled: true
+        step: 10s
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        spring.data.repository.invocations: true
+        method.timed: true
+      percentiles:
+        http.server.requests: 0.5, 0.75, 0.95, 0.99
+        spring.data.repository.invocations: 0.5, 0.75, 0.95, 0.99
+        method.timed: 0.5, 0.75, 0.95, 0.99
+      slo:
+        http.server.requests: 10ms, 50ms, 100ms, 200ms, 500ms, 1s, 2s, 5s
+        spring.data.repository.invocations: 1ms, 5ms, 10ms, 25ms, 50ms, 100ms, 250ms, 500ms
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active}
+      version: ${app.version:1.0.0}
+    web:
+      server:
+        request:
+          autotime:
+            enabled: true
+            percentiles: 0.5, 0.75, 0.95, 0.99
+            percentiles-histogram: true
+  tracing:
+    sampling:
+      probability: 1.0
+    baggage:
+      correlation:
+        enabled: true
+      remote-fields: user-id, trace-id, span-id
+    zipkin:
+      endpoint: http://localhost:9411/api/v2/spans
+    jaeger:
+      endpoint: http://localhost:14268/api/traces
+
+# Configurações do OpenTelemetry
+otel:
+  service:
+    name: ${spring.application.name}
+    version: ${app.version:1.0.0}
+  resource:
+    attributes:
+      service.name: ${spring.application.name}
+      service.version: ${app.version:1.0.0}
+      service.environment: ${spring.profiles.active}
+      service.instance.id: ${random.uuid}
+  exporter:
+    otlp:
+      endpoint: http://localhost:4317
+      protocol: grpc
+      timeout: 30s
+      compression: gzip
+      headers:
+        api-key: ${OTEL_API_KEY:}
+    jaeger:
+      endpoint: http://localhost:14250
+      timeout: 30s
+    prometheus:
+      endpoint: http://localhost:9090
+      timeout: 30s
+  instrumentation:
+    spring-webmvc:
+      enabled: true
+    spring-webflux:
+      enabled: true
+    spring-data:
+      enabled: true
+    jdbc:
+      enabled: true
+    redis:
+      enabled: true
+    http-clients:
+      enabled: true
+    logging:
+      enabled: true
+    micrometer:
+      enabled: true
+  traces:
+    exporter: otlp,jaeger
+  metrics:
+    exporter: otlp,prometheus
+  logs:
+    exporter: otlp
+  propagators: tracecontext,baggage,b3,jaeger,ottrace
+  sampler:
+    type: traceidratio
+    arg: 1.0
+
+
 
 # Configurações de logging
 logging:

@@ -175,20 +175,6 @@
             <artifactId>opentelemetry-sdk</artifactId>
         </dependency>
         
-        <!-- OpenTelemetry API -->
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-api</artifactId>
-            <version>1.31.0</version>
-        </dependency>
-        
-        <!-- OpenTelemetry SDK -->
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-sdk</artifactId>
-            <version>1.31.0</version>
-        </dependency>
-        
         <!-- OpenTelemetry Auto Configuration -->
         <dependency>
             <groupId>io.opentelemetry</groupId>
